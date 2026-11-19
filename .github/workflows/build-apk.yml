@@ -59,7 +59,7 @@ jobs:
           mkdir -p /tmp/7gigs/classes /tmp/7gigs/dex
           cat > /tmp/7gigs/AndroidManifest.xml <<'MANIFEST'
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena" android:versionCode="10002" android:versionName="1.0.2">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena" android:versionCode="10004" android:versionName="1.0.4">
             <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
             <uses-permission android:name="android.permission.INTERNET"/>
             <application android:label="7 Gigs Neon Arena" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
