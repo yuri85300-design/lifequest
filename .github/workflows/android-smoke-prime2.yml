@@ -1,4 +1,4 @@
-name: PRIME 2.0 — Test installation et lancement Android
+name: PRIME 2.0 - QA Android 15
 on:
   push:
     paths:
@@ -11,18 +11,20 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
-      - name: Télécharger PRIME 2.0 et l'ancienne APK
+      - name: Telecharger les deux APK
+        shell: bash
         run: |
           set -euo pipefail
-          curl -fL --retry 3 -o /tmp/game.apk 'https://github.com/yuri85300-design/lifequest/releases/download/prime-v2.0.0/7Gigs-PRIME-2.0.0.apk'
+          curl -fL --retry 3 -o /tmp/prime2.apk 'https://github.com/yuri85300-design/lifequest/releases/download/prime-v2.0.0/7Gigs-PRIME-2.0.0.apk'
           curl -fL --retry 3 -o /tmp/old.apk 'https://github.com/yuri85300-design/lifequest/releases/download/test-v1.0.5/7Gigs-Neon-Arena-Android.apk'
-          test -s /tmp/game.apk
-      - name: Autoriser KVM
+          test -s /tmp/prime2.apk
+          test -s /tmp/old.apk
+      - name: KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Tester une ouverture Android 15
+      - name: Installation et lancement
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -34,47 +36,26 @@ jobs:
           script: |
             mkdir -p /tmp/prime-qa
             adb install -r /tmp/old.apk
-            adb install -r /tmp/game.apk
-            adb shell pm list packages | grep 'dev.septgigs.neonarena' | tee /tmp/prime-qa/packages.txt
-            grep -q 'dev.septgigs.neonarena.prime' /tmp/prime-qa/packages.txt
-            grep -q '^package:dev.septgigs.neonarena
+            adb install -r /tmp/prime2.apk
+            adb shell pm list packages > /tmp/prime-qa/packages.txt
+            grep -Fx 'package:dev.septgigs.neonarena' /tmp/prime-qa/packages.txt
+            grep -Fx 'package:dev.septgigs.neonarena.prime' /tmp/prime-qa/packages.txt
             adb logcat -c
-            adb shell am start -W -n dev.septgigs.neonarena.prime/.Prime2Activity | tee /tmp/prime-qa/launch.txt
-            sleep 14
+            adb shell am start -W -n dev.septgigs.neonarena.prime/.Prime2Activity > /tmp/prime-qa/launch.txt
+            sleep 12
             adb shell dumpsys activity activities > /tmp/prime-qa/activity.txt
             adb logcat -d > /tmp/prime-qa/logcat.txt
             adb shell screencap -p /sdcard/prime.png
             adb pull /sdcard/prime.png /tmp/prime-qa/prime.png
             adb shell uiautomator dump /sdcard/window.xml >/dev/null || true
             adb shell cat /sdcard/window.xml > /tmp/prime-qa/window.xml || true
-            grep -E 'FATAL EXCEPTION|dev.septgigs.neonarena|chromium|AwContents' /tmp/prime-qa/logcat.txt | tail -120 || true
+            grep -q 'dev.septgigs.neonarena.prime/.Prime2Activity' /tmp/prime-qa/activity.txt
             if grep -q 'FATAL EXCEPTION' /tmp/prime-qa/logcat.txt; then exit 1; fi
             if grep -E '7Gigs-PRIME.*JS.*(Uncaught|SyntaxError|ReferenceError)' /tmp/prime-qa/logcat.txt; then exit 1; fi
-            grep -q 'dev.septgigs.neonarena/.LauncherActivity' /tmp/prime-qa/activity.txt
-      - name: Sauvegarder diagnostic
+      - name: Diagnostic
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostic-PRIME-2-Android-15
-          path: /tmp/prime-qa/
-          if-no-files-found: warn
- /tmp/prime-qa/packages.txt
-            adb logcat -c
-            adb shell am start -W -n dev.septgigs.neonarena/.LauncherActivity | tee /tmp/prime-qa/launch.txt
-            sleep 14
-            adb shell dumpsys activity activities > /tmp/prime-qa/activity.txt
-            adb logcat -d > /tmp/prime-qa/logcat.txt
-            adb shell screencap -p /sdcard/prime.png
-            adb pull /sdcard/prime.png /tmp/prime-qa/prime.png
-            adb shell uiautomator dump /sdcard/window.xml >/dev/null || true
-            adb shell cat /sdcard/window.xml > /tmp/prime-qa/window.xml || true
-            grep -E 'FATAL EXCEPTION|dev.septgigs.neonarena|chromium|AwContents' /tmp/prime-qa/logcat.txt | tail -120 || true
-            if grep -q 'FATAL EXCEPTION' /tmp/prime-qa/logcat.txt; then exit 1; fi
-            grep -q 'dev.septgigs.neonarena/.LauncherActivity' /tmp/prime-qa/activity.txt
-      - name: Sauvegarder diagnostic
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: diagnostic-APK-PRIME-emulator
+          name: prime-2-android15-qa
           path: /tmp/prime-qa/
           if-no-files-found: warn
