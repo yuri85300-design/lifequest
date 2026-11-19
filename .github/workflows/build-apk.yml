@@ -77,8 +77,8 @@ jobs:
           "$BT/apksigner" sign --ks /tmp/7gigs/test-signing.jks --ks-key-alias septgigs --ks-pass pass:temp7gigs4321 --key-pass pass:temp7gigs4321 --out /tmp/7gigs/7Gigs-Neon-Arena-Android.apk /tmp/7gigs/aligned.apk
           "$BT/apksigner" verify --verbose /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
           "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | head -16
-          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -q "targetSdkVersion:\x2735\x27"
-          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -q "versionName=\x271.0.1\x27"
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "targetSdkVersion:'35'"
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "versionName='1.0.1'"
           unzip -t /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | tail -3
           test -s /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
       - name: Fichier APK téléchargeable
