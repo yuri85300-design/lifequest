@@ -7,66 +7,92 @@ permissions:
   contents: write
 jobs:
   android:
-    name: APK Android avec SDK officiel
     runs-on: ubuntu-latest
     steps:
       - name: Récupérer le dépôt
         uses: actions/checkout@v4
-      - name: Décompresser les sources Android
+      - name: Extraire et vérifier le jeu
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode android-project-source.b64 > /tmp/7gigs-android.zip
-          echo '66767788b77ca758221c9f1fe9e4eeee82f9a0cba7af8b09e3f077cbdb7fd2df  /tmp/7gigs-android.zip' | sha256sum -c -
-          mkdir -p android-project
-          unzip -q /tmp/7gigs-android.zip -d android-project
-          test -f android-project/app/build.gradle
-          test -f android-project/app/src/main/java/dev/septgigs/neonarena/MainActivity.java
-          test -f android-project/app/src/main/assets/www/index.html
+          base64 -d android-project-source.b64 > /tmp/7gigs-source.zip
+          echo '66767788b77ca758221c9f1fe9e4eeee82f9a0cba7af8b09e3f077cbdb7fd2df  /tmp/7gigs-source.zip' | sha256sum -c -
+          mkdir -p /tmp/game
+          unzip -q /tmp/7gigs-source.zip -d /tmp/game
+          test -s /tmp/game/app/src/main/assets/www/index.html
       - name: Installer Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Utiliser le SDK Android du runner
+      - name: Utiliser le SDK Android natif déjà installé
         shell: bash
         run: |
-          echo "ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=${ANDROID_HOME:-/usr/local/lib/android/sdk}" >> "$GITHUB_ENV"
-          SDKMANAGER="$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools" -type f -name sdkmanager | head -1)"
-          test -n "$SDKMANAGER"
-          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
-          "$SDKMANAGER" --list_installed
-      - name: Installer Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-      - name: Installer Android 35
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
-      - name: Compiler une vraie APK de test
-        working-directory: android-project
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
-      - name: Vérifier l'APK obtenue
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          MGR="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | head -1)"
+          test -n "$MGR"
+          "$(dirname "$MGR")/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+          test -f "$SDK/platforms/android-35/android.jar"
+          test -x "$SDK/build-tools/35.0.0/aapt2"
+      - name: Compiler Java, DEX et APK sans Gradle
+        shell: bash
         run: |
-          test -s android-project/app/build/outputs/apk/debug/app-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-project/app/build/outputs/apk/debug/app-debug.apk | head -12
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android-project/app/build/outputs/apk/debug/app-debug.apk
-      - name: Publier l'APK comme artefact
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          BT="$SDK/build-tools/35.0.0"
+          mkdir -p /tmp/7gigs/classes /tmp/7gigs/dex
+          cat > /tmp/7gigs/AndroidManifest.xml <<'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena" android:versionCode="10000" android:versionName="1.0.0">
+            <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="28"/>
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <application android:label="7 Gigs Neon Arena" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+              <activity android:name="dev.septgigs.neonarena.LauncherActivity" android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          MANIFEST
+          javac -encoding UTF-8 -source 8 -target 8 -cp "$SDK/platforms/android-35/android.jar" -d /tmp/7gigs/classes native/LauncherActivity.java
+          ( cd /tmp/7gigs/classes && jar cf /tmp/7gigs/classes.jar . )
+          "$BT/d8" --lib "$SDK/platforms/android-35/android.jar" --min-api 26 --output /tmp/7gigs/dex /tmp/7gigs/classes.jar
+          "$BT/aapt2" link -I "$SDK/platforms/android-35/android.jar" --manifest /tmp/7gigs/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 28 -o /tmp/7gigs/base.apk
+          python3 - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from pathlib import Path
+          with ZipFile('/tmp/7gigs/base.apk','r') as source, ZipFile('/tmp/7gigs/unsigned.apk','w',compression=ZIP_DEFLATED) as output:
+              for info in source.infolist():
+                  output.writestr(info,source.read(info.filename))
+              output.write('/tmp/7gigs/dex/classes.dex','classes.dex')
+              output.write('/tmp/game/app/src/main/assets/www/index.html','assets/www/index.html')
+          PY
+          "$BT/zipalign" -f -p 4 /tmp/7gigs/unsigned.apk /tmp/7gigs/aligned.apk
+          keytool -genkeypair -alias septgigs -keyalg RSA -keysize 3072 -validity 10000 -keystore /tmp/7gigs/test-signing.jks -storepass "temp7gigs4321" -keypass "temp7gigs4321" -dname "CN=7 Gigs Android Test" -noprompt
+          "$BT/apksigner" sign --ks /tmp/7gigs/test-signing.jks --ks-key-alias septgigs --ks-pass pass:temp7gigs4321 --key-pass pass:temp7gigs4321 --out /tmp/7gigs/7Gigs-Neon-Arena-Android.apk /tmp/7gigs/aligned.apk
+          "$BT/apksigner" verify --verbose /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | head -16
+          unzip -t /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | tail -3
+          test -s /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
+      - name: Fichier APK téléchargeable
         uses: actions/upload-artifact@v4
         with:
-          name: 7Gigs-Neon-Arena-APK-test
-          path: android-project/app/build/outputs/apk/debug/app-debug.apk
+          name: 7Gigs-Neon-Arena-APK
+          path: /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
           if-no-files-found: error
-      - name: Rendre l'APK de test téléchargeable
+      - name: Publier l'APK sur GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: test-v1.0.0
-          name: 7 Gigs — APK Android de test (signature provisoire)
+          name: 7 Gigs Neon Arena — APK de test
           body: |
-            APK de test compilée avec Android SDK et vérifiée par apksigner.
-            À installer directement sur Android (hors Google Play).
-            Attention : cette version DEBUG utilise une signature provisoire, qui ne garantit PAS la conservation des données lors d'une future mise à jour.
-            Exportez vos decks et la mémoire de NIGHTMARE avant de passer à une version signée pour la production.
+            APK Android construite directement avec les outils officiels Android (sans Google Play).
+            Cette première version utilise une signature de test. Les futures versions de production devront conserver une même signature privée.
           prerelease: true
-          files: android-project/app/build/outputs/apk/debug/app-debug.apk
+          files: /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
           fail_on_unmatched_files: true
