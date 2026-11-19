@@ -1,0 +1,128 @@
+name: PRIME 2.0 — Construction Android
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/prime_v2_runtime.html'
+      - 'native/Prime2Activity.java'
+      - '.github/workflows/build-prime2.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+      - name: Extraire et vérifier le jeu
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d android-project-source.b64 > /tmp/7gigs-source.zip
+          echo '66767788b77ca758221c9f1fe9e4eeee82f9a0cba7af8b09e3f077cbdb7fd2df  /tmp/7gigs-source.zip' | sha256sum -c -
+          mkdir -p /tmp/game
+          unzip -q /tmp/7gigs-source.zip -d /tmp/game
+          test -s /tmp/game/app/src/main/assets/www/index.html
+      - name: Optimiser la fluidité et isoler NIGHTMARE
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 native/performance_patch.py /tmp/game/app/src/main/assets/www/index.html
+          node --check /tmp/game/app/src/main/assets/www/ai-worker.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/game/app/src/main/assets/www/index.html').read_text()
+          assert 'const TacticalWorker' in s and 'const Perf' in s
+          Path('/tmp/game/checked-game.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0])
+          PY
+          node --check /tmp/game/checked-game.js
+          cp native/prime_v2_runtime.html /tmp/game/app/src/main/assets/www/index.html
+          grep -q 'NEON ARENA / PRIME 2.0' /tmp/game/app/src/main/assets/www/index.html
+          grep -q 'function gigAttackSheet' /tmp/game/app/src/main/assets/www/index.html
+          grep -q 'function showCombatPreview' /tmp/game/app/src/main/assets/www/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/game/app/src/main/assets/www/index.html').read_text()
+          Path('/tmp/game/prime-v2.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0])
+          PY
+          node --check /tmp/game/prime-v2.js
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Utiliser le SDK Android natif déjà installé
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          MGR="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | head -1)"
+          test -n "$MGR"
+          "$(dirname "$MGR")/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+          test -f "$SDK/platforms/android-35/android.jar"
+          test -x "$SDK/build-tools/35.0.0/aapt2"
+      - name: Compiler Java, DEX et APK sans Gradle
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          BT="$SDK/build-tools/35.0.0"
+          mkdir -p /tmp/7gigs/classes /tmp/7gigs/dex
+          cat > /tmp/7gigs/AndroidManifest.xml <<'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena.prime" android:versionCode="20000" android:versionName="2.0.0">
+            <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <application android:label="7 Gigs PRIME 2" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
+              <activity android:name="dev.septgigs.neonarena.prime.Prime2Activity" android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          MANIFEST
+          javac -encoding UTF-8 -source 8 -target 8 -cp "$SDK/platforms/android-35/android.jar" -d /tmp/7gigs/classes native/Prime2Activity.java
+          ( cd /tmp/7gigs/classes && jar cf /tmp/7gigs/classes.jar . )
+          "$BT/d8" --lib "$SDK/platforms/android-35/android.jar" --min-api 26 --output /tmp/7gigs/dex /tmp/7gigs/classes.jar
+          "$BT/aapt2" link -I "$SDK/platforms/android-35/android.jar" --manifest /tmp/7gigs/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 35 -o /tmp/7gigs/base.apk
+          python3 - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from pathlib import Path
+          with ZipFile('/tmp/7gigs/base.apk','r') as source, ZipFile('/tmp/7gigs/unsigned.apk','w',compression=ZIP_DEFLATED) as output:
+              for info in source.infolist():
+                  output.writestr(info,source.read(info.filename))
+              output.write('/tmp/7gigs/dex/classes.dex','classes.dex')
+              output.write('/tmp/game/app/src/main/assets/www/index.html','assets/www/index.html')
+              output.write('/tmp/game/app/src/main/assets/www/ai-worker.js','assets/www/ai-worker.js')
+          PY
+          "$BT/zipalign" -f -p 4 /tmp/7gigs/unsigned.apk /tmp/7gigs/aligned.apk
+          keytool -genkeypair -alias septgigs -keyalg RSA -keysize 3072 -validity 10000 -keystore /tmp/7gigs/test-signing.jks -storepass "temp7gigs4321" -keypass "temp7gigs4321" -dname "CN=7 Gigs Android Test" -noprompt
+          "$BT/apksigner" sign --ks /tmp/7gigs/test-signing.jks --ks-key-alias septgigs --ks-pass pass:temp7gigs4321 --key-pass pass:temp7gigs4321 --out /tmp/7gigs/7Gigs-PRIME-2.0.0.apk /tmp/7gigs/aligned.apk
+          "$BT/apksigner" verify --verbose /tmp/7gigs/7Gigs-PRIME-2.0.0.apk
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-PRIME-2.0.0.apk | head -16
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-PRIME-2.0.0.apk | grep -Fq "targetSdkVersion:'35'"
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-PRIME-2.0.0.apk | grep -Fq "versionName='2.0.0'"
+          unzip -t /tmp/7gigs/7Gigs-PRIME-2.0.0.apk | tail -3
+          test -s /tmp/7gigs/7Gigs-PRIME-2.0.0.apk
+      - name: Fichier APK téléchargeable
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7Gigs-PRIME-2-APK
+          path: /tmp/7gigs/7Gigs-PRIME-2.0.0.apk
+          if-no-files-found: error
+      - name: Publier l'APK sur GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: prime-v2.0.0
+          name: 7 Gigs PRIME 2.0 — application Android indépendante
+          body: |
+            PRIME 2.0 : application Android indépendante pour installer à côté des anciennes versions, cartes en image seule, attaques et vols de Gigs, réactions et règles rapides. Signature de test provisoire, mémoire distincte.
+            Cette première version utilise une signature de test. Les futures versions de production devront conserver une même signature privée.
+          prerelease: true
+          files: /tmp/7gigs/7Gigs-PRIME-2.0.0.apk
+          fail_on_unmatched_files: true
