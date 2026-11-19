@@ -1,0 +1,54 @@
+name: Diagnostic ouverture APK PRIME
+on:
+  push:
+    paths:
+      - '.github/workflows/android-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  launch-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Télécharger APK publiée 1.0.4
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o /tmp/game.apk 'https://github.com/yuri85300-design/lifequest/releases/download/test-v1.0.4/7Gigs-Neon-Arena-Android.apk'
+          test -s /tmp/game.apk
+      - name: Autoriser KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Tester une ouverture Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            mkdir -p /tmp/prime-qa
+            adb install -r /tmp/game.apk
+            adb logcat -c
+            adb shell am start -W -n dev.septgigs.neonarena/.LauncherActivity | tee /tmp/prime-qa/launch.txt
+            sleep 14
+            adb shell dumpsys activity activities > /tmp/prime-qa/activity.txt
+            adb logcat -d > /tmp/prime-qa/logcat.txt
+            adb shell screencap -p /sdcard/prime.png
+            adb pull /sdcard/prime.png /tmp/prime-qa/prime.png
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null || true
+            adb shell cat /sdcard/window.xml > /tmp/prime-qa/window.xml || true
+            grep -E 'FATAL EXCEPTION|dev.septgigs.neonarena|chromium|AwContents' /tmp/prime-qa/logcat.txt | tail -120 || true
+            if grep -q 'FATAL EXCEPTION' /tmp/prime-qa/logcat.txt; then exit 1; fi
+            grep -q 'dev.septgigs.neonarena/.LauncherActivity' /tmp/prime-qa/activity.txt
+      - name: Sauvegarder diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-APK-PRIME-emulator
+          path: /tmp/prime-qa/
+          if-no-files-found: warn
