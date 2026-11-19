@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
-      - name: Télécharger APK publiée 1.0.4
+      - name: Télécharger APK publiée 1.0.5
         run: |
           set -euo pipefail
-          curl -fL --retry 3 -o /tmp/game.apk 'https://github.com/yuri85300-design/lifequest/releases/download/test-v1.0.4/7Gigs-Neon-Arena-Android.apk'
+          curl -fL --retry 3 -o /tmp/game.apk 'https://github.com/yuri85300-design/lifequest/releases/download/test-v1.0.5/7Gigs-Neon-Arena-Android.apk'
           test -s /tmp/game.apk
       - name: Autoriser KVM
         run: |
@@ -37,6 +37,9 @@ jobs:
             adb shell am start -W -n dev.septgigs.neonarena/.LauncherActivity | tee /tmp/prime-qa/launch.txt
             sleep 14
             adb shell dumpsys activity activities > /tmp/prime-qa/activity.txt
+            adb shell dumpsys window > /tmp/prime-qa/window-state.txt
+            adb shell dumpsys SurfaceFlinger --list > /tmp/prime-qa/surfaces.txt
+            adb shell settings get secure navigation_mode > /tmp/prime-qa/navigation_mode.txt
             adb logcat -d > /tmp/prime-qa/logcat.txt
             adb shell screencap -p /sdcard/prime.png
             adb pull /sdcard/prime.png /tmp/prime-qa/prime.png
@@ -44,6 +47,8 @@ jobs:
             adb shell cat /sdcard/window.xml > /tmp/prime-qa/window.xml || true
             grep -E 'FATAL EXCEPTION|dev.septgigs.neonarena|chromium|AwContents' /tmp/prime-qa/logcat.txt | tail -120 || true
             if grep -q 'FATAL EXCEPTION' /tmp/prime-qa/logcat.txt; then exit 1; fi
+            # Navigation/status windows may be present while their visibility is hidden.
+            grep -E 'mCurrentFocus|mFocusedApp|statusBars|navigationBars|mAttrs' /tmp/prime-qa/window-state.txt | tail -60 || true
             grep -q 'dev.septgigs.neonarena/.LauncherActivity' /tmp/prime-qa/activity.txt
       - name: Sauvegarder diagnostic
         if: always()
