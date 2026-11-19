@@ -42,7 +42,9 @@ jobs:
             grep -Fx 'package:dev.septgigs.neonarena.prime' /tmp/prime-qa/packages.txt
             adb logcat -c
             adb shell am start -W -n dev.septgigs.neonarena.prime/.Prime2Activity > /tmp/prime-qa/launch.txt
-            sleep 12
+            sleep 4
+            adb shell input tap 916 655
+            sleep 8
             adb shell dumpsys activity activities > /tmp/prime-qa/activity.txt
             adb logcat -d > /tmp/prime-qa/logcat.txt
             adb shell screencap -p /sdcard/prime.png
