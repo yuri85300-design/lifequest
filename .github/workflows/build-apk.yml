@@ -46,10 +46,10 @@ jobs:
           mkdir -p /tmp/7gigs/classes /tmp/7gigs/dex
           cat > /tmp/7gigs/AndroidManifest.xml <<'MANIFEST'
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena" android:versionCode="10000" android:versionName="1.0.0">
-            <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="28"/>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena" android:versionCode="10001" android:versionName="1.0.1">
+            <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
             <uses-permission android:name="android.permission.INTERNET"/>
-            <application android:label="7 Gigs Neon Arena" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <application android:label="7 Gigs Neon Arena" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
               <activity android:name="dev.septgigs.neonarena.LauncherActivity" android:exported="true">
                 <intent-filter>
                   <action android:name="android.intent.action.MAIN"/>
@@ -62,7 +62,7 @@ jobs:
           javac -encoding UTF-8 -source 8 -target 8 -cp "$SDK/platforms/android-35/android.jar" -d /tmp/7gigs/classes native/LauncherActivity.java
           ( cd /tmp/7gigs/classes && jar cf /tmp/7gigs/classes.jar . )
           "$BT/d8" --lib "$SDK/platforms/android-35/android.jar" --min-api 26 --output /tmp/7gigs/dex /tmp/7gigs/classes.jar
-          "$BT/aapt2" link -I "$SDK/platforms/android-35/android.jar" --manifest /tmp/7gigs/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 28 -o /tmp/7gigs/base.apk
+          "$BT/aapt2" link -I "$SDK/platforms/android-35/android.jar" --manifest /tmp/7gigs/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 35 -o /tmp/7gigs/base.apk
           python3 - <<'PY'
           from zipfile import ZipFile, ZIP_DEFLATED
           from pathlib import Path
@@ -77,6 +77,8 @@ jobs:
           "$BT/apksigner" sign --ks /tmp/7gigs/test-signing.jks --ks-key-alias septgigs --ks-pass pass:temp7gigs4321 --key-pass pass:temp7gigs4321 --out /tmp/7gigs/7Gigs-Neon-Arena-Android.apk /tmp/7gigs/aligned.apk
           "$BT/apksigner" verify --verbose /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
           "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | head -16
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -q "targetSdkVersion:\x2735\x27"
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -q "versionName=\x271.0.1\x27"
           unzip -t /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | tail -3
           test -s /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
       - name: Fichier APK téléchargeable
@@ -88,10 +90,10 @@ jobs:
       - name: Publier l'APK sur GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: test-v1.0.0
-          name: 7 Gigs Neon Arena — APK de test
+          tag_name: test-v1.0.1
+          name: 7 Gigs Neon Arena — APK 1.0.1 (Android actuel)
           body: |
-            APK Android construite directement avec les outils officiels Android (sans Google Play).
+            APK Android pour installation directe, compilée avec le SDK officiel. Android 15 (targetSdk 35) pour corriger le blocage Play Protect « application trop ancienne » et marges adaptées aux barres système.
             Cette première version utilise une signature de test. Les futures versions de production devront conserver une même signature privée.
           prerelease: true
           files: /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
