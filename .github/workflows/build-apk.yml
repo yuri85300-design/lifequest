@@ -95,7 +95,7 @@ jobs:
           "$BT/apksigner" verify --verbose /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
           "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | head -16
           "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "targetSdkVersion:'35'"
-          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "versionName='1.0.2'"
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "versionName='1.0.4'"
           unzip -t /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | tail -3
           test -s /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
       - name: Fichier APK téléchargeable
@@ -107,8 +107,8 @@ jobs:
       - name: Publier l'APK sur GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: test-v1.0.2
-          name: 7 Gigs Neon Arena — APK 1.0.2 (fluidité et NIGHTMARE Worker)
+          tag_name: test-v1.0.4
+          name: 7 Gigs PRIME — APK 1.0.4 (combat immersif)
           body: |
             7 Gigs 1.0.2 : IA NIGHTMARE isolée dans un Worker, rendu du plateau allégé, mode fluidité par défaut sur Android, Android API 35. APK de test signée avec une clé provisoire : exportez vos données avant toute réinstallation.
             Cette première version utilise une signature de test. Les futures versions de production devront conserver une même signature privée.
