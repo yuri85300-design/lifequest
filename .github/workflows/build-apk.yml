@@ -20,6 +20,19 @@ jobs:
           mkdir -p /tmp/game
           unzip -q /tmp/7gigs-source.zip -d /tmp/game
           test -s /tmp/game/app/src/main/assets/www/index.html
+      - name: Optimiser la fluidité et isoler NIGHTMARE
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 native/performance_patch.py /tmp/game/app/src/main/assets/www/index.html
+          node --check /tmp/game/app/src/main/assets/www/ai-worker.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/game/app/src/main/assets/www/index.html').read_text()
+          assert 'const TacticalWorker' in s and 'const Perf' in s
+          Path('/tmp/game/checked-game.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0])
+          PY
+          node --check /tmp/game/checked-game.js
       - name: Installer Java 17
         uses: actions/setup-java@v4
         with:
@@ -46,7 +59,7 @@ jobs:
           mkdir -p /tmp/7gigs/classes /tmp/7gigs/dex
           cat > /tmp/7gigs/AndroidManifest.xml <<'MANIFEST'
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena" android:versionCode="10001" android:versionName="1.0.1">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena" android:versionCode="10002" android:versionName="1.0.2">
             <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
             <uses-permission android:name="android.permission.INTERNET"/>
             <application android:label="7 Gigs Neon Arena" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
@@ -71,6 +84,7 @@ jobs:
                   output.writestr(info,source.read(info.filename))
               output.write('/tmp/7gigs/dex/classes.dex','classes.dex')
               output.write('/tmp/game/app/src/main/assets/www/index.html','assets/www/index.html')
+              output.write('/tmp/game/app/src/main/assets/www/ai-worker.js','assets/www/ai-worker.js')
           PY
           "$BT/zipalign" -f -p 4 /tmp/7gigs/unsigned.apk /tmp/7gigs/aligned.apk
           keytool -genkeypair -alias septgigs -keyalg RSA -keysize 3072 -validity 10000 -keystore /tmp/7gigs/test-signing.jks -storepass "temp7gigs4321" -keypass "temp7gigs4321" -dname "CN=7 Gigs Android Test" -noprompt
@@ -78,7 +92,7 @@ jobs:
           "$BT/apksigner" verify --verbose /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
           "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | head -16
           "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "targetSdkVersion:'35'"
-          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "versionName='1.0.1'"
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "versionName='1.0.2'"
           unzip -t /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | tail -3
           test -s /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
       - name: Fichier APK téléchargeable
@@ -90,10 +104,10 @@ jobs:
       - name: Publier l'APK sur GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: test-v1.0.1
-          name: 7 Gigs Neon Arena — APK 1.0.1 (Android actuel)
+          tag_name: test-v1.0.2
+          name: 7 Gigs Neon Arena — APK 1.0.2 (fluidité et NIGHTMARE Worker)
           body: |
-            APK Android pour installation directe, compilée avec le SDK officiel. Android 15 (targetSdk 35) pour corriger le blocage Play Protect « application trop ancienne » et marges adaptées aux barres système.
+            7 Gigs 1.0.2 : IA NIGHTMARE isolée dans un Worker, rendu du plateau allégé, mode fluidité par défaut sur Android, Android API 35. APK de test signée avec une clé provisoire : exportez vos données avant toute réinstallation.
             Cette première version utilise une signature de test. Les futures versions de production devront conserver une même signature privée.
           prerelease: true
           files: /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
