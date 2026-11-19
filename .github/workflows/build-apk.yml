@@ -62,7 +62,7 @@ jobs:
           mkdir -p /tmp/7gigs/classes /tmp/7gigs/dex
           cat > /tmp/7gigs/AndroidManifest.xml <<'MANIFEST'
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena" android:versionCode="10004" android:versionName="1.0.4">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena" android:versionCode="10005" android:versionName="1.0.5">
             <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
             <uses-permission android:name="android.permission.INTERNET"/>
             <application android:label="7 Gigs Neon Arena" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
@@ -95,7 +95,7 @@ jobs:
           "$BT/apksigner" verify --verbose /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
           "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | head -16
           "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "targetSdkVersion:'35'"
-          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "versionName='1.0.4'"
+          "$BT/aapt" dump badging /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | grep -Fq "versionName='1.0.5'"
           unzip -t /tmp/7gigs/7Gigs-Neon-Arena-Android.apk | tail -3
           test -s /tmp/7gigs/7Gigs-Neon-Arena-Android.apk
       - name: Fichier APK téléchargeable
@@ -107,10 +107,10 @@ jobs:
       - name: Publier l'APK sur GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: test-v1.0.4
-          name: 7 Gigs PRIME — APK 1.0.4 (combat immersif)
+          tag_name: test-v1.0.5
+          name: 7 Gigs PRIME — APK 1.0.5 (plein écran)
           body: |
-            7 Gigs 1.0.2 : IA NIGHTMARE isolée dans un Worker, rendu du plateau allégé, mode fluidité par défaut sur Android, Android API 35. APK de test signée avec une clé provisoire : exportez vos données avant toute réinstallation.
+            7 Gigs PRIME 1.0.5 : mode plein écran immersif Android (barres système masquées, récupération par geste), adaptation caméra, jeu PRIME et IA NIGHTMARE conservés. Signature de test provisoire : exporter decks et mémoire avant toute réinstallation.
             Cette première version utilise une signature de test. Les futures versions de production devront conserver une même signature privée.
           prerelease: true
           files: /tmp/7gigs/7Gigs-Neon-Arena-Android.apk

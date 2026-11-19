@@ -7,6 +7,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
 import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
+import android.view.View;
+import android.graphics.Insets;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -33,15 +37,23 @@ public class LauncherActivity extends Activity {
     web=new WebView(this);
     web.setBackgroundColor(0xff081121);
     web.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
+    // La vraie surface de jeu remplit l'écran, sans bandes système permanentes.
+    getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    if (Build.VERSION.SDK_INT >= 28) {
+      WindowManager.LayoutParams params = getWindow().getAttributes();
+      params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+      getWindow().setAttributes(params);
+    }
     setContentView(web);
-    // Android 15+ enforces edge-to-edge: keep cards and buttons clear of system bars.
     if (Build.VERSION.SDK_INT >= 30) {
       web.setOnApplyWindowInsetsListener((view, insets) -> {
-        android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
-        view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+        // Éviter la caméra, mais pas les barres de statut/navigation masquées.
+        Insets cutout = insets.getInsets(WindowInsets.Type.displayCutout());
+        view.setPadding(cutout.left, cutout.top, cutout.right, cutout.bottom);
         return insets;
       });
     }
+    applyImmersiveMode();
 
     WebSettings st=web.getSettings();
     st.setJavaScriptEnabled(true);
@@ -94,6 +106,32 @@ public class LauncherActivity extends Activity {
       }
     });
     web.loadUrl(URL);
+  }
+  private void applyImmersiveMode() {
+    if (Build.VERSION.SDK_INT >= 30) {
+      getWindow().setDecorFitsSystemWindows(false);
+      WindowInsetsController ctrl = getWindow().getInsetsController();
+      if (ctrl != null) {
+        ctrl.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+        ctrl.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+      }
+    } else {
+      getWindow().getDecorView().setSystemUiVisibility(
+          View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+          | View.SYSTEM_UI_FLAG_FULLSCREEN
+          | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+          | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+          | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+          | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+    }
+  }
+  @Override public void onWindowFocusChanged(boolean hasFocus) {
+    super.onWindowFocusChanged(hasFocus);
+    if (hasFocus) applyImmersiveMode();
+  }
+  @Override protected void onResume() {
+    super.onResume();
+    applyImmersiveMode();
   }
   private class Bridge {
     @JavascriptInterface public void saveText(String filename,String text) {
