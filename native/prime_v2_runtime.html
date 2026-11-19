@@ -1231,13 +1231,64 @@ class Game {
     await this.setGig(d, nv, i);
     return d;
   }
-  async stealGig(thief, die, byUnit) {
-    const from = this.gigOwnerIdx(die); if (from < 0 || from === thief) return false;
-    this.P(from).gigs.splice(this.P(from).gigs.indexOf(die), 1);
-    this.P(thief).gigs.push(die);
-    this.log(`${this.pname(thief)} vole un Gig d${die.sides} (${die.value}).`, 'steal');
-    await this.ui('steal', { p: thief, die });
-    return true;
+  // SEULE primitive de vol (CR 11.5): prévention, transfert atomique,
+  // vérification des victoires, callbacks de l'acteur et triggers individuels.
+  // Toutes les cartes, les attaques et les effets doivent passer ici.
+  async stealGigs(thief, chosen, actor = null) {
+    const victim = this.opp(thief);
+    const unique = [], seen = new Set();
+    for (const die of chosen || []) {
+      if (!die || seen.has(die.uid) || this.gigOwnerIdx(die) !== victim) continue;
+      seen.add(die.uid);
+      if (actor && !this.stealAllowed(actor, die, victim)) continue;
+      unique.push(die);
+    }
+    // CR 11.5.1.5: prévention après sélection, AVANT le mouvement.
+    const valid=[];
+    for (const die of unique) {
+      let prevented=false;
+      for (const src of this.sources(victim).slice()) {
+        const sd=this.def(src.inst);
+        if (sd.preventSteal && await sd.preventSteal(this, src.inst, actor, die, src)) {
+          prevented=true; break;
+        }
+      }
+      if (prevented) this.log('Le vol du Gig d'+die.sides+' est empêché.');
+      else if (this.gigOwnerIdx(die) === victim) valid.push(die);
+    }
+    if (!valid.length) return [];
+    // CR 11.5.1.6: TOUS les Gigs passent de zone ensemble.
+    const from=this.P(victim).gigs, to=this.P(thief).gigs;
+    for (const die of valid) from.splice(from.indexOf(die),1);
+    to.push(...valid);
+    // CR 1.11/1.13: en prolongation, victoire avant les effets en attente.
+    this.checkOT();
+    for (const die of valid) {
+      this.log(this.pname(thief)+' vole un Gig d'+die.sides+' ('+die.value+').','steal');
+      await this.ui('steal',{p:thief,die});
+    }
+    if(actor){
+      actor.flags.stoleThisTurn=true;
+      if(this.hasFlag(actor,'psycho'))actor.flags.psychoDoom=true;
+    }
+    await this.withTimingWindow(async()=>{
+      // Triggers propres à l'unité et ses équipements: une fois par événement groupé.
+      if(actor){
+        const d=this.def(actor);
+        if(d.onSteal)this.queueEffect(thief,this.name(actor)+' — VOL',()=>d.onSteal(this,actor,thief,valid));
+        for(const gr of actor.gear.slice()){
+          const gd=this.def(gr);
+          if(gd.onHostSteal)this.queueEffect(thief,this.name(gr)+' — VOL',()=>gd.onHostSteal(this,gr,actor,thief,valid));
+        }
+      }
+      // CR 11.5.1.6.2/11.5.1.7: un déclenchement PAR Gig volé.
+      for(const die of valid)await this.emit('steal',{p:thief,unit:actor,gigs:[die],batch:valid});
+    });
+    this.checkOT();
+    return valid;
+  }
+  async stealGig(thief, die, byUnit){
+    return (await this.stealGigs(thief,[die],byUnit)).length===1;
   }
   async swapGigs(a, b) {
     const pa = this.gigOwnerIdx(a), pb = this.gigOwnerIdx(b);
@@ -1250,7 +1301,7 @@ class Game {
   }
   checkOT() {
     if (!this.s.overtime) return;
-    for (const i of [this.s.active, this.opp(this.s.active)]) if (this.gigCount(i) >= 7) throw new GameOver(i, `${this.pname(i)} contrôle la majorité des Gigs en prolongation !`);
+    for (const i of [this.s.active, this.opp(this.s.active)]) if (this.gigCount(i) >= 7) throw new GameOver(i, `${this.pname(i)} contrôle au moins 7 Gigs en prolongation !`);
   }
 
   // -------------------------------------------------- Pending Resolution --
@@ -1712,7 +1763,7 @@ class Game {
         pl.tf.appetite = false; this.log(`Appetite for Destruction : ${this.name(winner)} vole aussi un Gig !`);
         const pool = this.P(this.opp(wc)).gigs.filter(gd => this.stealAllowed(winner, gd, this.opp(wc)));
         const die = await this.pickGig(wc, 'Gig à voler', pool, gd => gd.value);
-        if (die) { await this.stealGig(wc, die, winner); await this.emit('steal', { p: wc, unit: winner, gigs: [die] }); this.checkOT(); }
+        if (die) { await this.stealGig(wc, die, winner); }
       }
     }
     if (uLoses) { const dl = this.def(u); if (dl.onLoseFight) this.queueEffect(this.controllerOf(u),this.name(u)+' — COMBAT PERDU',()=>dl.onLoseFight(this,u,t,A)); }
@@ -1745,40 +1796,8 @@ class Game {
       if (!die) break;
       selected.push(die);
     }
-    // Règle 11.5.1.5 : interruptions de prévention pour chaque dé sélectionné.
-    const valid=[];
-    for(const die of selected) {
-      if (!this.P(o).gigs.includes(die)) continue;
-      let prevented=false;
-      for(const src of this.sources(o)) {
-        const sd=this.def(src.inst);
-        if(sd.preventSteal && await sd.preventSteal(this,src.inst,u,die,src)) { prevented=true; break; }
-      }
-      if(prevented) this.log('Le vol du Gig d'+die.sides+' est empêché.');
-      else if(this.P(o).gigs.includes(die)) valid.push(die);
-    }
-    // Règle 11.5.1.6 : mouvement simultané, puis seulement effets de vol.
-    for (const die of valid) {
-      const pos=this.P(o).gigs.indexOf(die); if(pos>=0)this.P(o).gigs.splice(pos,1);
-    }
-    for (const die of valid) this.P(i).gigs.push(die);
-    this.checkOT(); // victoire immédiate en prolongation, avant les triggers
-    for (const die of valid) {
-      this.log(this.pname(i)+' vole un Gig d'+die.sides+' ('+die.value+').','steal');
-      await this.ui('steal',{p:i,die});
-    }
-    if(valid.length) {
-      const d=this.def(u); u.flags.stoleThisTurn=true;
-      if(this.hasFlag(u,'psycho'))u.flags.psychoDoom=true;
-      await this.withTimingWindow(async()=>{
-        // Chaque Gig est un événement indépendant, bien que transféré simultanément.
-        // Les callbacks d'hôte restent groupés pour les cartes « première fois ce tour ».
-        if(d.onSteal) this.queueEffect(i,this.name(u)+' — VOL',()=>d.onSteal(this,u,i,valid));
-        for(const gr of u.gear.slice()) {const gd=this.def(gr);if(gd.onHostSteal)this.queueEffect(i,this.name(gr)+' — VOL',()=>gd.onHostSteal(this,gr,u,i,valid));}
-        for(const die of valid) await this.emit('steal',{p:i,unit:u,gigs:[die],batch:valid});
-      });
-      this.checkOT();
-    }else this.log('Aucun Gig volé.');
+    const valid=await this.stealGigs(i,selected,u);
+    if(!valid.length)this.log('Aucun Gig volé.');
   }
 
   // ============================================================== TOURS ===
@@ -1884,13 +1903,15 @@ class Game {
     await this.endTurn();
   }
 
-  async run(maxTurns = 120) {
+  async run(maxTurns = null) {
     try {
       await this.setup();
-      while (this.s.turn < maxTurns) await this.playTurn();
-      // garde-fou
-      const a = this.gigCount(0), b = this.gigCount(1);
-      throw new GameOver(a === b ? -1 : (a > b ? 0 : 1), 'Limite de tours atteinte.');
+      // Le moteur de jeu humain n'a PAS de vainqueur lié à un plafond de tours.
+      while (maxTurns == null || this.s.turn < maxTurns) await this.playTurn();
+      // Un benchmark peut être interrompu; il ne s'agit jamais d'un GameOver.
+      return {status:'incomplete',winner:null,complete:false,
+        reason:'Limite de simulation atteinte (aucun vainqueur désigné).',
+        turns:this.s.turn};
     } catch (e) {
       if (e instanceof GameOver) { this.s.winner = e.winner; this.s.winReason = e.reason; this.s.phase = 'over'; this.log(e.reason, 'win'); return e; }
       throw e;
@@ -3481,6 +3502,7 @@ async function trainLeague(deckSource,matchCount=300,incumbent=BASE,report=()=>{
    const g=Game.create([d0,d1],flip?[makePolicy(B.w),makePolicy(A.w)]:[makePolicy(A.w),makePolicy(B.w)],{
      seed:7951+Math.floor(n/2)*7919,hooks:{sim:true}});
    const r=await g.run(94);
+   if(r.status==='incomplete'){report({done,total:matchCount,phase:'incomplete'});continue;}
    const actual=r.winner<0?.5:r.winner===(flip?1:0)?1:0;
    const expect=1/(1+Math.pow(10,(B.rating-A.rating)/400));
    const change=20*(actual-expect);
@@ -3495,18 +3517,19 @@ async function trainLeague(deckSource,matchCount=300,incumbent=BASE,report=()=>{
  const candidate=pop[0];
  // Comparaison double côté sur 40 parties indépendantes. Aucun remplacement
  // n'est effectué lorsque l'amélioration n'est pas suffisamment nette.
- let wins=0,losses=0,draws=0;
+ let wins=0,losses=0,draws=0,incompleteValidation=0;
  for(let k=0;k<40;k++){
    if(cancel())return {cancelled:true,done};
    const flip=k%2===1,di=Math.floor(k/2)%decks.length,dj=(di+3)%decks.length;
    const g=Game.create([decks[di],decks[dj]],flip?[makePolicy(initial),makePolicy(candidate.w)]:[makePolicy(candidate.w),makePolicy(initial)],{
       seed:17849+Math.floor(k/2)*1031,hooks:{sim:true}});
    const r=await g.run(94);
+   if(r.status==='incomplete'){incompleteValidation++;continue;}
    if(r.winner<0)draws++;else if(r.winner===(flip?1:0))wins++;else losses++;
    if(k%8===7){report({done,total:matchCount,validation:k+1,phase:'validation'});if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));}
  }
- const upgraded=wins+draws*.5>=24;
- return {matches:done,validationMatches:40,wins,losses,draws,upgraded,weights:upgraded?candidate.w:initial,candidateWeights:candidate.w};
+ const upgraded=incompleteValidation===0 && wins+draws*.5>=24;
+ return {matches:done,validationMatches:40,wins,losses,draws,incompleteValidation,upgraded,weights:upgraded?candidate.w:initial,candidateWeights:candidate.w};
 }
 function getAPI(){return {DIM,BASE,normalize,score,makePolicy,mutate,trainLeague};}
 if(typeof module!=='undefined')module.exports=getAPI();else Object.assign(root,{AdaptiveAI:getAPI()});
@@ -3624,23 +3647,24 @@ async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cance
   const ia=n%pop.length,ib=(ia+1+Math.floor(n/10)%(pop.length-1))%pop.length,flip=n%2===1;
   const [p,q]=[pop[ia],pop[ib]], di=Math.floor(n/2)%decks.length,dj=(di+3+Math.floor(n/24))%decks.length;
   const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,q.plan),makePolicy(weights,p.plan)]:[makePolicy(weights,p.plan),makePolicy(weights,q.plan)],{seed:911+Math.floor(n/2)*6719,hooks:{sim:true}});
-  const res=await gs.run(90),result=res.winner<0?.5:res.winner===(flip?1:0)?1:0;
+  const res=await gs.run(90); if(res.status==='incomplete')continue;
+  const result=res.winner<0?.5:res.winner===(flip?1:0)?1:0;
   const expected=1/(1+10**((q.elo-p.elo)/400)),adjust=20*(result-expected);p.elo+=adjust;q.elo-=adjust;done++;
   if(done%10===0||done===matchCount){report({done,total:matchCount,phase:'training',leader:p.id});if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));}
  }
  pop.sort((a,b)=>b.elo-a.elo);
- const candidate=pop[0].plan; let wins=0,losses=0,draws=0;
+ const candidate=pop[0].plan; let wins=0,losses=0,draws=0,incompleteValidation=0;
  const val=80;
  for(let n=0;n<val;n++){
   if(cancel())return {cancelled:true,done};
   const flip=n%2===1,di=Math.floor(n/2)%decks.length,dj=(di+5)%decks.length;
   const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,incumbent),makePolicy(weights,candidate)]:[makePolicy(weights,candidate),makePolicy(weights,incumbent)],{seed:100007+Math.floor(n/2)*12721,hooks:{sim:true}});
-  const res=await gs.run(90);if(res.winner<0)draws++;else if(res.winner===(flip?1:0))wins++;else losses++;
+  const res=await gs.run(90);if(res.status==='incomplete'){incompleteValidation++;continue;} if(res.winner<0)draws++;else if(res.winner===(flip?1:0))wins++;else losses++;
   if(n%10===9){report({done,total:matchCount,phase:'validation',validation:n+1});if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));}
  }
  // Un candidat n'est promu qu'avec un avantage suffisamment net en validation.
- const upgraded=(wins+draws*.5)>=49;
- return {done,matches:done,validationMatches:val,wins,losses,draws,upgraded,plans:upgraded?candidate:incumbent,candidatePlans:candidate};
+ const upgraded=incompleteValidation===0 && (wins+draws*.5)>=49;
+ return {done,matches:done,validationMatches:val,wins,losses,draws,incompleteValidation,upgraded,plans:upgraded?candidate:incumbent,candidatePlans:candidate};
 }
 const API={FAMILIES,LABELS,INITIAL,normalize,classify,rivalStyle,comboState,bias,score,makePolicy,mutate,trainLeague};
 root.DeckPlanAI=API;
@@ -3850,7 +3874,7 @@ const store = {
 };
 const COLORS = ['Red', 'Yellow', 'Green', 'Blue'];
 const TYPES = ['Legend', 'Unit', 'Gear', 'Program'];
-const PRETRAINED_BRAIN = {"version":2,"rulesHash":"nov19-pending-deckplans-v4","type":"evolutionary-tactical-policy","source":"coefficients précédents (initialisation), à recalibrer sous moteur de vol simultané","trainingMatches":300,"validationMatches":80,"championId":"deck-plan-incumbent-retained","weights":[1.3974189832543578,1.4699976459191606,0.9885230293712723,1.545319042104414,0.30727634420153577,0.5862382899223975,1.1590000288668791,1.4756460358026895],"validation":{"wins":40,"losses":40,"ties":0,"score":0.5,"versus":"Challenger 40/80 contre profil conservé, seuil de promotion non atteint"},"method":"Self-play 8 decks, 2400 additional corrected-rule training duels; legacy weights retained after paired benchmark 452/800 versus newly trained profile"};
+const PRETRAINED_BRAIN = {"version":2,"rulesHash":"v2.1-atomic-gigs-2026-11-17","type":"evolutionary-tactical-policy","source":"Profil conservé après entraînement 300 matchs et validation 240 matchs sous règles 2.1; aucun candidat statistiquement promu","trainingMatches":300,"validationMatches":80,"championId":"deck-plan-incumbent-retained","weights":[1.3974189832543578,1.4699976459191606,0.9885230293712723,1.545319042104414,0.30727634420153577,0.5862382899223975,1.1590000288668791,1.4756460358026895],"validation":{"wins":40,"losses":40,"ties":0,"score":0.5,"versus":"Challenger 40/80 contre profil conservé, seuil de promotion non atteint"},"method":"Self-play 8 decks, 2400 additional corrected-rule training duels; legacy weights retained after paired benchmark 452/800 versus newly trained profile"};
 const LEVELS = { facile: ['Initiation', 'Heuristique simple'], normal: ['Tactique+', 'Recherche tactique'], expert: ['NIGHTMARE', 'Recherche approfondie + champion'] };
 
 // --------------------------------------------------------------- état ----
@@ -3918,7 +3942,7 @@ const TacticalWorker = (()=>{
       memory:S.learningEnabled?S.rivalMemory:null};
     return new Promise(resolve=>{
       const id=packet.id;
-      const timer=setTimeout(()=>{queue.delete(id);resolve(null);},20000);
+      const timer=setTimeout(()=>{queue.delete(id);resolve(null);stopAll();disabled=false;},1800);
       queue.set(id,{timer,resolve});
       try{worker.postMessage(packet)}catch(_){clearTimeout(timer);queue.delete(id);resolve(null);}
     }).then(action=>{
@@ -5008,7 +5032,7 @@ async function startGame() {
       try {
         const offloaded=await TacticalWorker.decide('mainAction',g,i,acts);
         if(offloaded) return offloaded;
-        return await baseAI.mainAction(g,i,acts);
+        return await FastPolicy.mainAction(g,i,acts);
       } finally {g.hooks?.thinking?.(false);}
     },
     async react(g,i,attack,acts){
@@ -5016,7 +5040,7 @@ async function startGame() {
       try {
         const offloaded=await TacticalWorker.decide('react',g,i,acts,attack);
         if(offloaded) return offloaded;
-        return await baseAI.react(g,i,attack,acts);
+        return await FastPolicy.react(g,i,attack,acts);
       } finally {g.hooks?.thinking?.(false);}
     }
   };
@@ -5029,7 +5053,7 @@ async function startGame() {
   } catch(e) { console.error(e); showDuelFailure(e,null); return; }
   S.game = g; render();
   let res;
-  try { res = await g.run(240); } catch (e) {
+  try { res = await g.run(); } catch (e) {
     if (e.message === 'abandon') return;
     console.error('[7 Gigs] Duel interrompu :',e);
     if (S.game === g) showDuelFailure(e,g);
