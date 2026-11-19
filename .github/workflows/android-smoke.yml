@@ -35,7 +35,10 @@ jobs:
             adb install -r /tmp/game.apk
             adb logcat -c
             adb shell am start -W -n dev.septgigs.neonarena/.LauncherActivity | tee /tmp/prime-qa/launch.txt
-            sleep 14
+            sleep 4
+            # Android first-run immersive tutorial; dismiss "Got it" for a clean screenshot.
+            adb shell input tap 916 665
+            sleep 9
             adb shell dumpsys activity activities > /tmp/prime-qa/activity.txt
             adb shell dumpsys window > /tmp/prime-qa/window-state.txt
             adb shell dumpsys SurfaceFlinger --list > /tmp/prime-qa/surfaces.txt
