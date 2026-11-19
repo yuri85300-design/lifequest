@@ -809,6 +809,26 @@ html,body{background:#030813}
 }
 @media (prefers-reduced-motion:reduce){.prime-gig-meter .meter i{transition:none!important}}
 
+
+/* PRIME 1.0.6: sélection = image seule en duel, actions et effet secondaires. */
+.scrim.combat-preview-modal{align-items:center;justify-content:center;padding:12px;background:rgba(1,7,20,.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.combat-preview-modal .sheet{width:min(100%,470px);max-height:96dvh;padding:9px 12px 12px;border:1px solid #4f89a2;border-radius:18px;box-shadow:0 22px 80px #000b;background:linear-gradient(180deg,#10243e,#071528);gap:8px;overflow:hidden;animation:none}
+.combat-preview-modal .sheet>.grab{margin-bottom:4px}
+.combat-preview-root{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:0}
+.combat-preview-image{height:min(65dvh,620px);min-height:170px;width:100%;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:9px;background:radial-gradient(#17364f,#06111d);isolation:isolate}
+.combat-preview-image img{position:absolute;inset:0;margin:auto;width:100%;height:100%;object-fit:contain;object-position:center;opacity:0;transition:opacity .2s;pointer-events:none}
+.combat-preview-image.preview-loaded img{opacity:1}
+.combat-preview-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.combat-preview-fallback svg{width:100%;height:100%;object-fit:contain}
+.combat-preview-image.preview-loaded .combat-preview-fallback{display:none}
+.combat-preview-toolbar{display:flex;width:100%;gap:8px}
+.combat-preview-toolbar button{min-height:40px;flex:1;border-radius:8px;border:1px solid #36566c;background:#172b3d;color:#d5e9f7;font-size:14px;font-weight:700}
+.combat-preview-actions{display:flex;flex-direction:column;gap:5px;overflow:auto;max-height:22dvh;width:100%;overscroll-behavior:contain}
+.combat-preview-actions .opt{margin:0;min-height:43px;padding:7px 10px;background:#17354c}
+.combat-preview-actions .opt .t b{font-size:13px}
+.combat-preview-actions .opt .t small{font-size:11px}
+@media(max-height:700px){.combat-preview-image{height:50dvh}.combat-preview-actions{max-height:26dvh}}
+
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -4003,6 +4023,9 @@ const FrenchArt = {
       if (el.dataset.frCard !== id) return;
       if (el.matches('.mini')) {
         if (url) { el.style.setProperty('--ph', 'url("' + url.replace(/"/g, '%22') + '")'); el.classList.add('has-img'); }
+      } else if (el.matches('.combat-preview-image')) {
+        const pic=el.querySelector('.combat-preview-portrait');
+        if(pic&&url&&pic.getAttribute('src')!==url){el.classList.remove('preview-loaded');pic.src=url;}
       } else if (el.matches('.bigcard')) {
         el.classList.toggle('art-fr-ready', isFrenchVisible(id));
         el.classList.toggle('art-fallback-en', !isFrenchVisible(id));
@@ -4381,6 +4404,26 @@ function showCard(id, inst, actionsHTML = '', manage = false) {
   return sc;
 }
 
+// En duel: image en grand, sans texte automatique; commandes sous la carte.
+function showCombatPreview(id, inst, actions = [], run = () => {}) {
+  const d=CARDS[id];
+  if(!d)return null;
+  const src=cardArt(id);
+  const html='<div class="combat-preview-root"><div class="combat-preview-image" data-fr-card="'+id+'">'+
+    '<img class="combat-preview-portrait" '+(src?'src="'+esc(src)+'"':'')+
+    ' alt="'+esc(cardName(d))+'" decoding="async" onload="this.parentElement.classList.add(&quot;preview-loaded&quot;)" onerror="this.parentElement.classList.remove(&quot;preview-loaded&quot;)">'+
+    '<div class="combat-preview-fallback">'+artSVG(id)+'</div></div>'+
+    '<div class="combat-preview-toolbar"><button data-preview-details>Lire l’effet</button><button data-preview-close>Retour au duel</button></div>'+
+    (actions.length?'<div class="combat-preview-actions">'+actsButtons(S.game,actions)+'</div>':'')+'</div>';
+  const sc=openSheet(html,{noFocus:true});
+  sc.classList.add('combat-preview-modal');
+  sc.querySelector('[data-preview-close]').onclick=closeSheet;
+  sc.querySelector('[data-preview-details]').onclick=()=>showCard(id,inst);
+  bindActs(sc,actions,a=>{closeSheet();run(a)});
+  if(!isFrenchArt(id)&&!FrenchArt.tried[id])FrenchArt.ensure(id);
+  return sc;
+}
+
 // =========================================================== ÉCRANS ======
 function mount(html) { closeSheet(); app.querySelectorAll('.choice-peek-shield').forEach(el=>el.remove()); app.innerHTML = html; }
 function topbar(title, back = 'home') { return `<div class="topbar"><button class="iconbtn" data-nav="${back}" aria-label="Retour">${ICON.back}</button><h2>${esc(title)}</h2></div>`; }
@@ -4406,7 +4449,7 @@ function homeScreen() {
   const fan = ['adam-smasher-ender-of-legends','johnny-silverhand-rocking-renegade','panam-palmer-nomad-cavalry']
     .map((id,i)=>`<div class="prime-card"><i>${i===1?'7':'✦'}</i>${cardArt(id)?`<img src="${esc(cardArt(id))}" alt="" loading="lazy" onerror="this.remove()">`:''}</div>`).join('');
   mount(`<div class="screen home sim-home"><div class="sim-home-main">
-    <div class="prime-live-label"><span><i class="prime-led"></i>SIMULATION ACTIVE</span><span class="prime-build">NEON ARENA / PRIME 1.0.4</span></div>
+    <div class="prime-live-label"><span><i class="prime-led"></i>SIMULATION ACTIVE</span><span class="prime-build">NEON ARENA / PRIME 1.0.6</span></div>
     <div class="sim-eyebrow">CYBERPUNK TCG · DUELS TACTIQUES</div>
     <div class="prime-fan" aria-hidden="true">${fan}<span class="prime-label">NIGHT CITY // 2077</span></div>
     <h1 class="wordmark"><span class="seven">7</span><span>Gigs</span></h1>
@@ -4723,19 +4766,19 @@ function boardClick(e) {
   if (t.id === 'ticker') return logSheet();
   if (t.id === 'trashBtn') { const tr = g.P(HUMAN).trash; const sc = openSheet(`<h4>Votre rebut</h4><p class="sub">${tr.length} carte(s)</p><div class="body"><div class="revealed" style="flex-wrap:wrap">${tr.map(c => miniHTML(c.id, { attrs: `data-see="${c.id}"` })).join('') || '<span class="sub">Vide</span>'}</div></div><div class="acts"><button class="btn ghost" data-close>Fermer</button></div>`); sc.querySelector('[data-close]').onclick = closeSheet; sc.querySelectorAll('[data-see]').forEach(b => b.onclick = () => showCard(b.dataset.see)); return; }
   if (t.id === 'rail') return gigSheet();
-  if (t.dataset.hand) { const c = g.byUid(+t.dataset.hand); const acts = myActs([c.uid]); const sc = showCard(c.id, null, actsButtons(g, acts)); bindActs(sc, acts, run); return; }
+  if (t.dataset.hand) { const c=g.byUid(+t.dataset.hand); const acts=myActs([c.uid]); showCombatPreview(c.id,null,acts,run);return; }
   if (t.dataset.unit) {
     const u = g.byUid(+t.dataset.unit); const mine = g.controllerOf(u) === HUMAN;
     let acts = mine ? myActs([u.uid, ...u.gear.map(x => x.uid)]) : S.acts.filter(a => a.type === 'attack' && a.target.kind === 'unit' && a.target.uid === u.uid);
-    const sc = showCard(u.id, u, (!mine && acts.length ? '<p class="sub" style="margin:0">Attaquer cette unité avec :</p>' : '') + actsButtons(g, acts).replace(/Combattre [^<]*/g, m => mine ? m : m));
-    if (!mine) sc.querySelectorAll('[data-a]').forEach((b, k) => { b.querySelector('b').textContent = g.name(g.byUid(acts[k].uid)); });
-    bindActs(sc, acts, run); return;
+    const sc=showCombatPreview(u.id,u,acts,run);
+    if(sc&&!mine)sc.querySelectorAll('[data-a]').forEach((b,k)=>{const title=b.querySelector('.t b');if(title&&acts[k]?.uid!=null)title.textContent=g.name(g.byUid(acts[k].uid));});
+    return;
   }
   if (t.dataset.leg) {
     const l = g.byUid(+t.dataset.leg); const mine = g.controllerOf(l) === HUMAN;
     if (!l.faceUp) { const a = mine ? S.acts.find(x => x.type === 'call') : null; const sc = openSheet(`<h4>Légende face cachée</h4><p class="sub">${mine ? 'Même vous ne savez pas laquelle : un Appel retourne une Légende au hasard. Face cachée, elle peut payer 1 €$. Face visible, elle doit porter le logo €$.' : 'Légende adverse pas encore appelée.'}</p><div class="acts">${a ? actsButtons(g, [a]) : ''}<button class="btn ghost" data-close>Fermer</button></div>`); sc.querySelector('[data-close]').onclick = closeSheet; if (a) bindActs(sc, [a], run); return; }
     const acts = mine ? myActs([l.uid, ...l.gear.map(x => x.uid)]) : [];
-    const sc = showCard(l.id, l, actsButtons(g, acts)); bindActs(sc, acts, run);
+    showCombatPreview(l.id,l,acts,run);
   }
 }
 function gigSheet() {
