@@ -5,6 +5,8 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
+import android.view.WindowInsets;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -32,6 +34,15 @@ public class LauncherActivity extends Activity {
     web.setBackgroundColor(0xff081121);
     web.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
     setContentView(web);
+    // Android 15+ enforces edge-to-edge: keep cards and buttons clear of system bars.
+    if (Build.VERSION.SDK_INT >= 30) {
+      web.setOnApplyWindowInsetsListener((view, insets) -> {
+        android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
+        view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+        return insets;
+      });
+    }
+
     WebSettings st=web.getSettings();
     st.setJavaScriptEnabled(true);
     st.setDomStorageEnabled(true);
