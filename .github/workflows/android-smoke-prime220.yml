@@ -1,0 +1,57 @@
+name: 7 Gigs PRIME 2.2.0 - Android 15 QA
+on:
+  workflow_run:
+    workflows: ["7 Gigs PRIME 2.2.0 - Build APK officiel"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  emulator:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Download signed APK from PRIME 2.2.0 release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/prime220-qa
+          curl --fail --location --retry 4 --retry-delay 3 -o /tmp/prime220.apk 'https://github.com/yuri85300-design/lifequest/releases/download/prime-v2.2.0/7Gigs-PRIME-2.2.0.apk'
+          unzip -t /tmp/prime220.apk | tail -3
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install, launch and check PRIME 2.2.0 on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            set -e
+            adb install -r /tmp/prime220.apk
+            adb shell pm list packages > /tmp/prime220-qa/packages.txt
+            grep -Fx 'package:dev.septgigs.neonarena.prime220' /tmp/prime220-qa/packages.txt
+            adb logcat -c
+            adb shell am start -W -n dev.septgigs.neonarena.prime220/dev.septgigs.neonarena.prime.Prime2Activity | tee /tmp/prime220-qa/launch.txt
+            sleep 8
+            adb shell dumpsys activity activities > /tmp/prime220-qa/activity.txt
+            adb logcat -d > /tmp/prime220-qa/logcat.txt
+            adb shell screencap -p /sdcard/prime220.png
+            adb pull /sdcard/prime220.png /tmp/prime220-qa/screenshot.png
+            grep -q 'dev.septgigs.neonarena.prime220' /tmp/prime220-qa/activity.txt
+            if grep -q 'FATAL EXCEPTION' /tmp/prime220-qa/logcat.txt; then exit 1; fi
+            if grep -E '7Gigs-PRIME.*JS.*(Uncaught|SyntaxError|ReferenceError)' /tmp/prime220-qa/logcat.txt; then exit 1; fi
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prime220-android15-smoke
+          path: /tmp/prime220-qa/
+          if-no-files-found: warn
