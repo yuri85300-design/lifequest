@@ -165,6 +165,17 @@ module.exports={
  'mantis-blades':{
   sourceHash:'c1cef6d5fa9d207231df521a505b5a7b18ab611f8816cd609c3090f9546d05b7',segments:[{index:1,hash:'c1cef6d5fa9d207231df521a505b5a7b18ab611f8816cd609c3090f9546d05b7',cases:['vanilla-gear-adds-exactly-two-power'],branches:['vanilla-gear-adds-exactly-two-power']}]
  },
+ 'gilded-mato-n':{
+  sourceHash:'c627ce5476069aa4c3b3a7eb8f58b2bcbe1ae16220facacff837ad9c5f196870',
+  segments:[
+   {index:1,hash:'fdcbc3518e77c7d9bf10c9c1c1c48e63fbe3c9341bd211c64a47a17248d249c8',
+    cases:['gilded-sacrifice-gear-defeats-cost-two-rival','gilded-optional-sacrifice-declined-keeps-gear-and-rival','gilded-no-friendly-gear-prevents-effect'],
+    branches:['optional-accept','optional-decline','no-friendly-gear']},
+   {index:2,hash:'1493b5a93dea0997384b761d6f08716ad6b2f4f737113a07ed91b4c6a5bbfdac',
+    cases:['gilded-sacrifice-gear-defeats-cost-two-rival','gilded-sacrifice-remains-possible-with-no-rival-target','gilded-cost-six-rival-ineligible-even-after-sacrifice'],
+    branches:['eligible-rival-cost-two','no-rival-target','ineligible-high-cost']}
+  ]},
+
  'yorinobu-arasaka-steel-dragon':{
   sourceHash:'6e3bd5529749dffc85a9e9a0093bfbd67a07d0ea3997a54ada1631065ec7221d',
   segments:[
