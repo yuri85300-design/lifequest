@@ -5917,6 +5917,47 @@ function rivalDeckText(){const d=allDecks()[S.myDeck],m=window.RivalLearning.sum
   const favorites=Object.entries(p.cards||{}).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([id,n])=>`${CARDS[id]?.name||id} (${n})`).join(', ');
   return `Contre votre deck : ${p.games} duels · IA ${p.wins} victoire(s), ${p.losses} défaite(s), ${p.draws} nul(s) · dernier plan : ${window.RivalLearning.STRATEGIES[style]?.name||'Équilibré'}${favorites?' · cartes observées : '+favorites:''}`;
 }
+
+function probeExpected(k,action,g){
+  if(!action||!g)return false;
+  if(k===0)return action.type==='sell'&&g.byUid(action.uid)?.id==='mantis-blades';
+  if(k===1)return action.type==='play'&&g.byUid(action.uid)?.id==='gorilla-arms';
+  if(k===2)return action.type==='attack'&&action.target?.kind==='gigs';
+  if(k===3)return action.type==='play'&&g.byUid(action.uid)?.id==='animals-wrecker';
+  if(k===4)return action.type==='call';
+  if(k===5)return action.type==='attack'&&action.target?.kind==='unit'&&g.byUid(action.target.uid)?.id==='6th-street-recruits';
+  return false;
+}
+/* This is a bounded diagnostic, not retraining. Policies, seeds and cards remain unchanged. */
+async function probeNightmare(button,report){
+  if(!button||!report||button.disabled)return;
+  button.disabled=true;
+  const counts={legal:0,goal:0,fail:0,fallback:0};
+  try{
+    for(let k=0;k<TACTICAL_PUZZLES.length;k++){
+      if(!report.isConnected)return;
+      const g=makeTacticalPuzzle(k);
+      const legal=g.legalActions(HUMAN);
+      let choice=null,usedFallback=false;
+      try{choice=await TacticalWorker.decide('mainAction',g,HUMAN,legal);}
+      catch(_){choice=null;}
+      if(!choice){
+        usedFallback=true;counts.fallback++;
+        try{choice=await FastPolicy.mainAction(g,HUMAN,legal);}catch(_){choice=null;}
+      }
+      const chosen=choice&&legal.find(a=>JSON.stringify(a)===JSON.stringify(choice));
+      if(chosen){
+        counts.legal++;
+        if(probeExpected(k,chosen,g))counts.goal++;
+      }else counts.fail++;
+      report.textContent=`Position ${k+1}/6 · ${counts.legal} décisions légales · ${counts.goal} objectifs choisis · ${counts.fallback} replis · ${counts.fail} anomalies.`;
+      await sleep(0);
+    }
+    report.textContent+=
+      ' Résultat indicatif sur 6 positions fixes : cette épreuve ne démontre ni la force en partie complète, ni la conformité des 150 effets. Aucun entraînement effectué.';
+  }finally{if(button.isConnected)button.disabled=false;}
+}
+
 function labScreen(){
   const n=(S.brain.matches||0);
   const v=S.brain.validation;
@@ -5929,6 +5970,12 @@ function labScreen(){
      <div class="lab-meter"><i id="labBar"></i></div>
      <div class="lab-status" id="labStatus">Entraînement suspendu : 150 effets officiels non encore certifiés. Les anciens poids restent disponibles comme référence.</div>
      <div class="lab-actions"><button class="btn primary" id="labTrain" disabled>Entraînement bloqué · audit incomplet</button><button class="btn ghost" id="labStop" disabled>Interrompre</button></div>
+     <div class="lab-hero" style="margin-top:14px;border-color:#5f829a">
+       <small>DIAGNOSTIC DE ROBUSTESSE · PAS D’ENTRAÎNEMENT</small>
+       <p class="lab-foot">NIGHTMARE est confronté à six situations tactiques jouables. Le contrôle vérifie la légalité de sa décision et si elle correspond à l'objectif attendu. Un score élevé n'est pas une certification.</p>
+       <button type="button" class="btn ghost" id="labProbe">Examiner 6 décisions tactiques</button>
+       <div class="lab-status" id="labProbeResult" role="status" aria-live="polite">Prêt pour un test local borné.</div>
+     </div>
      <div class="lab-hero" style="margin-top:20px;border-color:rgba(57,210,188,.4)">
        <small>APPRENTISSAGE CONTRE VOUS · PARTIES HUMAINES</small>
        <b id="rivalSummary">${esc(rivalText())}</b>
@@ -5945,6 +5992,7 @@ function labScreen(){
      <p class="lab-foot">Entraînement du champion temporairement suspendu. Seule la validation complète des branches d’effets autorisera une nouvelle campagne et un éventuel remplacement statistique. Aucun agent ne peut garantir 100 % de victoires.</p>
      <p class="lab-foot">PRIME 2.1.2 : six effets réparés et 59 oracles sémantiques indépendants validés. Les 150 effets ne sont pas encore certifiés ; aucun nouvel entraînement du champion ne peut être lancé. Historique de l’IA conservé séparément.</p>
    </div></div></div>`);
+  app.querySelector('#labProbe').onclick=()=>probeNightmare(app.querySelector('#labProbe'),app.querySelector('#labProbeResult'));
   const updateRivalUI=()=>{
     const v=app.querySelector('#rivalSummary'),d=app.querySelector('#rivalDeckSummary'),t=app.querySelector('#rivalToggle');
     if(v)v.textContent=rivalText();if(d)d.textContent=rivalDeckText();if(t)t.textContent=(S.learningEnabled?'Désactiver':'Activer')+' l\'apprentissage';
