@@ -8,8 +8,8 @@ const {performance}=require('node:perf_hooks'),path=require('path');
 const context={console,performance,Date,Math,setTimeout,clearTimeout,structuredClone};
 context.window=context;context.globalThis=context;vm.createContext(context);
 const engine=process.env.PRIME_ENGINE_PATH || path.join(__dirname,'engine.js');
-vm.runInContext(fs.readFileSync(engine,'utf8')+'\nglobalThis.PRIME_AUDIT={Game,GameOver,CARDS,presetDecks,FastPolicy};',context);
-const {Game,GameOver,CARDS,presetDecks,FastPolicy}=context.PRIME_AUDIT;
+vm.runInContext(fs.readFileSync(engine,'utf8')+'\nglobalThis.PRIME_AUDIT={Game,GameOver,CARDS,presetDecks,FastPolicy,validateDeck};',context);
+const {Game,GameOver,CARDS,presetDecks,FastPolicy,validateDeck}=context.PRIME_AUDIT;
 const presets=presetDecks(),deckNames=Object.keys(presets),ids=Object.keys(CARDS);
 const newGame=(seed=17)=>Game.create([presets['the-heist'],presets['embracing-power']],[FastPolicy,FastPolicy],{seed,hooks:{sim:true}});
 const report={version:'2.3.0',officialCertified:false,officialComparison:'NOT_EXECUTED',semantics:[],perCard:{},pairs:{total:0,pass:0,fail:0,gameovers:0,errors:[]},selfplay:{total:1000,completed:0,incomplete:0,errors:[],illegal:0}};
@@ -40,6 +40,16 @@ async function play(g,id,i){
  }
 }
 (async()=>{
+ await test('deck presets: all 10 legal',()=>{
+   assert.equal(deckNames.length,10);
+   for(const [name,d] of Object.entries(presets))assert.deepEqual(validateDeck(d),[],name);
+ });
+ await test('corrupt decks: reject unknown cards without crashing',()=>{
+   assert(validateDeck(null).length>0);
+   assert(validateDeck({legends:['unknown'],main:['bad-card']}).length>0);
+   const d=presets['the-heist'];
+   assert(validateDeck({...d,main:[...d.main.slice(0,39),'unknown-card']}).some(x=>x.includes('inconnue')));
+ });
  await test('11.11.3: Viktor plus Zetatech min cost 1',()=>{
   const g=newGame(),p=g.P(0);p.legends.forEach(l=>l.faceUp=true);
   const v=g.newInst('viktor-vektor-drop-your-illusions',0);p.field.push(v);
