@@ -33,6 +33,9 @@ try{
  let output=JSON.parse(fs.readFileSync(path.join(root,'semantic-gap-matrix.json'),'utf8'));
  assert.equal(output.candidateSegments,280);assert.equal(output.partiallyWitnessedSegments,40);
  assert.equal(output.unlinkedSegments,240);assert.equal(output.fullyCertifiedSegments,0);
+ assert.equal(output.cardsWithAllCandidateSegmentsPartiallyWitnessed,20);
+ assert.equal(output.cardsForExhaustiveBranchReview.length,20);
+ assert.ok(output.cardsForExhaustiveBranchReview.every(x=>x.readyForFullReview&&!x.semanticCertified&&x.unlinkedSegments===0));
  assert.ok(output.pending.every(x=>x.reviewStatus==='NO_LINKED_ORACLE'&&!x.semanticCertified));
  assert.ok(output.pending.every(x=>x.branchReviewCertified.length===0&&x.interactionReviewCertified.length===0));
  const originalSourceHash=cards[0].officialTextSha256;
