@@ -165,6 +165,23 @@ module.exports={
  'mantis-blades':{
   sourceHash:'c1cef6d5fa9d207231df521a505b5a7b18ab611f8816cd609c3090f9546d05b7',segments:[{index:1,hash:'c1cef6d5fa9d207231df521a505b5a7b18ab611f8816cd609c3090f9546d05b7',cases:['vanilla-gear-adds-exactly-two-power'],branches:['vanilla-gear-adds-exactly-two-power']}]
  },
+ 'lizzy-wizzy-delicate-weapon':{
+  sourceHash:'874facf12677ac04cbb3d5b40214d662e5fac580e2cf828e9e979be72b16f101',
+  segments:[
+   {index:1,hash:'0e92c9e33bd8985006f464b9aa46eff71951f91e999da8c33d59d0afeb9543cb',
+    cases:['lizzy-plays-eligible-program-free-from-hand-bottoms-it',
+      'lizzy-plays-eligible-program-free-from-trash-bottoms-it',
+      'lizzy-optional-decline-does-not-move-program',
+      'lizzy-filters-cost-over-three-from-all-source-zones',
+      'lizzy-without-eligible-program-does-not-fabricate-play'],
+    branches:['hand','trash','optional-decline','cost-at-most-three','cost-above-three','no-eligible-source']},
+   {index:2,hash:'97f8e2d2e6abb0d9a3383fac556c0ea3532c29d4f2e595e079a77034ed7353d8',
+    cases:['lizzy-plays-eligible-program-free-from-hand-bottoms-it','lizzy-plays-eligible-program-free-from-trash-bottoms-it'],
+    branches:['after-play-deck-bottom','source-hand','source-trash']},
+   {index:3,hash:'28dada044641eefffbd00839b699aad23f37091986fb465a0c9cafa687b54973',
+    cases:['lizzy-has-printed-blocker'],branches:['blocker-keyword']}
+  ]},
+
  'gunpoint-diplomacy':{
   sourceHash:'25e435f029a05688c41f385581b79723e7493e2c521ed21dec1fb48bc21b6125',segments:[
    {index:1,hash:'7ac7e25f6edbdf320e928ceac6bedd9f1b49fa54349f962d52e18c830f887b6c',cases:["gunpoint-not-behind-gains-both-effects","gunpoint-no-friendly-unit-cannot-play"],branches:["target-friendly-unit","no-target"]},

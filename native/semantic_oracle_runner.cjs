@@ -38,7 +38,8 @@ vm.runInContext(source+'\nglobalThis.__semanticApi={Game,GameOver,CARDS,presetDe
  const yorinobuDragon=await require('./semantic_oracles_yorinobu_dragon.cjs')(sandbox.__semanticApi,assert);
  const gildedMaton=await require('./semantic_oracles_gilded_maton.cjs')(sandbox.__semanticApi,assert);
  const highRiskChoices=await require('./semantic_oracles_high_risk_choices.cjs')(sandbox.__semanticApi,assert);
- const suites=[primary,secondary,reactive,programs,advanced,advanced2,complexOne,lastA,lastB,choiceBranches,publisherVerified,nocturne,quickContracts,relicContracts,crossCard,radioport,evelyn,jackie,faceplate,negotiators,minotaur,meredith,goro,valentino,cyberwareTiming,coreConditions,triggerConditions,highRiskOracles,timingReactions,yorinobuDragon,gildedMaton,highRiskChoices];
+ const lizzyPrograms=await require('./semantic_oracles_lizzy_program.cjs')(sandbox.__semanticApi,assert);
+ const suites=[primary,secondary,reactive,programs,advanced,advanced2,complexOne,lastA,lastB,choiceBranches,publisherVerified,nocturne,quickContracts,relicContracts,crossCard,radioport,evelyn,jackie,faceplate,negotiators,minotaur,meredith,goro,valentino,cyberwareTiming,coreConditions,triggerConditions,highRiskOracles,timingReactions,yorinobuDragon,gildedMaton,highRiskChoices,lizzyPrograms];
  const result={count:suites.reduce((a,x)=>a+x.count,0),passed:suites.reduce((a,x)=>a+x.passed,0),failed:suites.reduce((a,x)=>a+x.failed,0),tests:suites.flatMap(x=>x.tests)};
  const cardIds=Object.keys(sandbox.__semanticApi.CARDS);
  const evidenced=new Set(result.tests.filter(x=>x.status==='PASS').map(x=>x.id));
