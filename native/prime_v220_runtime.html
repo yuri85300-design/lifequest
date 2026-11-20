@@ -876,6 +876,14 @@ html,body{background:#030813}
 .prime-tutorial-progress i.on{background:#ffc06b}
 .prime-deck-validation{display:block;padding:6px 0;line-height:1.4;color:#b7d9e5}
 @media(max-width:560px){.sim-home{padding-bottom:env(safe-area-inset-bottom)!important}.sim-main-nav .btn{min-height:48px}.sim-home .prime-live-label{align-items:center;gap:8px}.prime-home-menu-trigger{min-width:76px;font-size:12px}.prime-fan{pointer-events:none}}
+/* PRIME 2.3: combat guidance, solo campaign and match dashboard */
+.prime-combat-guidance{position:relative;z-index:3;text-align:center;margin:2px auto 6px;padding:6px 10px;max-width:92%;font:700 11px/1.3 system-ui;color:#dcf5ff;background:#0a223eea;border:1px solid #4787c477;border-radius:8px}
+.prime-stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+.prime-stats-grid>div,.prime-mission{background:#0b2137;border:1px solid #426c89;border-radius:12px;padding:13px;margin-bottom:10px}
+.prime-stats-grid strong{display:block;font-size:22px;color:#ffd092}
+.prime-stats-grid small{display:block;color:#b8cedd;margin-top:4px}
+.prime-mission p{font-size:13px;line-height:1.5}.prime-mission .btn{display:block;margin-top:9px;min-height:44px;width:100%}.prime-mission.cleared{border-color:#267b70}
+.prime-history{border-bottom:1px solid #53748955;padding:8px 0;font-size:12px}
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -3993,6 +4001,8 @@ const S = {
   training:false, cancelTraining:false, audio:store.get('audio',false),
   rivalMemory:window.RivalLearning.sanitize(store.get('rivalLearningV1',null)), learningEnabled:store.get('rivalLearningEnabled',true), duelLearner:null,
   combatArtOnly: store.get('combatArtOnly', true),
+  campaignMission: null,
+  stats: store.get('matchStatsV1', {games:0,wins:0,losses:0,draws:0,turns:0,history:[],campaignCleared:0}),
 };
 
 // Native/WebView: choose actions in a dedicated worker; keep the UI fully interactive.
@@ -4608,7 +4618,7 @@ function showCombatPreview(id, inst, actions = [], run = () => {}) {
 function mount(html) { closeSheet(); app.querySelectorAll('.choice-peek-shield').forEach(el=>el.remove()); app.innerHTML = html; }
 function topbar(title, back = 'home') { return `<div class="topbar"><button class="iconbtn" data-nav="${back}" aria-label="Retour">${ICON.back}</button><h2>${esc(title)}</h2></div>`; }
 app.addEventListener('click', e => { const n = e.target.closest('[data-nav]'); if (n) { e.preventDefault(); go(n.dataset.nav); } });
-function go(screen, arg) { ({ home: homeScreen, setup: setupScreen, decks: decksScreen, cards: cardsScreen, rules: rulesScreen, builder: builderScreen, lab: labScreen }[screen] || homeScreen)(arg); }
+function go(screen, arg) { ({ home: homeScreen, setup: setupScreen, decks: decksScreen, cards: cardsScreen, rules: rulesScreen, builder: builderScreen, lab: labScreen, campaign: campaignScreen, stats: statsScreen, challenge: challengeScreen }[screen] || homeScreen)(arg); }
 
 function railHTML(myGigs, rvGigs, opts = {}) {
   const cells = [];
@@ -4634,6 +4644,9 @@ function homeMenu() {
       <button class="btn" data-tutorial>Apprendre à jouer</button>
       <button class="btn" data-cards>Bibliothèque des 150 cartes</button>
       <button class="btn" data-lab>Laboratoire NIGHTMARE</button>
+      <button class="btn" data-campaign>Campagne solo</button>
+      <button class="btn" data-stats>Statistiques de duel</button>
+      <button class="btn" data-challenge>Défi local à deux</button>
       <button class="btn" data-rules>Règles et aide</button>
       <button class="btn" data-updates ${nativeUpdates?'':'disabled'}>Mises à jour ${nativeUpdates?'':'— application Android requise'}</button>
       <button class="btn ghost" data-close>Fermer le menu</button>
@@ -4641,6 +4654,7 @@ function homeMenu() {
   const nav=(selector,route)=>{sc.querySelector(selector).onclick=()=>{closeSheet();go(route);};};
   nav('[data-start]','setup');nav('[data-decks]','decks');nav('[data-cards]','cards');
   nav('[data-lab]','lab');nav('[data-rules]','rules');
+  nav('[data-campaign]','campaign');nav('[data-stats]','stats');nav('[data-challenge]','challenge');
   sc.querySelector('[data-tutorial]').onclick=()=>{closeSheet();tutorialScreen();};
   if(nativeUpdates)sc.querySelector('[data-updates]').onclick=()=>{closeSheet();window.Native7Gigs.openUpdates();};
   sc.querySelector('[data-close]').onclick=closeSheet;
@@ -4662,6 +4676,68 @@ function tutorialScreen(){
     sc.querySelector('[data-next]').onclick=()=>{if(idx===steps.length-1){closeSheet();go('decks');}else{idx++;draw();}};
   };draw();
 }
+const CAMPAIGN_MISSIONS=[
+  {name:'Premiers contrats',level:'facile',description:'Apprenez à sécuriser vos Gigs face à un adversaire débutant.'},
+  {name:'La pression monte',level:'normal',description:'L’adversaire optimise davantage ses réponses.'},
+  {name:'Contrôle de territoire',level:'normal',description:'Adaptez votre deck aux duels tactiques.'},
+  {name:'L’ascension',level:'expert',description:'Affrontez NIGHTMARE avec son champion historique non certifié.'},
+  {name:'Le dernier Gig',level:'expert',description:'Remportez le duel final contre une IA exigeante.'}
+];
+function safeStats(){
+  const x=S.stats||{};return {games:Math.max(0,+x.games||0),wins:Math.max(0,+x.wins||0),
+    losses:Math.max(0,+x.losses||0),draws:Math.max(0,+x.draws||0),turns:Math.max(0,+x.turns||0),
+    history:Array.isArray(x.history)?x.history.slice(-30):[],
+    campaignCleared:Math.min(CAMPAIGN_MISSIONS.length,Math.max(0,+x.campaignCleared||0))};
+}
+function recordDuel(res,g,missionIndex=null){
+  const st=safeStats();st.games++;
+  if(res.winner===HUMAN)st.wins++;
+  else if(res.winner===AI)st.losses++;
+  else st.draws++;
+  const turns=Math.max(0,Math.ceil((g.s.turn||0)/2));st.turns+=turns;
+  st.history.push({date:new Date().toISOString(),result:res.winner===HUMAN?'victoire':res.winner===AI?'défaite':'égalité',
+    turns,deck:S.myDeck,level:S.level,gigs:g.P(HUMAN).gigs.length,enemyGigs:g.P(AI).gigs.length});
+  st.history=st.history.slice(-30);
+  if(res.winner===HUMAN && Number.isInteger(missionIndex) && missionIndex===st.campaignCleared) st.campaignCleared++;
+  S.stats=st;store.set('matchStatsV1',st);
+}
+function campaignScreen(){
+ const st=safeStats();
+ mount(`<div class="screen">${topbar('Campagne · Night City')}<div class="scroll pad">
+ <h3>Cinq contrats, une ascension</h3><p class="sub">Chaque mission se termine par une victoire en duel complet, sans avantage artificiel.</p>
+ ${CAMPAIGN_MISSIONS.map((m,i)=>`<div class="prime-mission ${i<st.campaignCleared?'cleared':''}">
+ <b>${i+1}. ${esc(m.name)}</b><p>${esc(m.description)}</p>
+ <small>${i<st.campaignCleared?'✓ Terminée':i===st.campaignCleared?'Contrat disponible':'À débloquer'}</small>
+ <button class="btn ${i===st.campaignCleared?'primary':'ghost'}" data-mission="${i}" ${i>st.campaignCleared?'disabled':''}>${i<st.campaignCleared?'Rejouer':'Lancer le duel'}</button></div>`).join('')}
+ </div></div>`);
+ app.querySelectorAll('[data-mission]').forEach(b=>b.onclick=()=>{
+   const i=Number(b.dataset.mission),m=CAMPAIGN_MISSIONS[i];if(i>safeStats().campaignCleared)return;
+   S.campaignMission=i;S.level=m.level;S.aiDeck='random';startGame();
+ });
+}
+function statsScreen(){
+ const st=safeStats(),pct=st.games?Math.round(st.wins/st.games*100):0;
+ mount(`<div class="screen">${topbar('Statistiques')}<div class="scroll pad">
+ <h3>Tableau de bord</h3><div class="prime-stats-grid">
+ <div><strong>${st.games}</strong><small>Duels terminés</small></div>
+ <div><strong>${pct}%</strong><small>Taux de victoire</small></div>
+ <div><strong>${st.wins} / ${st.losses} / ${st.draws}</strong><small>Victoires / Défaites / Nuls</small></div>
+ <div><strong>${st.games?(st.turns/st.games).toFixed(1):'—'}</strong><small>Tours moyens</small></div></div>
+ <h3>Historique local</h3>${st.history.length?
+ st.history.slice().reverse().map(h=>`<p class="prime-history"><b>${esc(h.result)}</b> · ${esc(h.deck)} · ${h.turns} tours · ${h.gigs}–${h.enemyGigs} Gigs</p>`).join(''):
+ '<p class="sub">Aucune partie terminée enregistrée.</p>'}
+ <p class="sub">Historique conservé localement sur cet appareil, limité aux 30 dernières parties.</p>
+ </div></div>`);
+}
+function challengeScreen(){
+ mount(`<div class="screen">${topbar('Défi à deux joueurs')}<div class="scroll pad">
+ <h3>Défi local asynchrone</h3>
+ <p>Deux personnes peuvent jouer chacune une partie contre la même difficulté d’IA puis comparer leurs résultats depuis les statistiques.</p>
+ <p class="sub">Ce mode ne constitue pas un duel humain contre humain. Le multijoueur temps réel et en ligne nécessite une architecture réseau et une gestion des informations cachées.</p>
+ <button class="btn primary" data-nav="setup">Préparer le premier duel</button>
+ <button class="btn ghost" data-nav="stats">Comparer les résultats enregistrés</button>
+ </div></div>`);
+}
 function homeScreen() {
   const D=allDecks(), dk=D[S.myDeck];
   const fan = ['adam-smasher-ender-of-legends','johnny-silverhand-rocking-renegade','panam-palmer-nomad-cavalry']
@@ -4682,6 +4758,9 @@ function homeScreen() {
       <button class="btn" data-nav="decks">Construire / gérer mes decks</button>
       <button class="btn ghost" data-nav="cards">Bibliothèque des cartes</button>
       <button class="btn ghost prime-tutorial-cta" data-tutorial-home>▶ Tutoriel interactif</button>
+      <button class="btn ghost" data-nav="campaign">Campagne de Night City</button>
+      <button class="btn ghost" data-nav="stats">Mes statistiques</button>
+      <button class="btn ghost" data-nav="challenge">Défi local à deux joueurs</button>
     </nav></div>
     <div class="sim-home-foot"><div><button data-nav="lab">◈ Laboratoire IA · ${S.brain.matches||0} duels enregistrés</button><button data-nav="rules" style="margin-left:12px">Règles &amp; aide</button></div><span>Simulateur de fan non officiel · visuels sous droits de leurs auteurs.</span></div>
   </div>`);
@@ -4775,6 +4854,7 @@ function labScreen(){
 
 function deckDots(dk) { const lim = deckRamLimits(dk.legends); return COLORS.filter(c => lim[c]).map(c => `<span class="dot fc-${c}" title="${COLOR_FR[c]} ${lim[c]}"></span>`).join(''); }
 function setupScreen() {
+  S.campaignMission=null;
   const D=allDecks();
   const opts=sel=>Object.entries(D).map(([k,d])=>`<option value="${esc(k)}" ${sel===k?'selected':''}>${esc(d.name)} · ${d.main.length} cartes</option>`).join('');
   mount(`<div class="screen">${topbar('Partie solo')}<div class="scroll pad sim-setup">
@@ -4947,8 +5027,11 @@ function render() {
   const avail = p => g.avail(p);
   const scs = i => g.sc(i) ?? '–';
   const myTurn = !!S.resolveMain;
+  const canGigAttack=myTurn&&S.acts.some(a=>a.type==='attack'&&a.target?.kind==='gigs');
+  const canUnitAttack=myTurn&&S.acts.some(a=>a.type==='attack'&&a.target?.kind==='unit');
   const html = `
   <div class="arena-badge" aria-hidden="true">NIGHT CITY</div>
+  <div class="prime-combat-guidance" role="status" aria-live="polite">${canGigAttack?'⚔ Vous pouvez attaquer les Gigs adverses':canUnitAttack?'⚔ Une attaque sur une unité est disponible':myTurn?'Sélectionnez une carte ou une action légale':'Tour adverse · observez et préparez votre réponse'}</div>
   ${g.s.phase === 'setup' && (P.hand.length < 6 || Q.hand.length < 6) ? `<div class="setup-status" role="status"><strong>PRÉPARATION DU DUEL</strong><span>${g.s.log.some(x => x.msg.includes('joue en premier')) ? 'Distribution des mains en cours…' : 'Choix du premier joueur…'}</span><button type="button" class="btn small ghost" id="retrySetup">Relancer le duel</button></div>` : ''}
   <div class="side rival"><button class="iconbtn" id="menuBtn" aria-label="Menu">${ICON.menu}</button>
     <div class="who"><b>${esc(Q.name)}</b><small>${S.thinking ? '<span class="thinking">réfléchit<i>…</i></span>' : LEVELS[S.level][0]}</small></div>
@@ -5149,7 +5232,7 @@ async function startGame() {
       switch (ev) {
         case 'initialHands': case 'setupComplete': render(); break;
         case 'roll': S.fx.fresh = d.die.uid; render(); arenaFX('roll'); await sleep(170); S.fx.fresh = null; break;
-        case 'steal': S.fx.stolen = d.die.uid; render(); arenaFX('steal'); await sleep(ai ? 600 * S.speed : 350); S.fx.stolen = null; break;
+        case 'steal': S.fx.stolen = d.die.uid; S.ticker='Gig transféré · '+(g.P(HUMAN).gigs.length)+' / 7 pour vous'; render(); arenaFX('steal'); await sleep(ai ? 600 * S.speed : 350); S.fx.stolen = null; break;
         case 'play': render(); arenaFX('play'); if (ai) await spotlight(d.c.id, `<b>L'IA</b> ${CARDS[d.c.id].type === 'Program' ? 'lance' : CARDS[d.c.id].type === 'Gear' ? `équipe ${d.host ? 'sur ' + nm(d.host) : ''}` : 'joue'} ${nm(d.c)}`, false, 1150); break;
         case 'call': render(); await spotlight(d.inst.id, `<b>${ai ? "L'IA" : 'Vous'}</b> ${ai ? 'appelle' : 'appelez'} ${nm(d.inst)}`, !ai, ai ? 1200 : 900); break;
         case 'attack': S.fx.att = d.u.uid; S.fx.tgt = d.target.kind === 'unit' ? d.target.uid : null; render(); arenaFX('attack'); if (ai) await spotlight(null, `<b>${nm(d.u)}</b> attaque ${d.target.kind === 'gigs' ? 'vos Gigs' : nm(g.byUid(d.target.uid))}`, false, 800); break;
@@ -5204,6 +5287,9 @@ async function startGame() {
     return;
   }
   if (S.game !== g) return;
+  const completedMission=S.campaignMission;
+  recordDuel(res,g,completedMission);
+  S.campaignMission=null;
   if(session){
     S.rivalMemory=window.RivalLearning.finish(S.rivalMemory,session,res.winner);
     if(!store.set('rivalLearningV1',S.rivalMemory))toast('Mémoire non sauvegardée sur cet appareil : export nécessaire.',4000);
@@ -5212,7 +5298,7 @@ async function startGame() {
   S.resolveMain = null; S.acts = []; render(); closeSheet();
   const win = res.winner === HUMAN;
   const ov = document.createElement('div'); ov.className = 'over';
-  ov.innerHTML = `<h1 class="${win ? 'win' : 'lose'}">${win ? 'Victoire' : res.winner === -1 ? 'Égalité' : 'Défaite'}</h1><p>${esc(res.reason)}</p>${session?`<p style="max-width:340px;color:var(--sodium);font-size:.83rem">◈ Duel mémorisé. Plan testé : ${esc(window.RivalLearning.STRATEGIES[session.variant].name)}. ${esc(rivalDeckText())}</p>`:''}<button class="btn primary" id="again">Rejouer</button><button class="btn ghost" id="log2">Voir le journal</button><button class="btn ghost" data-nav="home">Menu principal</button>`;
+  ov.innerHTML = `<h1 class="${win ? 'win' : 'lose'}">${win ? 'Victoire' : res.winner === -1 ? 'Égalité' : 'Défaite'}</h1><p>${esc(res.reason)}</p>${session?`<p style="max-width:340px;color:var(--sodium);font-size:.83rem">◈ Duel mémorisé. Plan testé : ${esc(window.RivalLearning.STRATEGIES[session.variant].name)}. ${esc(rivalDeckText())}</p>`:''}<button class="btn primary" id="again">Rejouer</button><button class="btn ghost" id="log2">Voir le journal</button><button class="btn ghost" data-nav="stats">Statistiques</button><button class="btn ghost" data-nav="campaign">Campagne</button><button class="btn ghost" data-nav="home">Menu principal</button>`;
   app.appendChild(ov);
   ov.querySelector('#again').onclick = () => startGame();
   ov.querySelector('#log2').onclick = () => { ov.remove(); logSheet(); const b = document.createElement('button'); b.className = 'btn primary'; b.style.cssText = 'position:absolute;right:10px;top:10px;z-index:60'; b.textContent = 'Menu'; b.dataset.nav = 'home'; app.appendChild(b); };
