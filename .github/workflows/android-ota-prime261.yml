@@ -24,7 +24,7 @@ jobs:
             https://github.com/yuri85300-design/lifequest/releases/download/prime-v2.5.4/7Gigs-PRIME-2.5.4.apk
           test -s /tmp/prime254-apk/7Gigs-PRIME-2.5.4.apk
           curl --fail --location --retry 3 --output /tmp/prime261-proof/latest.json \
-            https://raw.githubusercontent.com/yuri85300-design/lifequest/main/updates/latest.json
+            https://raw.githubusercontent.com/yuri85300-design/lifequest/main/updates/latest.json?qa=26001
           python3 - <<'PY'
           import json
           j=json.load(open('/tmp/prime261-proof/latest.json'))
