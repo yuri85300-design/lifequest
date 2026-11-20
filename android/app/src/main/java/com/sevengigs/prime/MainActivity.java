@@ -11,6 +11,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import androidx.webkit.WebViewAssetLoader;
 import java.nio.charset.StandardCharsets;
 
 public final class MainActivity extends Activity {
@@ -23,12 +25,18 @@ public final class MainActivity extends Activity {
         web = new WebView(this);
         web.setBackgroundColor(0xFF030A18);
         web.setWebChromeClient(new WebChromeClient());
+        final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+            .build();
         web.setWebViewClient(new WebViewClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return assetLoader.shouldInterceptRequest(request.getUrl());
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if ("file".equals(uri.getScheme())) {
-                    return !uri.toString().startsWith("file:///android_asset/");
-                }
+                if ("https".equals(uri.getScheme()) &&
+                        "appassets.androidplatform.net".equals(uri.getHost()) &&
+                        uri.getPath() != null && uri.getPath().startsWith("/assets/")) return false;
                 if ("https".equals(uri.getScheme())) {
                     try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
                     catch (Exception ignored) {}
@@ -39,13 +47,13 @@ public final class MainActivity extends Activity {
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
+        settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         web.addJavascriptInterface(new Bridge(), "Native7Gigs");
         setContentView(web);
         immersive();
-        web.loadUrl("file:///android_asset/prime_v220_runtime.html");
+        web.loadUrl("https://appassets.androidplatform.net/assets/prime_v220_runtime.html");
     }
 
     private void immersive() {
