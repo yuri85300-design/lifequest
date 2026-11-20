@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 27000,
-  "version": "2.7.0",
+  "version_code": 27001,
+  "version": "2.7.1",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.0/prime-content-v2.7.0.zip",
-  "sha256": "14bbcbe767999a80924a940fb69ee7a064f83a88deead5e1643e32caca00e705",
-  "notes": "Strategie et coaching : 6 missions, 17 questions, probabilites, assistant de decks, diagnostic NIGHTMARE, confort visuel, controle des versions. Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.1/prime-content-v2.7.1.zip",
+  "sha256": "e6c67d712f4378546e902cff6c740651bb633603ec0d0122aabad88a332ed528",
+  "notes": "Campagne 12 contrats, Academie 12 missions, diagnostic IA 12 situations, essais de deck reversibles, Android QA corrigee. Sauvegardes conservees."
 }
