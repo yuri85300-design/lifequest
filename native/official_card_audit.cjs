@@ -18,6 +18,11 @@ const sha=text=>crypto.createHash('sha256').update(text.normalize('NFC')).digest
 const root=path.join(__dirname,'..','audit-results');
 fs.mkdirSync(root,{recursive:true});
 const base='https://cyberpunktcg.com';
+const officialSlugs={
+  'judy-alvarez-braindance-maestro':'judy-a-lvarez-braindance-maestro',
+  'judy-alvarez-nothing-to-doubt':'judy-a-lvarez-nothing-to-doubt'
+};
+const officialSlug=id=>officialSlugs[id]||id;
 const result={generatedAt:new Date().toISOString(),source:base+'/cards',officialRules:base+'/comprehensive-rules',
   officialErrata:base+'/errata',runtimeCards:cards.length,officialCatalogueCount:null,
   inspected:0,accessible:0,metadataExact:0,metadataMismatches:[],fetchErrors:[],
@@ -55,10 +60,10 @@ async function main(){
     if(newer===current)break;
   }
   result.officialOnly=[...officialPaths].map(x=>x.split('/').pop()).filter(x=>x&&!engine.CARDS[x]);
-  result.missingFromOfficial=cards.map(c=>c.id).filter(id=>!officialPaths.has('/cards/'+id));
+  result.missingFromOfficial=cards.map(c=>c.id).filter(id=>!officialPaths.has('/cards/'+officialSlug(id)));
   const officialPage=await browser.newPage({userAgent:'Mozilla/5.0 (compatible; 7GigsCompatibilityAudit/1.0)'});
   for(const c of cards){
-   const u=base+'/cards/'+encodeURIComponent(c.id);
+   const u=base+'/cards/'+encodeURIComponent(officialSlug(c.id));
    const datum={id:c.id,officialUrl:u,officialTextSha256:null,officialTextLength:0,status:'pending',diffs:[]};
    result.cardEvidence.push(datum);
    try {
