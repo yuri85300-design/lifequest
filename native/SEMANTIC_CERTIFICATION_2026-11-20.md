@@ -187,3 +187,15 @@ et ne permettent aucune certification automatique. Les résultats du nouveau
 workflow doivent être consultés avant de confirmer ses nombres ou sa réussite.
 
 **Aucun des 240 segments n'est déclaré nouvellement certifié par ce changement.**
+
+### Contrat automatique de cohérence de la matrice
+
+`native/semantic_gap_matrix_contract.cjs` ajoute cinq scénarios synthétiques :
+matrice 280/40/240, texte source périmé, empreinte de segment périmée,
+témoin orphelin et total de segments incohérent. Le workflow exécute ces
+contrôles avant d'accéder au catalogue officiel. Un jeu de données synthétique
+ne vaut ni preuve d'une clause de carte ni certification du moteur.
+
+**Statut d'exécution : non confirmé sur le dernier commit.** La matrice réelle
+et les tests de branches/effets combinés devront être exécutés et leurs
+résultats inspectés. NIGHTMARE reste bloqué.
