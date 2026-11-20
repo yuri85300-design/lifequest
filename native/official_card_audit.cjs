@@ -29,7 +29,7 @@ const officialSlugs={
 const officialSlug=id=>officialSlugs[id]||id;
 const result={generatedAt:new Date().toISOString(),source:base+'/cards',officialRules:base+'/comprehensive-rules',
   officialErrata:base+'/errata',runtimeCards:cards.length,officialCatalogueCount:null,
-  inspected:0,accessible:0,metadataExact:0,metadataMismatches:[],fetchErrors:[],
+  inspected:0,accessible:0,metadataExact:0,metadataMismatches:[],keywordMismatches:[],fetchErrors:[],
   missingFromOfficial:[],officialOnly:[],cardEvidence:[],semanticCertified:false};
 const textNorm=x=>(x||'').replace(/\s+/g,' ').trim();
 function parse(text) {
@@ -42,6 +42,21 @@ function parse(text) {
  const type=[...before.matchAll(/^\s*(LEGEND|UNIT|GEAR|PROGRAM)\s*$/gm)].at(-1)?.[1]||null;
  const field=key=>{const hits=[...before.matchAll(new RegExp('^\\s*'+key+'\\s+(\\d+)\\s*$','gm'))];return hits.length?Number(hits.at(-1)[1]):null};
  return {type,cost:field('COST'),power:field('PWR'),ram:field('RAM'),text:rules};
+}
+function keywordAlignment(english,french){
+ const checks=[
+   ['play',/\\{Play\\}/i,/\\[JEU\\]/i],
+   ['attack',/\\{Attack\\}/i,/\\[ATTAQUE\\]/i],
+   ['call',/\\{Call\\}/i,/\\[APPEL\\]/i],
+   ['defeated',/\\{Defeated\\}/i,/\\[VAINCU\\]/i],
+   ['blocker',/\\{Blocker\\}/i,/\\[BLOQUEUR\\]/i],
+   ['goSolo',/\\{Go Solo\\}/i,/\\[SOLO\\]/i],
+   ['quick',/\\{Quick\\}/i,/\\[RAPIDE\\]/i],
+   ['adrenaline',/\\{Adrenaline\\}/i,/\\[ADRÉNALINE\\]/i],
+   ['spend',/\\{Spend\\}/i,/\\[⟳\\]/i],
+ ];
+ return checks.filter(([,a,b])=>a.test(english)!==b.test(french||''))
+  .map(([keyword,a,b])=>({keyword,official:a.test(english),local:b.test(french||'')}));
 }
 async function main(){
  const browser=await chromium.launch({headless:true,args:['--disable-dev-shm-usage']});
@@ -98,6 +113,8 @@ async function main(){
      result.accessible++;
      datum.officialTextSha256=sha(textNorm(official.text));
      datum.officialTextLength=official.text.length;
+     datum.keywordAlignment=keywordAlignment(official.text,c.txt);
+     if(datum.keywordAlignment.length)result.keywordMismatches.push({id:c.id,keywords:datum.keywordAlignment});
      for(const [field,expected] of [['type',c.type.toUpperCase()],['cost',c.cost??null],['power',c.power??null],['ram',c.ram??null]]){
        const actual=official[field];
        if(expected!==actual)datum.diffs.push({field,expected,official:actual});
