@@ -4,6 +4,7 @@ on:
     paths:
       - 'native/engine.js'
       - 'native/semantic_oracles.cjs'
+      - 'native/card_lifecycle_oracles.cjs'
       - 'native/semantic_oracle_runner.cjs'
       - 'native/semantic_register.cjs'
       - '.github/workflows/semantic-oracles.yml'
@@ -25,6 +26,8 @@ jobs:
           node-version: '22'
       - name: Independent per-card behaviour oracles
         run: node native/semantic_oracle_runner.cjs
+      - name: Check 150 individual card lifecycle scenarios
+        run: node native/card_lifecycle_oracles.cjs
       - name: Generate uncensored certification ledger
         if: always()
         run: node native/semantic_register.cjs
@@ -35,6 +38,7 @@ jobs:
           path: |
             audit-results/semantic-oracles.json
             audit-results/semantic-register.json
+            audit-results/card-lifecycle.json
           if-no-files-found: error
       - name: Assert NIGHTMARE remains certification-locked
         run: grep -q 'const NIGHTMARE_TRAINING_CERTIFIED = false' native/prime_v220_runtime.html
