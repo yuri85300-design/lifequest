@@ -1,0 +1,60 @@
+name: PRIME 2.5.0 - Lien direct APK GitHub Releases
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-prime250-direct.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish-direct-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Recuperer l'APK deja compile sur GitHub Actions
+        uses: actions/download-artifact@v4
+        with:
+          name: 7Gigs-PRIME-250-APK
+          path: /tmp/prime250-release
+          run-id: 44725939824
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verifier les 150 images françaises, integrite et type de fichier
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile,hashlib
+          p=Path('/tmp/prime250-release/7Gigs-PRIME-2.5.0.apk')
+          assert p.is_file() and p.stat().st_size>17000000, 'APK manquante ou trop petite'
+          with zipfile.ZipFile(p) as z:
+              files=z.namelist()
+              cards=[f for f in files if f.startswith('assets/www/images_vf/') and not f.endswith('/')]
+              assert len(cards)==150, '150 scans VF absents'
+              assert len(set(cards))==150
+              assert z.testzip() is None
+              assert 'classes.dex' in files, 'Code Android absent'
+              assert 'assets/www/index.html' in files, 'Jeu absent'
+              assert all(z.getinfo(f).file_size>2000 for f in cards)
+          print('VERIFIED APK:',p.name,'SIZE:',p.stat().st_size,
+                'SHA256:',hashlib.sha256(p.read_bytes()).hexdigest(),
+                'VF_IMAGES:',len(cards))
+          PY
+      - name: Publier l'APK directe dans les Releases GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: prime-v2.5.0
+          name: 7 Gigs PRIME 2.5.0 — APK Android (test)
+          prerelease: true
+          make_latest: false
+          generate_release_notes: false
+          body: |
+            APK Android de test initiale pour PRIME 2.5.0.
+            Téléchargement direct : 7Gigs-PRIME-2.5.0.apk (sans ZIP).
+            150 images VF embarquées, mode hors ligne, mises à jour du contenu depuis le jeu vers 2.5.2.
+            ATTENTION : signature Android temporaire. Une signature permanente distincte est requise pour les futures mises à jour natives sans réinstallation.
+            Projet fan non officiel ; illustrations et marques appartenant à leurs ayants droit.
+          files: /tmp/prime250-release/7Gigs-PRIME-2.5.0.apk
+          fail_on_unmatched_files: true
