@@ -45,15 +45,15 @@ function parse(text) {
 }
 function keywordAlignment(english,french){
  const checks=[
-   ['play',/\\{Play\\}/i,/\\[JEU\\]/i],
-   ['attack',/\\{Attack\\}/i,/\\[ATTAQUE\\]/i],
-   ['call',/\\{Call\\}/i,/\\[APPEL\\]/i],
-   ['defeated',/\\{Defeated\\}/i,/\\[VAINCU\\]/i],
-   ['blocker',/\\{Blocker\\}/i,/\\[BLOQUEUR\\]/i],
-   ['goSolo',/\\{Go Solo\\}/i,/\\[SOLO\\]/i],
-   ['quick',/\\{Quick\\}/i,/\\[RAPIDE\\]/i],
-   ['adrenaline',/\\{Adrenaline\\}/i,/\\[ADRÉNALINE\\]/i],
-   ['spend',/\\{Spend\\}/i,/\\[⟳\\]/i],
+   ['play',/\{Play\}/i,/\[JEU\]/i],
+   ['attack',/\{Attack\}/i,/\[ATTAQUE\]/i],
+   ['call',/\{Call\}/i,/\[APPEL\]/i],
+   ['defeated',/\{Defeated\}/i,/\[VAINCU\]/i],
+   ['blocker',/\{Blocker\}/i,/\[BLOQUEUR\]/i],
+   ['goSolo',/\{Go Solo\}/i,/\[SOLO\]/i],
+   ['quick',/\{Quick\}/i,/\[RAPIDE\]/i],
+   ['adrenaline',/\{Adrenaline\}/i,/\[ADRÉNALINE\]/i],
+   ['spend',/\{Spend\}/i,/\[⟳\]/i],
  ];
  return checks.filter(([,a,b])=>a.test(english)!==b.test(french||''))
   .map(([keyword,a,b])=>({keyword,official:a.test(english),local:b.test(french||'')}));
