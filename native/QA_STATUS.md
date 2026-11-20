@@ -13,10 +13,12 @@ Dernière mise à jour : 2026-11-20. [Registre de preuves sémantiques](SEMANTIC
 | Textes anglais des 150 cartes | 150/150 fiches récupérées et empreintes calculées ; examen sémantique clause par clause NON EFFECTUÉ |
 | Errata officiels | 7 entrées parcourues ; deux errata de mécanique Johnny/Kiroshi testés, cinq corrections de crédits d'illustration |
 | Métadonnées officielles des cartes | 150/150 conformes (type, coût, puissance, RAM) ; 2 légendes promo supplémentaires hors périmètre |
-| Oracles sémantiques indépendants | 189/189 oracles comportementaux réussis dans GitHub Actions (exécution 44775805966) ; au moins un oracle pour chacune des 150 cartes ; couverture de chaque clause et interaction NON acquise |
+| Oracles sémantiques indépendants | 199/199 oracles comportementaux réussis dans GitHub Actions (exécution 44777291541) ; au moins un oracle pour chacune des 150 cartes ; couverture de chaque clause et interaction NON acquise |
 | Scénarios individuels des cartes | 150/150 cycles de vie réussis en CI ; ce contrôle n'est pas une certification des effets |
+| Correction de divergence moteur | Le moteur partagé `native/engine.js` est désormais réextrait du runtime HTML après correction Nocturne OP55N1 ; une incohérence entre version PC et moteur d'audit a été corrigée. |
+| Nocturne OP55N1 | 10 oracles ciblés : paiement obligatoire, 3 choix, réduction EN SOLO, expiration et surtaxe Riot Shield. |
 | Corrections Viktor / Alt Cunningham | Le premier CYBERWARE joué gratuitement et le prochain Programme joué gratuitement consomment leurs effets respectifs ; tests de régression ajoutés |
-| Segments candidats des textes anglais | 280 fragments de 150 fiches, dont 76 avec condition et 54 avec option ; dix fragments associés à des oracles et empreintes de source (validation finale CI distincte) |
+| Segments candidats des textes anglais | 280 fragments de 150 fiches, dont 76 avec condition et 54 avec option ; treize fragments associés à des oracles et empreintes de source (validation finale CI distincte) |
 | Certification des effets | NON ACQUISE : aucune carte n'est attestée clause par clause avec exhaustivité |
 | NIGHTMARE réentraînement compétitif | BLOQUÉ par NIGHTMARE_TRAINING_CERTIFIED=false |
 | Web Worker tactique | Chargement en Chromium observé ; 1 action de décision synthétique légale ; stress tests avancés non validés |
@@ -41,11 +43,11 @@ Le rapport de l'audit porte exclusivement sur des invariants techniques et des
 exécutions synthétiques. Un contrôle combinatoire par paires ne valide pas
 automatiquement l'intégralité des timings, effets, choix et errata officiels.
 
-État actuel confirmé par GitHub Actions : **189 oracles PASS sur 150 cartes**,
+État actuel confirmé par GitHub Actions : **199 oracles PASS sur 150 cartes**,
 **150 cycles de vie PASS**, interface Chromium et audit technique PASS.
-Workflow : https://github.com/yuri85300-design/lifequest/actions/runs/44775805966 .
+Workflow : https://github.com/yuri85300-design/lifequest/actions/runs/44777291541 .
 Les 280 fragments officiels restent candidats jusqu'à revue indépendante ;
-les dix correspondances de clauses ajoutées n'attestent pas une certification totale.
+les treize correspondances de clauses ajoutées n'attestent pas une certification totale.
 La certification sémantique est toujours à **0/150**, faute d'une démonstration
 de toutes les branches et interactions.
 
