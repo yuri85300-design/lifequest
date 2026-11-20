@@ -4003,6 +4003,7 @@ const S = {
   combatArtOnly: store.get('combatArtOnly', true),
   campaignMission: null,
   challenge: store.get('challengeV1',null),
+  challengeActive: false,
   stats: store.get('matchStatsV1', {games:0,wins:0,losses:0,draws:0,turns:0,history:[],campaignCleared:0}),
 };
 
@@ -4746,7 +4747,7 @@ function challengeScreen(){
   ${c.scores.map(x=>`<p class="prime-history">${esc(x.name)} : ${x.points} points · ${x.gigs} Gigs</p>`).join('')}
   <button class="btn primary" id="continueChallenge">Lancer la manche</button>
   <button class="btn ghost" id="stopChallenge">Abandonner le défi</button></div></div>`);
-  app.querySelector('#continueChallenge').onclick=()=>{S.campaignMission=null;S.pseudo=c.players[round];S.level='normal';S.aiDeck='embracing-power';S.myDeck=c.deck;startGame();};
+  app.querySelector('#continueChallenge').onclick=()=>{S.campaignMission=null;S.challengeActive=true;S.pseudo=c.players[round];S.level='normal';S.aiDeck='embracing-power';S.myDeck=c.deck;startGame();};
   app.querySelector('#stopChallenge').onclick=()=>{S.challenge=null;store.set('challengeV1',null);challengeScreen();};return;
  }
  mount(`<div class="screen">${topbar('Défi local à deux')}<div class="scroll pad">
@@ -4763,11 +4764,11 @@ function challengeScreen(){
  };
 }
 function recordChallenge(res,g){
- const c=S.challenge;if(!c||!['player1','player2'].includes(c.phase))return;
+ const c=S.challenge;if(!S.challengeActive||!c||!['player1','player2'].includes(c.phase))return;
  const i=c.phase==='player1'?0:1,gigs=g.P(HUMAN).gigs.length,enemy=g.P(AI).gigs.length,turns=Math.max(1,Math.ceil((g.s.turn||0)/2));
  const points=(res.winner===HUMAN?1000:res.winner===-1?500:0)+gigs*20-enemy*10+Math.max(0,30-turns);
  c.scores.push({name:c.players[i],result:res.winner===HUMAN?'Victoire':res.winner===AI?'Défaite':'Égalité',gigs,turns,points});
- c.phase=i===0?'player2':'done';store.set('challengeV1',c);
+ c.phase=i===0?'player2':'done';store.set('challengeV1',c);S.challengeActive=false;
 }
 function homeScreen() {
   const D=allDecks(), dk=D[S.myDeck];
@@ -4885,7 +4886,7 @@ function labScreen(){
 
 function deckDots(dk) { const lim = deckRamLimits(dk.legends); return COLORS.filter(c => lim[c]).map(c => `<span class="dot fc-${c}" title="${COLOR_FR[c]} ${lim[c]}"></span>`).join(''); }
 function setupScreen() {
-  S.campaignMission=null;
+  S.campaignMission=null;S.challengeActive=false;
   const D=allDecks();
   const opts=sel=>Object.entries(D).map(([k,d])=>`<option value="${esc(k)}" ${sel===k?'selected':''}>${esc(d.name)} · ${d.main.length} cartes</option>`).join('');
   mount(`<div class="screen">${topbar('Partie solo')}<div class="scroll pad sim-setup">
@@ -5307,7 +5308,7 @@ async function startGame() {
     async react(g,i,A,acts){const a=await playerAI.react(g,i,A,acts);window.RivalLearning.recordAI(session,g,i,a);return a;}
   }:playerAI;
   try {
-    g = Game.create([mine, theirs], [human,enemy], { names: [S.pseudo, "L'IA"], hooks, ...(S.challenge&&['player1','player2'].includes(S.challenge.phase)?{seed:S.challenge.seed}:{}) });
+    g = Game.create([mine, theirs], [human,enemy], { names: [S.pseudo, "L'IA"], hooks, ...(S.challengeActive&&S.challenge?{seed:S.challenge.seed}:{}) });
   } catch(e) { console.error(e); showDuelFailure(e,null); return; }
   S.game = g; render();
   let res;
