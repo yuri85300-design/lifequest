@@ -74,5 +74,13 @@ module.exports={
    {index:1,hash:'afe8da4f5b73c0f2029ebdd4e72576da85a97c137c9a847413eff3905ce22031',
     cases:['quick-contract-requires-friendly-unit','quick-contract-first-fight-prevents-defeat','quick-contract-second-fight-is-unprotected','quick-contract-unused-protection-expires'],
     branches:['no-friendly-unit','first-fight','second-fight','expiry']}
-  ]}
+  ]},
+ 'octant':{sourceHash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',segments:[{index:1,hash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',cases:['gig-value-eight-or-more-discount-with-minimum-one'],branches:["zero-high-gigs","multiple-high-gigs","floor-one"]}]},
+ 'ruthless-lowlife':{sourceHash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',segments:[{index:1,hash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',cases:['cannot-attack-gigs-even-when-rival-has-gigs'],branches:["unit-target-allowed","gig-area-target-forbidden"]}]},
+ 'field-operator':{sourceHash:'4f5ce9ecce2c41d7ade1adb8949c8544bdfee9f1b468ff6b66943736dcbd8285',segments:[{index:1,hash:'4f5ce9ecce2c41d7ade1adb8949c8544bdfee9f1b468ff6b66943736dcbd8285',cases:['even-street-cred-draws-odd-does-not'],branches:["even-cred-draw","odd-cred-no-draw"]}]},
+ 'swordwise-huscle':{sourceHash:'404e0a72d9485b20cd5a9f10a4b110558973d898967c721c71673d1a137fef29',segments:[{index:1,hash:'404e0a72d9485b20cd5a9f10a4b110558973d898967c721c71673d1a137fef29',cases:['attack-power-five-draw-threshold'],branches:["power-below-five","power-at-five"]}]},
+ 'trauma-team-operatives':{sourceHash:'1bc188452cb9f0e70fcefcfee41af033ac937034c2ac5fc62e8766156a29ee85',segments:[{index:1,hash:'1bc188452cb9f0e70fcefcfee41af033ac937034c2ac5fc62e8766156a29ee85',cases:['discount-by-unit-in-trash-floor-one'],branches:["two-eligible-trash-units","floor-one"]}]},
+ 'maxtac-heavy':{sourceHash:'6367b904845c310dd72a1d9ef401fd488adfeb6d8a6a684028c4f3f8b6f8996c',segments:[{index:1,hash:'6367b904845c310dd72a1d9ef401fd488adfeb6d8a6a684028c4f3f8b6f8996c',cases:['discount-by-rival-units-minimum-one'],branches:["zero-rival-units","multiple-rival-units","floor-one"]}]},
+ 'secondhand-bombus':{sourceHash:'1eed44cf39ff2197ed10a668b35b3b85f30f7cfb8db860b035bff20ca0a491d3',segments:[{index:1,hash:'1eed44cf39ff2197ed10a668b35b3b85f30f7cfb8db860b035bff20ca0a491d3',cases:['zero-power-blocker-cannot-steal-gigs'],branches:["printed-blocker-keyword","zero-power-cannot-steal"]}]},
+ 'mandibular-upgrade':{sourceHash:'e7d9c8249b8b3731830a8095794a7951a3f280df7b73a71ed723f289b6430963',segments:[{index:1,hash:'e7d9c8249b8b3731830a8095794a7951a3f280df7b73a71ed723f289b6430963',cases:['gear-grants-blocker-to-host'],branches:["attached-friendly-unit-gains-blocker"]}]}
 };
