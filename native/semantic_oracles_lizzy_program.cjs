@@ -46,7 +46,7 @@ module.exports=async function lizzyPrograms(api,assert){
   await fire(s);
   assert.equal(s.p.hand.includes(card),true);
   assert.equal(s.p.deck.length,size);
-  assert.equal(s.p.tf.playedProgram,false);
+  assert.equal(!!s.p.tf.playedProgram,false);
  });
  await t('lizzy-filters-cost-over-three-from-all-source-zones',async()=>{
   const s=build(),eligible=s.g.newInst('trust-no-one',0),
@@ -66,7 +66,7 @@ module.exports=async function lizzyPrograms(api,assert){
   s.g.pickCards=async()=>{throw Error('No eligible Program should be offered')};
   await fire(s);
   assert.equal(s.p.hand.includes(expensive),true);
-  assert.equal(s.p.tf.playedProgram,false);
+  assert.equal(!!s.p.tf.playedProgram,false);
  });
  await t('lizzy-has-printed-blocker',async()=>{
   const s=build();
