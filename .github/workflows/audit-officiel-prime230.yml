@@ -1,5 +1,9 @@
 name: PRIME 2.3 - Audit officiel des 150 cartes
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-officiel-prime230.yml'
   workflow_dispatch:
   schedule:
     - cron: '15 5 * * 3'
