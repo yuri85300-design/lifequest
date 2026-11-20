@@ -7,19 +7,19 @@ Dernière mise à jour : 2026-11-20. [Registre de preuves sémantiques](SEMANTIC
 | Élément | État |
 | --- | --- |
 | Runtime UI : accueil, menus, bibliothèque, decks, campagne, statistiques, labo, défi local, lancement du duel | 16 / 16 tests réels Chromium réussis sur profils PC et mobile ; pas d'essai sur téléphone physique |
-| 150 cartes du runtime | 150 déclarations ; 150 cycles de vie réussis en CI ; textes anglais des 150 fiches récupérés et comparés sur les caractéristiques, effets non intégralement certifiés |
+| 150 cartes du runtime | 150 déclarations ; 150 cycles de vie réussis en CI ; 150 fiches officielles rapprochées ; 40 segments liés à des oracles, conformité complète non démontrée |
 | Interactions par paires | 22 500 / 22 500 invariants techniques réussis en V8 ; conformité sémantique non prouvée |
 | Simulation IA | 1 000 / 1 000 parties terminées en V8 ; 0 coup illégal, 0 exception |
-| Textes anglais des 150 cartes | 150/150 fiches récupérées et empreintes calculées ; examen sémantique clause par clause NON EFFECTUÉ |
+| Textes anglais des 150 cartes | 150/150 fiches récupérées et empreintes calculées ; 40/280 segments avec preuves partielles, 240 à relier ; revue exhaustive NON TERMINÉE |
 | Errata officiels | 7 entrées parcourues ; deux errata de mécanique Johnny/Kiroshi testés, cinq corrections de crédits d'illustration |
 | Métadonnées officielles des cartes | 150/150 conformes (type, coût, puissance, RAM) ; 2 légendes promo supplémentaires hors périmètre |
-| Oracles sémantiques indépendants | 201/201 oracles comportementaux réussis dans GitHub Actions (exécution 44778053249) ; au moins un oracle pour chacune des 150 cartes ; couverture de chaque clause et interaction NON acquise |
+| Oracles sémantiques indépendants | 217/217 oracles comportementaux réussis dans GitHub Actions (exécution 44785343305) ; au moins un oracle pour chacune des 150 cartes ; couverture de chaque clause et interaction NON acquise |
 | Scénarios individuels des cartes | 150/150 cycles de vie réussis en CI ; ce contrôle n'est pas une certification des effets |
-| Résistance des oracles aux erreurs | 9 mutations sémantiques volontairement fautives détectées sur 9 ; aucune ne survit aux tests ciblés |
+| Résistance des oracles aux erreurs | 23 mutations sémantiques volontairement fautives détectées sur 23 (exécution 44785592350) ; aucune ne survit aux tests ciblés |
 | Correction de divergence moteur | Le moteur partagé `native/engine.js` est désormais réextrait du runtime HTML après correction Nocturne OP55N1 ; une incohérence entre version PC et moteur d'audit a été corrigée. |
 | Nocturne OP55N1 | 12 oracles ciblés : paiement fixe, 3 choix, réduction EN SOLO, expiration, surtaxe Riot Shield, ciblage d'Unités amies/rivales et durée jusqu'au prochain tour. |
 | Corrections Viktor / Alt Cunningham | Le premier CYBERWARE joué gratuitement et le prochain Programme joué gratuitement consomment leurs effets respectifs ; tests de régression ajoutés |
-| Segments candidats des textes anglais | 280 segments candidats identifiés ; 13/280 reliés à des preuves d'oracle et empreintes vérifiées dans GitHub Actions ; 267 sans association validée |
+| Segments candidats des textes anglais | 280 segments candidats identifiés ; 40/280 reliés à des preuves d'oracle et empreintes vérifiées dans GitHub Actions ; 240 sans association validée |
 | Certification des effets | NON ACQUISE : aucune carte n'est attestée clause par clause avec exhaustivité |
 | NIGHTMARE réentraînement compétitif | BLOQUÉ par NIGHTMARE_TRAINING_CERTIFIED=false |
 | Web Worker tactique | Chargement en Chromium observé ; 1 action de décision synthétique légale ; stress tests avancés non validés |
@@ -44,12 +44,12 @@ Le rapport de l'audit porte exclusivement sur des invariants techniques et des
 exécutions synthétiques. Un contrôle combinatoire par paires ne valide pas
 automatiquement l'intégralité des timings, effets, choix et errata officiels.
 
-État actuel confirmé par GitHub Actions : **201 oracles PASS sur 150 cartes**,
+État actuel confirmé par GitHub Actions : **217 oracles PASS sur 150 cartes**,
 **150 cycles de vie PASS**, interface Chromium et audit technique PASS.
-Workflow : https://github.com/yuri85300-design/lifequest/actions/runs/44778053249 .
+Workflow : https://github.com/yuri85300-design/lifequest/actions/runs/44785343305 .
 Les 280 fragments officiels restent candidats jusqu'à revue indépendante ;
-les treize correspondances de clauses ajoutées n'attestent pas une certification totale.
-Dernier contrôle officiel consolidé réussi : https://github.com/yuri85300-design/lifequest/actions/runs/44778053256 (150/150 fiches, 201/201 oracles, 13/280 segments associés à des preuves).\nLa certification sémantique est toujours à **0/150**, faute d'une démonstration
+les quarante correspondances de segments reliées aux oracles n'attestent pas une certification totale.
+Dernier contrôle officiel consolidé réussi : https://github.com/yuri85300-design/lifequest/actions/runs/44785343165 (150/150 fiches, 201/201 oracles, 13/280 segments associés à des preuves).\nLa certification sémantique est toujours à **0/150**, faute d'une démonstration
 de toutes les branches et interactions.
 
 Les workflows **7 Gigs PRIME - audit technique**, **7 Gigs PRIME - PC browser smoke**, **7 Gigs PRIME - current official card catalogue** et **7 Gigs PRIME - Android debug APK** se trouvent dans GitHub Actions.
