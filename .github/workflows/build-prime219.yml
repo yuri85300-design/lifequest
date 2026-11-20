@@ -1,0 +1,136 @@
+name: 7 Gigs PRIME 2.1.9 - Build APK officiel
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/prime_v219_runtime.html'
+      - '.github/workflows/build-prime219.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Assemble PRIME 2.1.9 and matching NIGHTMARE worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/prime219/assets/www
+          cp native/prime_v219_runtime.html /tmp/prime219/assets/www/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('/tmp/prime219/assets/www/index.html').read_text(encoding='utf-8')
+          start=h.index('/* Android: exporting JSON via the system document picker')
+          end=h.index('// ============================================================================\n//  SEPT GIGS — interface',start)
+          handler="""self.onmessage=async function(event){
+           const d=event.data||{};
+           if(!Number.isInteger(d.id))return;
+           try{
+            self.AIChampion=()=>d.weights||null;
+            self.AIPlanChampion=()=>d.plans||self.DeckPlanAI?.INITIAL;
+            self.RivalLearningSession=()=>d.session||null;
+            self.RivalLearningData=()=>d.memory||null;
+            const g=new Game(d.state,[FastPolicy,FastPolicy],{thinking:()=>{}});
+            const policy=makeAI(d.level||'expert');
+            const action=d.method==='react'
+              ?await policy.react(g,d.side,d.attack,d.actions)
+              :await policy.mainAction(g,d.side,d.actions);
+            self.postMessage({id:d.id,action});
+           }catch(err){self.postMessage({id:d.id,error:String(err?.stack||err)})}
+          };
+          self.postMessage({ready:true});
+          """
+          worker='self.window=self;\n\n'+h[start:end]+'\n'+handler
+          out=Path('/tmp/prime219/assets/www/ai-worker.js')
+          out.write_text(worker,encoding='utf-8')
+          assert len(h)>500000 and len(worker)>200000
+          assert 'TacticalWorker' in h and "new Worker('ai-worker.js')" in h
+          assert 'self.onmessage=async function' in worker
+          print('HTML',len(h),'codepoints; worker',len(worker),'codepoints')
+          PY
+          node --check /tmp/prime219/assets/www/ai-worker.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/prime219/assets/www/index.html').read_text(encoding='utf-8')
+          Path('/tmp/prime219/inline.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          PY
+          node --check /tmp/prime219/inline.js
+      - name: Install Android SDK platform and build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | head -1)"
+          test -n "$MANAGER"
+          "$MANAGER" "platforms;android-35" "build-tools;35.0.0"
+          test -f "$SDK/platforms/android-35/android.jar"
+          test -x "$SDK/build-tools/35.0.0/apksigner"
+      - name: Compile Android DEX and sign verified APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          BT="$SDK/build-tools/35.0.0"
+          mkdir -p /tmp/prime219/classes /tmp/prime219/dex
+          cat > /tmp/prime219/AndroidManifest.xml <<'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena.prime219" android:versionCode="21900" android:versionName="2.1.9">
+            <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <application android:label="7 Gigs PRIME 2.1.9" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
+              <activity android:name="dev.septgigs.neonarena.prime.Prime2Activity" android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          MANIFEST
+          javac -encoding UTF-8 -source 8 -target 8 -cp "$SDK/platforms/android-35/android.jar" -d /tmp/prime219/classes native/Prime2Activity.java
+          (cd /tmp/prime219/classes && jar cf /tmp/prime219/classes.jar .)
+          "$BT/d8" --lib "$SDK/platforms/android-35/android.jar" --min-api 26 --output /tmp/prime219/dex /tmp/prime219/classes.jar
+          "$BT/aapt2" link -I "$SDK/platforms/android-35/android.jar" --manifest /tmp/prime219/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 35 -o /tmp/prime219/base.apk
+          python3 - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from pathlib import Path
+          root=Path('/tmp/prime219')
+          with ZipFile(root/'base.apk') as source, ZipFile(root/'unsigned.apk','w',compression=ZIP_DEFLATED) as out:
+              for info in source.infolist():out.writestr(info,source.read(info.filename))
+              out.write(root/'dex/classes.dex','classes.dex')
+              for name in ('index.html','ai-worker.js'):
+                  out.write(root/'assets/www'/name,'assets/www/'+name)
+          PY
+          "$BT/zipalign" -f -p 4 /tmp/prime219/unsigned.apk /tmp/prime219/aligned.apk
+          keytool -genkeypair -alias septgigs -keyalg RSA -keysize 4096 -validity 10000 -keystore /tmp/prime219/test-signing.jks -storepass "septgigsTest219" -keypass "septgigsTest219" -dname "CN=7 Gigs PRIME 2.1.9 test" -noprompt
+          "$BT/apksigner" sign --ks /tmp/prime219/test-signing.jks --ks-key-alias septgigs --ks-pass pass:septgigsTest219 --key-pass pass:septgigsTest219 --out /tmp/prime219/7Gigs-PRIME-2.1.9.apk /tmp/prime219/aligned.apk
+          "$BT/apksigner" verify --verbose /tmp/prime219/7Gigs-PRIME-2.1.9.apk
+          "$BT/zipalign" -c -p 4 /tmp/prime219/7Gigs-PRIME-2.1.9.apk
+          "$BT/aapt" dump badging /tmp/prime219/7Gigs-PRIME-2.1.9.apk | tee /tmp/prime219/badging.txt
+          grep -Fq "versionName='2.1.9'" /tmp/prime219/badging.txt
+          grep -Fq "package: name='dev.septgigs.neonarena.prime219'" /tmp/prime219/badging.txt
+          unzip -t /tmp/prime219/7Gigs-PRIME-2.1.9.apk | tail -3
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7Gigs-PRIME-219-APK
+          path: /tmp/prime219/7Gigs-PRIME-2.1.9.apk
+          if-no-files-found: error
+      - name: Release APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: prime-v2.1.9
+          name: 7 Gigs PRIME 2.1.9 — APK Android
+          prerelease: true
+          body: "PRIME 2.1.9 with NIGHTMARE worker, Android 15 target. Test signing key is generated per build; back up any saves before uninstalling. Official card rule audit is not certified."
+          files: /tmp/prime219/7Gigs-PRIME-2.1.9.apk
+          fail_on_unmatched_files: true
