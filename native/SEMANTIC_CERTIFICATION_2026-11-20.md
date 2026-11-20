@@ -218,3 +218,17 @@ compétitive et la certification des 150 cartes restent bloquées.
 `native/nightmare_training_contract.cjs` et le workflow sémantique vérifient
 les verrous de séparation. Leur résultat CI doit être consulté avant de
 qualifier l'ensemble de validé en exécution.
+
+### Vérification du mode entraînement par navigateur
+
+Un test d'intégration Chromium (`native/nightmare_training_browser_smoke.cjs`)
+a été ajouté au workflow officiel. Il vérifie l'ouverture du laboratoire,
+le bouton disponible, le budget de 300 auto-duels et 80 duels de validation,
+puis l'absence de remplacement du champion après une campagne factice.
+Ce test utilise un entraîneur simulé déterministe : il ne valide ni les
+performances stratégiques réelles ni la fidélité des 280 fragments officiels.
+
+`NIGHTMARE_TRAINING_CERTIFIED` reste `false` parce qu'aucune preuve complète
+de certification clause par clause n'a été produite. Seul le mode
+expérimental est activé (`NIGHTMARE_TRAINING_EXPERIMENTAL = true`). Une
+campagne compétitive certifiée ne doit pas être affirmée sans ses résultats.
