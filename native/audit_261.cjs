@@ -43,7 +43,9 @@ assert(app.querySelector('.prime-guide-score').textContent.includes('8/8'));
 assert.equal(app.querySelectorAll('.prime-guide-step.done').length,8);
 assert(html.includes("CombatGuide.mark('inspect');"));
 assert(html.includes("CombatGuide.mark(ev);"));
-assert(html.includes("['sell','play','call','attack','steal','turn'].includes(ev)"));
+assert(html.includes("['sell','play','call','attack','steal','turn'].includes(ev)") ||
+  html.includes("d?.p===HUMAN && ['sell','play','call','attack','steal'].includes(ev)"),
+  'Version 2.6.1 ou progression humaine plus stricte en versions supérieures');
 assert(html.includes("sc.querySelector('[data-guide]').onclick=()=>{closeSheet();combatGuide();};"));
 assert(!html.includes('prime-update-dock'),'No intrusive updater permitted');
 console.log(JSON.stringify({version:'2.6.1',guideLive:'PASS',steps:8,observedEvents:'PASS',noSpoofing:'PASS',
