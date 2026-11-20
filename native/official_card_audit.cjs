@@ -79,17 +79,17 @@ function officialClauseSignals(text){
  * Store hashes, not full copyrighted rules text, in CI artifacts.
  */
 function candidateOfficialSegments(text){
- const value=String(text||'').normalize('NFC').replace(/\\s+/g,' ').trim();
- const segments=value.split(/(?:[.!?]\\s+(?=[A-Z{])|\\s*[;•]\\s*)/).map(s=>s.trim()).filter(Boolean);
+ const value=String(text||'').normalize('NFC').replace(/\s+/g,' ').trim();
+ const segments=value.split(/(?:[.!?]\s+(?=[A-Z{])|\s*[;•]\s*)/).map(s=>s.trim()).filter(Boolean);
  return segments.map((fragment,index)=>({
   index:index+1,
   textSha256:sha(fragment),
-  wordCount:fragment.split(/\\s+/).length,
-  conditional:/\\b(?:if|unless|while|as long as)\\b/i.test(fragment),
-  optional:/\\b(?:may|up to|can choose)\\b/i.test(fragment),
-  choice:/\\b(?:choose|either|or)\\b/i.test(fragment),
-  timing:/\\b(?:when|whenever|first time|until|next turn|this turn)\\b/i.test(fragment),
-  triggerTokens:[...fragment.matchAll(/\\{([^}]+)\\}/g)].map(m=>m[1]),
+  wordCount:fragment.split(/\s+/).length,
+  conditional:/\b(?:if|unless|while|as long as)\b/i.test(fragment),
+  optional:/\b(?:may|up to|can choose)\b/i.test(fragment),
+  choice:/\b(?:choose|either|or)\b/i.test(fragment),
+  timing:/\b(?:when|whenever|first time|until|next turn|this turn)\b/i.test(fragment),
+  triggerTokens:[...fragment.matchAll(/\{([^}]+)\}/g)].map(m=>m[1]),
   independentlyReviewed:false
  }));
 }
