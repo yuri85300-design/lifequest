@@ -1,0 +1,77 @@
+name: NIGHTMARE - current debug APK Android 15 launch
+on:
+  push:
+    paths:
+      - 'native/prime_v220_runtime.html'
+      - 'native/engine.js'
+      - 'android/**'
+      - '.github/workflows/nightmare-android15-launch.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android15-launch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Assemble exact current web runtime into debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android/app/src/main/assets
+          cp native/prime_v220_runtime.html android/app/src/main/assets/
+          cp native/engine.js native/ai-worker.js android/app/src/main/assets/
+          (cd android && gradle :app:assembleDebug --no-daemon)
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          unzip -t android/app/build/outputs/apk/debug/app-debug.apk >/dev/null
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install and launch exact current APK on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            set -e
+            mkdir -p /tmp/nightmare-android15
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb logcat -c
+            adb shell am start -W -n com.sevengigs.prime/.MainActivity | tee /tmp/nightmare-android15/launch.txt
+            sleep 10
+            adb shell dumpsys activity activities > /tmp/nightmare-android15/activity.txt
+            adb logcat -d > /tmp/nightmare-android15/logcat.txt
+            adb shell screencap -p /sdcard/nightmare.png
+            adb pull /sdcard/nightmare.png /tmp/nightmare-android15/screenshot.png
+            adb shell pidof com.sevengigs.prime > /tmp/nightmare-android15/pid.txt
+            grep -q 'com.sevengigs.prime' /tmp/nightmare-android15/activity.txt
+            if grep -q 'FATAL EXCEPTION' /tmp/nightmare-android15/logcat.txt; then
+              echo 'Android fatal exception detected'
+              exit 1
+            fi
+      - name: Publish APK and launch diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightmare-android15-debug-and-launch-evidence
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            /tmp/nightmare-android15/
+          if-no-files-found: warn
