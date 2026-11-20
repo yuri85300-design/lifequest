@@ -1,0 +1,53 @@
+name: PRIME 2.6.1 - Prerequis de publication et tests du guide
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/prime_v261_runtime.html'
+      - 'native/audit_261.cjs'
+      - '.github/workflows/prime261-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assembler le runtime et verifier les scripts JavaScript
+        run: |
+          set -euo pipefail
+          python3 native/build_ota_content.py --source native/prime_v261_runtime.html --version 2.6.1 --version-code 26001 --out /tmp/prime261-preflight
+          node --check /tmp/prime261-preflight/inline.js
+          node --check /tmp/prime261-preflight/ai-worker.js
+          node --check native/audit_261.cjs
+      - name: Valider 150 cartes et les sauvegardes avec le vrai moteur
+        run: |
+          set -euo pipefail
+          PRIME_ENGINE_PATH=/tmp/prime261-preflight/engine.js node --max-old-space-size=512 native/audit_230.cjs | tee /tmp/prime261-preflight/audit-resume.json
+          PRIME_ENGINE_PATH=/tmp/prime261-preflight/engine.js node --max-old-space-size=512 native/audit_220.cjs | tee /tmp/prime261-preflight/audit-engine.json
+          grep -Fq '"TECHNICAL_PASS_NOT_OFFICIAL_CERTIFIED"' /tmp/prime261-preflight/audit-engine.json
+      - name: UI, menus, campagnes, palmares et tutoriel live
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock linkedom@0.18.12
+          PRIME_HTML=native/prime_v261_runtime.html node native/audit_257.cjs | tee /tmp/prime261-preflight/audit-menu.json
+          PRIME_HTML=native/prime_v261_runtime.html node native/audit_260.cjs | tee /tmp/prime261-preflight/audit-features.json
+          PRIME_HTML=native/prime_v261_runtime.html node native/audit_261.cjs | tee /tmp/prime261-preflight/audit-guide.json
+          grep -Fq '"guideLive": "PASS"' /tmp/prime261-preflight/audit-guide.json
+          grep -Fq '"campaignUnlock": "PASS"' /tmp/prime261-preflight/audit-features.json
+          PRIME_HTML=native/prime_v261_runtime.html node native/audit_252.cjs | tee /tmp/prime261-preflight/audit-puzzles.json
+          PRIME_HTML=native/prime_v261_runtime.html node native/audit_253.cjs | tee /tmp/prime261-preflight/audit-choice.json
+      - name: 40 vrais duels et aucune victoire artificielle
+        run: |
+          set -euo pipefail
+          PRIME_HTML=native/prime_v261_runtime.html node native/audit_260_benchmark.cjs | tee /tmp/prime261-preflight/audit-benchmark.json
+          grep -Fq '"noFakeWins": "PASS"' /tmp/prime261-preflight/audit-benchmark.json
+      - name: Conserver les preuves
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prime261-preflight-evidence
+          path: /tmp/prime261-preflight/audit-*.json
+          if-no-files-found: warn
