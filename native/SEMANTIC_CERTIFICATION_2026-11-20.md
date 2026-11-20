@@ -4,7 +4,7 @@ Mise à jour : 20 novembre 2026
 ## Verdict et périmètre
 
 **150/150 cartes disposent d'au moins un oracle comportemental individualisé.
-160/160 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
+170/170 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
 
 Ces deux chiffres ne sont pas contradictoires : un test dédié vérifie une ou
 plusieurs propriétés concrètes mais ne démontre pas toutes les phrases,
@@ -23,14 +23,14 @@ technique, du nombre d'oracles ou des empreintes officielles.
 | Empreintes officielles en anglais | 150/150 | Fiches enregistrées et versionnées |
 | Gestionnaires de déclencheurs imprimés | 0 manquant détecté | Existence du gestionnaire, pas exactitude |
 | Scénarios individuels cycle de vie | 150/150 | Entrée en jeu, destination, UID, propriétaire |
-| Oracles comportementaux dédiés | **160/160 PASS** | **150 cartes distinctes** |
+| Oracles comportementaux dédiés | **170/170 PASS** | **150 cartes distinctes** |
 | Interactions paires techniques | 22 500/22 500 | Invariants d'état |
 | Parties IA/IA | 1 000/1 000 | Terminaison, légalité des coups |
 | Écran PC / mobile émulé Chromium | 16/16 | Parcours de l'interface |
 | Cartes certifiées sur toutes les clauses | **0/150** | Revue exhaustive encore manquante |
 
 Workflow indépendamment exécuté et réussi :
-https://github.com/yuri85300-design/lifequest/actions/runs/44772982020
+https://github.com/yuri85300-design/lifequest/actions/runs/44773649539
 
 Le workflow produit les preuves `semantic-oracles.json`,
 `card-lifecycle.json`, `semantic-register.json` et
@@ -40,7 +40,7 @@ texte officiel.
 
 ## Infrastructure de validation
 
-- `native/semantic_oracle_runner.cjs` regroupe **9 suites** ;
+- `native/semantic_oracle_runner.cjs` regroupe **10 suites** ;
   il échoue si une carte n'a aucun oracle dédié, si une attente échoue, ou
   si l'inventaire diverge de 150.
 - `native/card_lifecycle_oracles.cjs` vérifie le cycle de vie séparément.
@@ -66,7 +66,7 @@ texte officiel.
 5. Ne marquer `semanticCertified: true` qu'après cette démonstration,
    pour chacune des 150 cartes, sans dérogation automatique.
 
-**Le jalon « 100 % des cartes avec oracle individualisé » est atteint.
+**Le jalon « 100 % des cartes avec oracle individualisé » est atteint. Dix oracles supplémentaires couvrent des branches alternatives de choix, le refus d'un effet facultatif et la consommation de protections.
 Le jalon « 100 % des clauses et interactions certifiées » ne l'est pas.**
 
 Références :
