@@ -16,6 +16,29 @@ const officialFile=path.join(artifactDir,'official-cards.json');
 const oracleData=fs.existsSync(ORACLE_FILE)?JSON.parse(fs.readFileSync(ORACLE_FILE,'utf8')):{tests:[]};
 const officialData=fs.existsSync(officialFile)?JSON.parse(fs.readFileSync(officialFile,'utf8')):{cardEvidence:[]};
 const officialById=new Map(officialData.cardEvidence.map(c=>[c.id,c]));
+const manualWitnesses=require('./official_clause_witnesses.cjs');
+const checkedWitnesses=[];
+let linkedSegmentCount=0;
+function verifyWitnesses(card,evidence,oracles){
+ const m=manualWitnesses[card.id];
+ if(!m)return [];
+ const passNames=new Set(oracles.filter(x=>x.result==='PASS').map(x=>x.clause));
+ const sourceAvailable=!!evidence?.officialTextSha256;
+ const sourceMatches=!sourceAvailable||m.sourceHash===evidence.officialTextSha256;
+ if(!sourceMatches)throw new Error('STALE OFFICIAL TEXT for '+card.id+'; manual clause review must be redone');
+ const segments=m.segments.map(w=>{
+   const matches=sourceAvailable?(evidence.candidateOfficialSegments||[]).find(x=>x.index===w.index):null;
+   if(sourceAvailable&&(!matches||matches.textSha256!==w.hash))throw new Error('STALE OFFICIAL SEGMENT for '+card.id+' segment '+w.index);
+   for(const name of w.cases)if(!passNames.has(name))throw new Error('UNVERIFIED ORACLE '+card.id+' '+name);
+   if(sourceAvailable)linkedSegmentCount++;
+   return {index:w.index,officialSegmentSha256:w.hash,oracleClauses:w.cases,
+     testedBranches:w.branches,reviewState:sourceAvailable?'LINKED_WITH_PARTIAL_WITNESSES':'WAITING_FOR_OFFICIAL_SOURCE',
+     semanticCertified:false};
+ });
+ checkedWitnesses.push({id:card.id,sourceValidated:sourceAvailable,segments:segments.length});
+ return segments;
+}
+
 const oracleById=new Map();
 for(const t of oracleData.tests||[]){if(!oracleById.has(t.id))oracleById.set(t.id,[]);oracleById.get(t.id).push({clause:t.clause,result:t.status,officialUrl:t.reference});}
 const hash=x=>crypto.createHash('sha256').update(String(x||'').normalize('NFC')).digest('hex');
@@ -38,6 +61,7 @@ const entries=cards.map(c=>{
   localClauseCountEstimate:localClauses.length,
   negativeAndPositiveBranchProofs:oracles,
   independentlyPassingOracles:oracles.filter(o=>o.result==='PASS').length,
+  independentOfficialSegmentWitnesses:verifyWitnesses(c,evidence,oracles),
   lifecycle: lifecycleById.get(c.id)?{status:lifecycleById.get(c.id).entry,destination:lifecycleById.get(c.id).destination,assertions:lifecycleById.get(c.id).oracles}:null,
   requiredIndependentClauseReview:'PENDING',
   semanticCertified:false
@@ -53,7 +77,8 @@ const result={
  cardsWithLifecycleWitness:entries.filter(x=>x.lifecycle?.status==='PASS').length,
  cardsWithEveryCardDedicatedOracle:entries.every(x=>x.independentlyPassingOracles>0),
   officialCandidateSegments:entries.reduce((n,x)=>n+x.candidateOfficialSegments.length,0),
-  independentlyClauseMappedSegments:0,
+  independentlyClauseMappedSegments:linkedSegmentCount,
+  reviewWitnessesWithoutOfficialSource:checkedWitnesses.filter(x=>!x.sourceValidated).length,
  cardsWithIndependentBehaviourOracles:entries.filter(x=>x.independentlyPassingOracles).length,
  testedBehaviourBranches:entries.reduce((n,c)=>n+c.independentlyPassingOracles,0),
  cardsFullySemanticallyCertified:0,
@@ -86,6 +111,7 @@ const gapMd=[
  '- Cycles de vie vérifiés : '+result.cardsWithLifecycleWitness+'/'+result.cardCount,
  '- Cartes ayant au moins un oracle d’effet indépendant : '+result.cardsWithIndependentBehaviourOracles+'/'+result.cardCount,
  '- Clauses comportementales testées : '+result.testedBehaviourBranches,
+ '- Segments anglais reliés à des oracles et empreintes vérifiées : '+result.independentlyClauseMappedSegments+'/'+result.officialCandidateSegments,
  '- Cartes certifiées intégralement : 0',
  '',
  '## Cartes sans oracle sémantique individuel, par priorité',
@@ -104,17 +130,18 @@ const gapMd=[
  '',
  '> Chaque empreinte SHA-256 désigne un fragment du texte anglais. Un fragment n’est pas nécessairement une clause indépendante ; sa revue doit vérifier les dépendances et toutes les branches.',
  '',
- '| Carte | Segment | Empreinte SHA-256 | Branches à revoir | Oracles associés à la carte |',
+ '| Carte | Segment | Empreinte SHA-256 | Branches à revoir | Preuves indépendantes liées |',
  '| --- | ---: | --- | --- | ---: |',
  ...entries.flatMap(c=>c.candidateOfficialSegments.map(fragment=>{
    const needs=['condition','optionnel','choix','timing'].filter((name,j)=>[fragment.conditional,fragment.optional,fragment.choice,fragment.timing][j]);
-   return '| '+c.id+' | '+fragment.index+' | '+fragment.textSha256.slice(0,16)+'… | '+(needs.join(', ')||'effet standard')+' | '+c.independentlyPassingOracles+' |';
+   const linked=c.independentOfficialSegmentWitnesses.find(w=>w.index===fragment.index&&w.reviewState==='LINKED_WITH_PARTIAL_WITNESSES');
+   return '| '+c.id+' | '+fragment.index+' | '+fragment.textSha256.slice(0,16)+'… | '+(needs.join(', ')||'effet standard')+' | '+(linked ? linked.oracleClauses.length+' clause(s) testée(s), non certifiée(s)' : 'non relié')+' |';
  })),
  '',
  'La priorité n’est qu’un classement de complexité. Elle ne prouve ni les effets ni leur conformité.'
 ].join('\n');
 fs.writeFileSync(path.join(artifactDir,'semantic-gaps.md'),gapMd);
 
-console.log(JSON.stringify({cardCount:result.cardCount,cardsWithOfficialEnglishText:result.cardsWithOfficialEnglishText,cardsWithLifecycleWitness:result.cardsWithLifecycleWitness,cardsWithIndependentBehaviourOracles:result.cardsWithIndependentBehaviourOracles,testedBehaviourBranches:result.testedBehaviourBranches,officialCandidateSegments:result.officialCandidateSegments,cardsFullySemanticallyCertified:0,semanticCertification:'BLOCKED'},null,2));
+console.log(JSON.stringify({cardCount:result.cardCount,cardsWithOfficialEnglishText:result.cardsWithOfficialEnglishText,cardsWithLifecycleWitness:result.cardsWithLifecycleWitness,cardsWithIndependentBehaviourOracles:result.cardsWithIndependentBehaviourOracles,testedBehaviourBranches:result.testedBehaviourBranches,officialCandidateSegments:result.officialCandidateSegments,independentlyClauseMappedSegments:result.independentlyClauseMappedSegments,cardsFullySemanticallyCertified:0,semanticCertification:'BLOCKED'},null,2));
 if(entries.length!==150||(oracleData.tests||[]).some(x=>x.status!=='PASS'))process.exitCode=1;
 if(process.argv.includes('--require-certification')){console.error('FAIL CLOSED: 150-card semantic certification evidence incomplete.');process.exitCode=2;}
