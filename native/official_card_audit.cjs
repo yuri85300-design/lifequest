@@ -2,7 +2,7 @@
 /**
  * Audit metadata against current public official Cyberpunk TCG card pages.
  * Collects official text fingerprints; never labels French text semantically certified.
- * Final extended desktop/mobile and official keyword audit.\n * Run: node native/official_card_audit.cjs
+ * Final independent English/French trigger alignment audit.\n * Run: node native/official_card_audit.cjs
  * Requires: npm install --no-save playwright
  */
 const {chromium}=require('playwright');
@@ -49,10 +49,10 @@ function keywordAlignment(english,french){
    ['attack',/\{Attack\}/i,/\[ATTAQUE\]/i],
    ['call',/\{Call\}/i,/\[APPEL\]/i],
    ['defeated',/\{Defeated\}/i,/\[VAINCU\]/i],
-   ['blocker',/\{Blocker\}/i,/\[BLOQUEUR\]/i],
-   ['goSolo',/\{Go Solo\}/i,/\[SOLO\]/i],
+   ['blocker',/\{Blocker\}/i,/\bBLOQUEUR\b/i],
+   ['goSolo',/\{Go Solo\}/i,/(?:\[SOLO\]|EN SOLO)/i],
    ['quick',/\{Quick\}/i,/\[RAPIDE\]/i],
-   ['adrenaline',/\{Adrenaline\}/i,/\[ADRÉNALINE\]/i],
+   ['adrenaline',/\{Adrenaline\}/i,/ADRÉNALINE/i],
    ['spend',/\{Spend\}/i,/\[⟳\]/i],
  ];
  return checks.filter(([,a,b])=>a.test(english)!==b.test(french||''))
