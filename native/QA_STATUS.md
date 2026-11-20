@@ -1,21 +1,21 @@
 # 7 Gigs PRIME — Registre de validation
 
-Dernière mise à jour : 2026-11-20.
+Dernière mise à jour : 2026-11-20. Audit V8 mesuré : voir [AUDIT_PC_2026-11-20.md](AUDIT_PC_2026-11-20.md).
 
 ## Niveau de preuve
 
 | Élément | État |
 | --- | --- |
 | Runtime UI : campagne, statistiques, défi local | Implémenté, non validé sur téléphone |
-| 150 cartes du runtime | 150 attendues par le test technique ; vérification détaillée non réalisée |
-| Interactions par paires | Audit programmé pour 150 × 150 = 22 500 couples ; résultats non vérifiés |
-| Simulation IA | 1 000 duels configurés dans l'audit ; résultats non vérifiés |
+| 150 cartes du runtime | 150 déclarations ; 150 entrées en jeu synthétiques réussies ; vérification officielle de chaque texte non réalisée |
+| Interactions par paires | 22 500 / 22 500 invariants techniques réussis en V8 ; conformité sémantique non prouvée |
+| Simulation IA | 1 000 / 1 000 parties terminées en V8 ; 0 coup illégal, 0 exception |
 | Comparaison avec les textes officiels anglais | NON EFFECTUÉE |
 | Comparaison avec errata | NON EFFECTUÉE |
 | Certification des cartes | NON ACQUISE |
 | NIGHTMARE réentraînement compétitif | BLOQUÉ par NIGHTMARE_TRAINING_CERTIFIED=false |
-| Web Worker tactique | Code restauré ; comportement à confirmer en appareil |
-| APK Android | Workflow assembleDebug ajouté ; artefact à valider |
+| Web Worker tactique | Chargement et choix légal validés sur 1 état synthétique ; tests complets navigateur en attente |
+| APK Android | Workflow assembleDebug ajouté ; compilation réelle et artefact à valider |
 | Essai Android réel | NON EFFECTUÉ |
 | PvP direct / réseau | NON IMPLÉMENTÉ |
 | Défi local alternatif | Deux matchs contre IA avec graine partagée, scores comparés |
