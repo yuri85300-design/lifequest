@@ -199,3 +199,22 @@ ne vaut ni preuve d'une clause de carte ni certification du moteur.
 **Statut d'exécution : non confirmé sur le dernier commit.** La matrice réelle
 et les tests de branches/effets combinés devront être exécutés et leurs
 résultats inspectés. NIGHTMARE reste bloqué.
+
+## NIGHTMARE — laboratoire expérimental déverrouillé (sans certification)
+
+Le 20 novembre 2026, le bouton de lancement du laboratoire a été réactivé
+avec `NIGHTMARE_TRAINING_EXPERIMENTAL = true`, tout en gardant
+`NIGHTMARE_TRAINING_CERTIFIED = false`. Il exécute la même campagne bornée de
+300 auto-duels et sa phase de validation de 80 duels quand l'utilisateur la
+lance dans l'interface. Aucune exécution automatique de campagne n'est
+prétendue au moment du commit.
+
+Tant que le jeu n'est pas certifié, les plans et statistiques de l'expérience
+sont stockés dans `nightmareSandboxTraining` ; ni `S.brain` ni le stockage
+`championBrain` ne sont mis à jour par cette branche. Le champion utilisé
+pour les duels conserve donc sa politique de référence. La promotion
+compétitive et la certification des 150 cartes restent bloquées.
+
+`native/nightmare_training_contract.cjs` et le workflow sémantique vérifient
+les verrous de séparation. Leur résultat CI doit être consulté avant de
+qualifier l'ensemble de validé en exécution.
