@@ -191,6 +191,6 @@ async function main(){
  console.log(md.slice(0,4000));
  // Extra official promo-only cards are reported, not grounds to fail the
  // fixed 150-card base runtime's metadata audit. They remain out of scope.
- if(result.accessible!==cards.length||result.metadataMismatches.length||!result.listingComplete||result.missingFromOfficial.length) process.exitCode=1;
+ if(result.accessible!==cards.length||result.metadataMismatches.length||result.triggerCoverageMismatches.length||!result.listingComplete||result.missingFromOfficial.length) process.exitCode=1;
 }
 main().catch(e=>{console.error(e);process.exitCode=1});
