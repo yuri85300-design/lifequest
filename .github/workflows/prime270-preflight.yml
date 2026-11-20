@@ -9,6 +9,7 @@ on:
       - 'native/audit_270_puzzles.cjs'
       - 'native/audit_270.cjs'
       - 'native/audit_270_ai.cjs'
+      - 'native/audit_270_league.cjs'
       - 'native/ota_manifest_guard.py'
       - 'native/audit_ota_guard.py'
       - 'multiplayer/protocol.mjs'
@@ -62,6 +63,8 @@ jobs:
           set -euo pipefail
           PRIME_HTML=native/prime_v270_runtime.html node native/audit_260_benchmark.cjs | tee /tmp/prime270-preflight/audit-benchmark.json
           grep -Fq '"noFakeWins": "PASS"' /tmp/prime270-preflight/audit-benchmark.json
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_270_league.cjs | tee /tmp/prime270-preflight/audit-league.json
+          grep -Fq '"TECHNICAL_PASS_NOT_NIGHTMARE_CERTIFICATION"' /tmp/prime270-preflight/audit-league.json
       - name: Regressions de version et fondations multijoueur (sans deploiement)
         shell: bash
         run: |
