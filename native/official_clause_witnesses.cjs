@@ -92,6 +92,14 @@ module.exports={
  'zetatech-berserk':{sourceHash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',segments:[{index:1,hash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',cases:["face-up-legend-discount-and-floor"],branches:["zero-face-up","one-face-up","three-face-up"]}]},
  'corporate-surveillance':{sourceHash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',segments:[{index:1,hash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',cases:["only-ready-rival-units-cost-four-or-less","cannot-be-played-without-ready-eligible-target"],branches:["eligible-ready","no-eligible","excludes-cost-over-four"]}]},
  'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]},
+ 'augmented-negotiators':{
+  sourceHash:'e78489f3e844c6a0c0538cc162610b3d518f356c83d99ea8aa5c11090d1ee2a8',
+  segments:[{index:1,hash:'e78489f3e844c6a0c0538cc162610b3d518f356c83d99ea8aa5c11090d1ee2a8',
+   cases:['negotiators-blocker-trigger-discards-exactly-one-rival-card',
+    'negotiators-unrelated-blocker-does-not-discard',
+    'negotiators-empty-rival-hand-cannot-conjure-discard'],
+   branches:['blocker-activated','different-blocker','empty-rival-hand']}]
+ },
  'zetatech-faceplate':{
   sourceHash:'96981150542f452e58dc1ab712a2404bd00104c97e1fbb6fe23334ca89169485',
   segments:[
