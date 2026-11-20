@@ -100,6 +100,17 @@ const gapMd=[
  '| --- | ---: | --- |',
  ...reviewed.map(c=>'| '+c.id+' | '+c.independentlyPassingOracles+' | À décomposer et prouver clause par clause |'),
  '',
+ '## Segments candidats du texte officiel non revus',
+ '',
+ '> Chaque empreinte SHA-256 désigne un fragment du texte anglais. Un fragment n’est pas nécessairement une clause indépendante ; sa revue doit vérifier les dépendances et toutes les branches.',
+ '',
+ '| Carte | Segment | Empreinte SHA-256 | Branches à revoir | Oracles associés à la carte |',
+ '| --- | ---: | --- | --- | ---: |',
+ ...entries.flatMap(c=>c.candidateOfficialSegments.map(fragment=>{
+   const needs=['condition','optionnel','choix','timing'].filter((name,j)=>[fragment.conditional,fragment.optional,fragment.choice,fragment.timing][j]);
+   return '| '+c.id+' | '+fragment.index+' | '+fragment.textSha256.slice(0,16)+'… | '+(needs.join(', ')||'effet standard')+' | '+c.independentlyPassingOracles+' |';
+ })),
+ '',
  'La priorité n’est qu’un classement de complexité. Elle ne prouve ni les effets ni leur conformité.'
 ].join('\n');
 fs.writeFileSync(path.join(artifactDir,'semantic-gaps.md'),gapMd);
