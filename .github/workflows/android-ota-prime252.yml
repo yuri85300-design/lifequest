@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/prime250-proof
+          mkdir -p /tmp/prime252-proof
           python3 - <<'PY'
           from zipfile import ZipFile
           p='/tmp/prime250-apk/7Gigs-PRIME-2.5.0.apk'
