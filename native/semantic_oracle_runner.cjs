@@ -1,5 +1,6 @@
 'use strict';
 /* Reproducible independent semantic oracle runner. TECHNICAL PASS != certification. */
+// Branch CI for independent re-execution of all currently committed suites.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync(path.join(__dirname,'engine.js'),'utf8');
 const sandbox={console,performance,Date,Math,setTimeout,clearTimeout,structuredClone};
