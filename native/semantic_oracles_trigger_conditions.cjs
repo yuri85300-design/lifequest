@@ -56,16 +56,17 @@ module.exports=async function runTriggerConditions(api,assert){
   assert.equal(CARDS[J].cantAttack(g,u),true);
  });
  const M='maelstrom-goons';
+ const fillRivalHand=(g,q)=>{q.hand=[g.newInst('corpo-security',1),g.newInst('animals-wrecker',1),g.newInst('delamain-cab',1)]};
  await t(M,'maelstrom-unequipped-steal-does-not-discard',async()=>{
   const {g,q}=setup(),u=g.newInst(M,0);
-  const hand=q.hand.length;g.pickCards=async(i,title,pool)=>pool.slice(0,1);
+  fillRivalHand(g,q);const hand=q.hand.length;g.pickCards=async(i,title,pool)=>pool.slice(0,1);
   await CARDS[M].onSteal(g,u,0,[q.gigs[0]]);
   assert.equal(q.hand.length,hand);
  });
  await t(M,'maelstrom-equipped-one-gig-steal-discards-one',async()=>{
   const {g,q}=setup(),u=g.newInst(M,0);
   u.gear=[g.newInst('kiroshi-optics',0)];
-  const hand=q.hand.length,trash=q.trash.length;
+  fillRivalHand(g,q);const hand=q.hand.length,trash=q.trash.length;
   g.pickCards=async(i,title,pool)=>pool.slice(0,1);
   await CARDS[M].onSteal(g,u,0,[q.gigs[0]]);
   assert.equal(q.hand.length,hand-1);assert.equal(q.trash.length,trash+1);
@@ -74,7 +75,7 @@ module.exports=async function runTriggerConditions(api,assert){
   const {g,q}=setup(),u=g.newInst(M,0);
   u.gear=[g.newInst('kiroshi-optics',0)];
   q.gigs.push({uid:230483,value:3,sides:6});
-  const hand=q.hand.length;
+  fillRivalHand(g,q);const hand=q.hand.length;
   g.pickCards=async(i,title,pool)=>pool.slice(0,1);
   await CARDS[M].onSteal(g,u,0,[q.gigs[0],q.gigs[1]]);
   assert.equal(q.hand.length,hand-2);
