@@ -139,6 +139,11 @@ async function main(){
     // Next control can briefly disappear during rerenders. Retry navigation,
     // but never mark the catalogue complete unless every page is seen.
     for(let attempt=0;attempt<4&&!advanced;attempt++){
+      // An earlier click may already have completed even when its waiter
+      // timed out. Observe state BEFORE another click to avoid skipping page 2.
+      const observed=await page.locator('body').innerText();
+      const observedPage=Number(observed.match(/Page\s+(\d+)\s+of\s+\d+/i)?.[1]||0);
+      if(observedPage>beforePage){advanced=true;break;}
       const next=page.getByText('Next',{exact:true}).last();
       try{
         if(await next.count())await next.click({timeout:5000});
@@ -154,7 +159,9 @@ async function main(){
     }
     const after=await page.locator('body').innerText();
     const newPage=Number(after.match(/Page\s+(\d+)\s+of\s+\d+/i)?.[1]||0);
-    if(!advanced||newPage<=beforePage)break;
+    // Never claim a complete catalogue when a concurrent rerender jumps
+    // over a numbered page. Failure remains a hard stop.
+    if(!advanced||newPage!==beforePage+1)break;
   }
   result.listingPages=listingPages;
   result.listingItemsFound=officialPaths.size;
