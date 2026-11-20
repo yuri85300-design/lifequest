@@ -69,7 +69,7 @@ jobs:
           python3 native/audit_ota_guard.py | tee /tmp/prime270-preflight/audit-version.json
           node multiplayer/protocol.test.mjs | tee /tmp/prime270-preflight/audit-protocol.json
           grep -Fq '"manifestNoDowngrade": "PASS"' /tmp/prime270-preflight/audit-version.json
-          grep -Fq '"serverLegalActions": "PASS"' /tmp/prime270-preflight/audit-protocol.json
+          grep -Fq '"serverLegalActions":"PASS"' /tmp/prime270-preflight/audit-protocol.json
       - name: Conserver les preuves
         if: always()
         uses: actions/upload-artifact@v4
