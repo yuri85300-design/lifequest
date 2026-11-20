@@ -45,4 +45,34 @@ module.exports={
  'nadia-fighting-through-grief':{
   sourceHash:'307a65587ec4ef0a416958ae2d666524449db3d8445cce5b2b1d9e803205aa1b',
   segments:[{index:1,hash:'307a65587ec4ef0a416958ae2d666524449db3d8445cce5b2b1d9e803205aa1b',cases:['lag-rush-allows-gigs-but-not-units-only-when-behind'],branches:['behind-gig-count','equal-gig-count','only-gigs']}]}
+ ,
+ // Five review segments reconciled manually with current publisher text on
+ // 2026-11-20. These cases cover selected branches, not all interactions.
+ 'cyberpsychosis':{
+  sourceHash:'06d80090b293651d60cfe1b5461f5184c2e1b4cd263e2c3327c2bedcdddf1472',
+  segments:[
+   {index:1,hash:'c4ff8c2b0df65eb9dd16ad64fdff21191e4432fc829e8850ec936483662f1bad',
+    cases:['quick-contract-no-equipped-unit-cannot-play','quick-contract-two-gears-add-six-power'],
+    branches:['empty-gear-targets','positive-two-gear-count','quick-program']},
+   {index:2,hash:'fecbb8e45411b6bb3ef325780e1712fa3d7da6ac718deef9cbc7bce1e531e127',
+    cases:['quick-contract-fight-defeat-is-delayed-until-turn-end','quick-contract-stealing-defeats-at-turn-end','quick-contract-no-steal-no-fight-no-defeat'],
+    branches:['fight','steal','neither','delayed-defeat']}
+  ]},
+ 'take-control':{
+  sourceHash:'c421b679b4e7bf092d80d672475eb733054a41a6913b181938235da680b0390f',
+  segments:[
+   {index:1,hash:'b8734c2a1a63901c516ef6f77a603463d6865abb754bce1702809f013bbf6584',
+    cases:['quick-contract-no-rival-unit-prevents-cast','quick-contract-non-qualifying-unit-reduced-without-draw','quick-contract-temporary-reduction-ends-after-turn'],
+    branches:['rival-target-required','decrement-by-one','until-end-of-turn']},
+   {index:2,hash:'2cf6f2f6db34f10b27a91936b1a1f72ac38e512ad7b93e133fc7789dbffb1f33',
+    cases:['quick-contract-AI-DRONE-VEHICLE-each-draw-one','quick-contract-non-qualifying-unit-reduced-without-draw'],
+    branches:['ai','drone','vehicle','other-no-draw']}
+  ]},
+ 'reboot-optics':{
+  sourceHash:'afe8da4f5b73c0f2029ebdd4e72576da85a97c137c9a847413eff3905ce22031',
+  segments:[
+   {index:1,hash:'afe8da4f5b73c0f2029ebdd4e72576da85a97c137c9a847413eff3905ce22031',
+    cases:['quick-contract-requires-friendly-unit','quick-contract-first-fight-prevents-defeat','quick-contract-second-fight-is-unprotected','quick-contract-unused-protection-expires'],
+    branches:['no-friendly-unit','first-fight','second-fight','expiry']}
+  ]}
 };
