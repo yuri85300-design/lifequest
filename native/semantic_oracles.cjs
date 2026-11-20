@@ -91,7 +91,7 @@ module.exports=async function runSemanticOracles(api,assert){
   assert.equal(g.hasKw(host,'ADRENALINE'),true);
  });
  await check('towerfall','when-behind-two-effects-apply-in-order',async()=>{
-  const g=make(),p=g.P(0),r=g.P(1),a=put(g,'6th-street-recruits',1),b=put(g,'animals-wrecker',1);
+  const g=make(),p=g.P(0),r=g.P(1),a=put(g,'corpo-security',1),b=put(g,'animals-wrecker',1);
   p.gigs=[gig(91001,1)];r.gigs=[gig(91002,6)];
   assert.equal(g.lessSC(0),true);
   await CARDS['towerfall'].onPlay(g,g.newInst('towerfall',0),0);
