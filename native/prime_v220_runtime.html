@@ -5468,12 +5468,13 @@ async function startGame() {
     let ownedBest=null;
     const legends=Object.values(cards).filter(c=>c.type==='Legend'&&owned[c.id]>0);
     const sets=[];
-    for(let i=0;i<legends.length;i++)for(let j=i+1;j<legends.length;j++)for(let k=j+1;k<legends.length;k++){
-      const ids=[legends[i],legends[j],legends[k]];
-      if(new Set(ids.map(x=>x.name)).size<3)continue;
-      sets.push(ids.map(x=>x.id));
-      if(sets.length>=300)break;
-    }
+    // Bound combinatorics even for an almost complete 150-card collection.
+    for(let i=0;i<legends.length&&sets.length<160;i++)
+      for(let j=i+1;j<legends.length&&sets.length<160;j++)
+        for(let k=j+1;k<legends.length&&sets.length<160;k++){
+          const trio=[legends[i],legends[j],legends[k]];
+          if(new Set(trio.map(x=>x.name)).size===3)sets.push(trio.map(x=>x.id));
+        }
     for(const lg of sets)for(const target of ranked.slice(0,12)){
       const proposed=ownedDeck(lg,target.deck,owned,cards,limitsFn,validate);
       const score=proposed.deck.main.length*100+
