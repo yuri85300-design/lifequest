@@ -1,0 +1,95 @@
+name: PRIME 2.5.4 - Android 15 accueil et bouton de mise a jour
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-ui-prime254.yml'
+  workflow_run:
+    workflows: ["7 Gigs PRIME 2.5.4 - Correctif accueil et mise a jour visible"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify-android-ui:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Telecharger le nouvel APK directement depuis GitHub Actions
+        uses: actions/download-artifact@v4
+        with:
+          name: 7Gigs-PRIME-254-APK
+          path: /tmp/prime254-apk
+          run-id: ${{ github.event.workflow_run.id || 44737675900 }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verifier le package Android et les 150 cartes VF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/prime254-ui-evidence
+          test -s /tmp/prime254-apk/7Gigs-PRIME-2.5.4.apk
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          p='/tmp/prime254-apk/7Gigs-PRIME-2.5.4.apk'
+          with ZipFile(p) as z:
+            names=z.namelist()
+            vf=[n for n in names if n.startswith('assets/www/images_vf/') and not n.endswith('/')]
+            assert len(vf)==150,len(vf)
+            assert 'classes.dex' in names and 'assets/www/index.html' in names
+            assert all(z.getinfo(n).file_size>2000 for n in vf)
+            assert z.testzip() is None
+          print('PRIME_254_OFFLINE_ART_PASS:150/150')
+          PY
+          sha256sum /tmp/prime254-apk/7Gigs-PRIME-2.5.4.apk | tee /tmp/prime254-ui-evidence/apk-sha256.txt
+      - name: Autoriser l'emulateur Android
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Tester le scroll, le bouton fixe et le mode avion sur Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            adb install -r /tmp/prime254-apk/7Gigs-PRIME-2.5.4.apk
+            adb logcat -c
+            adb shell am start -W -n dev.septgigs.neonarena.prime254/dev.septgigs.neonarena.prime.PrimeUpdater254Activity --ez uiQa true --ez offlineQa true
+            sleep 24
+            adb logcat -d > /tmp/prime254-ui-evidence/boot-ui-logcat.txt
+            grep -q 'PRIME_UI_QA_PASS:' /tmp/prime254-ui-evidence/boot-ui-logcat.txt
+            grep -q 'OFFLINE_FR_QA_PASS:150/150:' /tmp/prime254-ui-evidence/boot-ui-logcat.txt
+            adb shell screencap -p /sdcard/prime254-home.png
+            adb pull /sdcard/prime254-home.png /tmp/prime254-ui-evidence/home.png
+            adb shell input swipe 350 1260 350 360 650
+            sleep 2
+            adb shell screencap -p /sdcard/prime254-scrolled.png
+            adb pull /sdcard/prime254-scrolled.png /tmp/prime254-ui-evidence/scrolled.png
+            adb shell svc wifi disable
+            adb shell svc data disable
+            adb shell am force-stop dev.septgigs.neonarena.prime254
+            adb logcat -c
+            adb shell am start -W -n dev.septgigs.neonarena.prime254/dev.septgigs.neonarena.prime.PrimeUpdater254Activity --ez uiQa true --ez offlineQa true
+            sleep 22
+            adb logcat -d > /tmp/prime254-ui-evidence/airplane-logcat.txt
+            grep -q 'PRIME_UI_QA_PASS:' /tmp/prime254-ui-evidence/airplane-logcat.txt
+            grep -q 'OFFLINE_FR_QA_PASS:150/150:' /tmp/prime254-ui-evidence/airplane-logcat.txt
+            ! grep -q 'FATAL EXCEPTION' /tmp/prime254-ui-evidence/airplane-logcat.txt
+            adb shell input tap 355 1435
+            sleep 4
+            adb logcat -d > /tmp/prime254-ui-evidence/after-update-tap-logcat.txt
+            grep -q 'PRIME_UPDATE_BUTTON_TAPPED' /tmp/prime254-ui-evidence/after-update-tap-logcat.txt
+            echo 'PRIME_254_ANDROID_MENU_SCROLL_AND_UPDATE_PASS'
+      - name: Enregistrer les preuves captures et logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PRIME254-ANDROID15-MENU-QA
+          path: /tmp/prime254-ui-evidence/
+          if-no-files-found: warn
