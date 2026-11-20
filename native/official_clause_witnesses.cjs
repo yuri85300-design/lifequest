@@ -92,6 +92,18 @@ module.exports={
  'zetatech-berserk':{sourceHash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',segments:[{index:1,hash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',cases:["face-up-legend-discount-and-floor"],branches:["zero-face-up","one-face-up","three-face-up"]}]},
  'corporate-surveillance':{sourceHash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',segments:[{index:1,hash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',cases:["only-ready-rival-units-cost-four-or-less","cannot-be-played-without-ready-eligible-target"],branches:["eligible-ready","no-eligible","excludes-cost-over-four"]}]},
  'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]},
+ 'zetatech-faceplate':{
+  sourceHash:'96981150542f452e58dc1ab712a2404bd00104c97e1fbb6fe23334ca89169485',
+  segments:[
+   {index:1,hash:'15ec2ba4dda7fe4ad9416d04294720415de1de3fe6687a943ee5dcfb7a647b3c',
+    cases:['faceplate-spent-host-adjusts-up-to-one',
+      'faceplate-unrelated-unit-spend-does-not-trigger'],
+    branches:['host-spent-adjustment','other-host-no-effect']},
+   {index:2,hash:'914ffae13fe72aef17f0b679a31969f28cd9c0c775a70b13b0da5b53e63c08de',
+    cases:['faceplate-three-distinct-gigs-draw-even-if-adjustment-declined',
+      'faceplate-two-distinct-gig-values-no-draw'],
+    branches:['three-distinct-draw','two-distinct-no-draw','declined-adjustment-independent-draw']}
+  ]},
  'jackie-welles-pour-one-out-for-me':{
   sourceHash:'52491792e8ef072d1e248d518b87b562c63ee0cf4a531f24d7563750b31b255e',
   segments:[
