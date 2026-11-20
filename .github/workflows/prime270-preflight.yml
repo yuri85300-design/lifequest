@@ -9,6 +9,10 @@ on:
       - 'native/audit_270_puzzles.cjs'
       - 'native/audit_270.cjs'
       - 'native/audit_270_ai.cjs'
+      - 'native/ota_manifest_guard.py'
+      - 'native/audit_ota_guard.py'
+      - 'multiplayer/protocol.mjs'
+      - 'multiplayer/protocol.test.mjs'
       - '.github/workflows/prime270-preflight.yml'
   workflow_dispatch:
 permissions:
@@ -58,6 +62,14 @@ jobs:
           set -euo pipefail
           PRIME_HTML=native/prime_v270_runtime.html node native/audit_260_benchmark.cjs | tee /tmp/prime270-preflight/audit-benchmark.json
           grep -Fq '"noFakeWins": "PASS"' /tmp/prime270-preflight/audit-benchmark.json
+      - name: Regressions de version et fondations multijoueur (sans deploiement)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 native/audit_ota_guard.py | tee /tmp/prime270-preflight/audit-version.json
+          node multiplayer/protocol.test.mjs | tee /tmp/prime270-preflight/audit-protocol.json
+          grep -Fq '"manifestNoDowngrade": "PASS"' /tmp/prime270-preflight/audit-version.json
+          grep -Fq '"serverLegalActions": "PASS"' /tmp/prime270-preflight/audit-protocol.json
       - name: Conserver les preuves
         if: always()
         uses: actions/upload-artifact@v4
