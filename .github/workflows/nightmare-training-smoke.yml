@@ -1,0 +1,33 @@
+name: NIGHTMARE - real bounded experimental league smoke
+on:
+  push:
+    paths:
+      - 'native/nightmare_training_real_smoke.cjs'
+      - 'native/prime_v220_runtime.html'
+      - 'native/engine.js'
+      - '.github/workflows/nightmare-training-smoke.yml'
+  pull_request:
+    paths:
+      - 'native/nightmare_training_real_smoke.cjs'
+      - 'native/prime_v220_runtime.html'
+      - 'native/engine.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounded-real-league:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium test runtime
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Execute real game-engine training and independent 80-game validation
+        run: timeout 650s node native/nightmare_training_real_smoke.cjs
+      - name: Preserve certified=false invariant
+        run: node native/nightmare_training_contract.cjs
