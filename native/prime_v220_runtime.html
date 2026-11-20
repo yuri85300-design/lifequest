@@ -4002,6 +4002,7 @@ const S = {
   rivalMemory:window.RivalLearning.sanitize(store.get('rivalLearningV1',null)), learningEnabled:store.get('rivalLearningEnabled',true), duelLearner:null,
   combatArtOnly: store.get('combatArtOnly', true),
   campaignMission: null,
+  challenge: store.get('challengeV1',null),
   stats: store.get('matchStatsV1', {games:0,wins:0,losses:0,draws:0,turns:0,history:[],campaignCleared:0}),
 };
 
@@ -4730,13 +4731,43 @@ function statsScreen(){
  </div></div>`);
 }
 function challengeScreen(){
- mount(`<div class="screen">${topbar('Défi à deux joueurs')}<div class="scroll pad">
- <h3>Défi local asynchrone</h3>
- <p>Deux personnes peuvent jouer chacune une partie contre la même difficulté d’IA puis comparer leurs résultats depuis les statistiques.</p>
- <p class="sub">Ce mode ne constitue pas un duel humain contre humain. Le multijoueur temps réel et en ligne nécessite une architecture réseau et une gestion des informations cachées.</p>
- <button class="btn primary" data-nav="setup">Préparer le premier duel</button>
- <button class="btn ghost" data-nav="stats">Comparer les résultats enregistrés</button>
- </div></div>`);
+ const c=S.challenge;
+ if(c?.phase==='done'){
+  const [a,b]=c.scores,champ=a.points===b.points?'Égalité':a.points>b.points?a.name:b.name;
+  mount(`<div class="screen">${topbar('Défi local · résultats')}<div class="scroll pad"><h3>${esc(champ)}</h3>
+  ${c.scores.map(x=>`<div class="prime-mission"><b>${esc(x.name)}</b><p>${esc(x.result)} · ${x.gigs} Gigs · ${x.turns} tours · ${x.points} points</p></div>`).join('')}
+  <button class="btn primary" id="resetChallenge">Nouveau défi</button></div></div>`);
+  app.querySelector('#resetChallenge').onclick=()=>{S.challenge=null;store.set('challengeV1',null);challengeScreen();};return;
+ }
+ if(c){
+  const round=c.phase==='player1'?0:1;
+  mount(`<div class="screen">${topbar('Défi local · manche '+(round+1))}<div class="scroll pad">
+  <h3>Au tour de ${esc(c.players[round])}</h3><p>Deux joueurs affrontent successivement la même IA, le même deck et la même graine de partie.</p>
+  ${c.scores.map(x=>`<p class="prime-history">${esc(x.name)} : ${x.points} points · ${x.gigs} Gigs</p>`).join('')}
+  <button class="btn primary" id="continueChallenge">Lancer la manche</button>
+  <button class="btn ghost" id="stopChallenge">Abandonner le défi</button></div></div>`);
+  app.querySelector('#continueChallenge').onclick=()=>{S.campaignMission=null;S.pseudo=c.players[round];S.level='normal';S.aiDeck='embracing-power';S.myDeck=c.deck;startGame();};
+  app.querySelector('#stopChallenge').onclick=()=>{S.challenge=null;store.set('challengeV1',null);challengeScreen();};return;
+ }
+ mount(`<div class="screen">${topbar('Défi local à deux')}<div class="scroll pad">
+ <h3>Deux joueurs, une même épreuve</h3><p>Chacun affronte une IA identique à tour de rôle. Les résultats sont comparés.</p>
+ <p class="sub">Ce mode multijoueur local asynchrone n'est pas un combat PvP direct ni une partie en ligne.</p>
+ <label for="challenger1">Joueur 1</label><input class="search" id="challenger1" maxlength="16" value="Joueur 1">
+ <label for="challenger2">Joueur 2</label><input class="search" id="challenger2" maxlength="16" value="Joueur 2">
+ <button class="btn primary" id="beginChallenge">Commencer</button></div></div>`);
+ app.querySelector('#beginChallenge').onclick=()=>{
+  const players=[app.querySelector('#challenger1').value.trim()||'Joueur 1',app.querySelector('#challenger2').value.trim()||'Joueur 2'];
+  const err=validateDeck(allDecks()[S.myDeck]);if(err.length)return toast('Deck invalide : '+err[0],4000);
+  S.challenge={phase:'player1',players,scores:[],deck:S.myDeck,seed:Math.floor(Math.random()*2147483647)};
+  store.set('challengeV1',S.challenge);challengeScreen();
+ };
+}
+function recordChallenge(res,g){
+ const c=S.challenge;if(!c||!['player1','player2'].includes(c.phase))return;
+ const i=c.phase==='player1'?0:1,gigs=g.P(HUMAN).gigs.length,enemy=g.P(AI).gigs.length,turns=Math.max(1,Math.ceil((g.s.turn||0)/2));
+ const points=(res.winner===HUMAN?1000:res.winner===-1?500:0)+gigs*20-enemy*10+Math.max(0,30-turns);
+ c.scores.push({name:c.players[i],result:res.winner===HUMAN?'Victoire':res.winner===AI?'Défaite':'Égalité',gigs,turns,points});
+ c.phase=i===0?'player2':'done';store.set('challengeV1',c);
 }
 function homeScreen() {
   const D=allDecks(), dk=D[S.myDeck];
@@ -5276,7 +5307,7 @@ async function startGame() {
     async react(g,i,A,acts){const a=await playerAI.react(g,i,A,acts);window.RivalLearning.recordAI(session,g,i,a);return a;}
   }:playerAI;
   try {
-    g = Game.create([mine, theirs], [human,enemy], { names: [S.pseudo, "L'IA"], hooks });
+    g = Game.create([mine, theirs], [human,enemy], { names: [S.pseudo, "L'IA"], hooks, ...(S.challenge&&['player1','player2'].includes(S.challenge.phase)?{seed:S.challenge.seed}:{}) });
   } catch(e) { console.error(e); showDuelFailure(e,null); return; }
   S.game = g; render();
   let res;
@@ -5289,6 +5320,7 @@ async function startGame() {
   if (S.game !== g) return;
   const completedMission=S.campaignMission;
   recordDuel(res,g,completedMission);
+  recordChallenge(res,g);
   S.campaignMission=null;
   if(session){
     S.rivalMemory=window.RivalLearning.finish(S.rivalMemory,session,res.winner);
@@ -5298,7 +5330,7 @@ async function startGame() {
   S.resolveMain = null; S.acts = []; render(); closeSheet();
   const win = res.winner === HUMAN;
   const ov = document.createElement('div'); ov.className = 'over';
-  ov.innerHTML = `<h1 class="${win ? 'win' : 'lose'}">${win ? 'Victoire' : res.winner === -1 ? 'Égalité' : 'Défaite'}</h1><p>${esc(res.reason)}</p>${session?`<p style="max-width:340px;color:var(--sodium);font-size:.83rem">◈ Duel mémorisé. Plan testé : ${esc(window.RivalLearning.STRATEGIES[session.variant].name)}. ${esc(rivalDeckText())}</p>`:''}<button class="btn primary" id="again">Rejouer</button><button class="btn ghost" id="log2">Voir le journal</button><button class="btn ghost" data-nav="stats">Statistiques</button><button class="btn ghost" data-nav="campaign">Campagne</button><button class="btn ghost" data-nav="home">Menu principal</button>`;
+  ov.innerHTML = `<h1 class="${win ? 'win' : 'lose'}">${win ? 'Victoire' : res.winner === -1 ? 'Égalité' : 'Défaite'}</h1><p>${esc(res.reason)}</p>${session?`<p style="max-width:340px;color:var(--sodium);font-size:.83rem">◈ Duel mémorisé. Plan testé : ${esc(window.RivalLearning.STRATEGIES[session.variant].name)}. ${esc(rivalDeckText())}</p>`:''}<button class="btn primary" id="again">Rejouer</button><button class="btn ghost" id="log2">Voir le journal</button><button class="btn ghost" data-nav="stats">Statistiques</button><button class="btn ghost" data-nav="campaign">Campagne</button><button class="btn ghost" data-nav="challenge">Défi local</button><button class="btn ghost" data-nav="home">Menu principal</button>`;
   app.appendChild(ov);
   ov.querySelector('#again').onclick = () => startGame();
   ov.querySelector('#log2').onclick = () => { ov.remove(); logSheet(); const b = document.createElement('button'); b.className = 'btn primary'; b.style.cssText = 'position:absolute;right:10px;top:10px;z-index:60'; b.textContent = 'Menu'; b.dataset.nav = 'home'; app.appendChild(b); };
