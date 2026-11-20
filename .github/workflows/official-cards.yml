@@ -20,8 +20,7 @@ on:
       - '.github/workflows/official-cards.yml'
   pull_request:
     paths:
-      - 'native/engine.js'
-      - 'native/official_card_audit.cjs'
+      - 'native/**'
       - '.github/workflows/official-cards.yml'
   workflow_dispatch:
 permissions:
@@ -64,3 +63,5 @@ jobs:
         run: |
           echo "Official metadata comparison not complete; never certify on incomplete data."
           exit 1
+
+# Branch verification of 150 current official card fingerprints.
