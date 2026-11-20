@@ -50,10 +50,16 @@ module.exports=async function verifyRadioport(api,assert){
   assert.equal(legend.known,true);
  });
  await test('radioport-existing-call-blocks-another-call',async()=>{
-  const {g,p,host}=make();p.calledThisTurn=true;let prompts=0,calls=0;
-  g.yesNo=async()=>{prompts++;return true};g.callFree=async()=>{calls++};
+  const {g,p,host,legend}=make();p.calledThisTurn=true;
+  let prompts=0,peeks=0,calls=0;
+  g.yesNo=async()=>{prompts++;return true};
+  g.pickFaceDownLegend=async()=>{peeks++;return legend};
+  g.callFree=async()=>{calls++};
   await g.spendUnit(host);
-  assert.equal(prompts,0);assert.equal(calls,0);
+  assert.equal(prompts,1,'Player may still choose to look after earlier Call');
+  assert.equal(peeks,1,'Looking is separate from once-per-turn Call limit');
+  assert.equal(legend.known,true);
+  assert.equal(calls,0,'Second Call remains forbidden');
  });
  await test('radioport-unrelated-unit-spent-does-not-trigger',async()=>{
   const {g,p}=make();const other=g.newInst('animals-wrecker',0);
