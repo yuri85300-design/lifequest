@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 26001,
-  "version": "2.6.1",
+  "version_code": 26002,
+  "version": "2.6.2",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.6.1/prime-content-v2.6.1.zip",
-  "sha256": "ccbb04112d5abf43bbec049dca0d70454f5b12143ec09a46e836d80abb191139",
-  "notes": "Guide interactif dans les duels, correction visuelle de l accueil et fonctions 2.6.0 conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.6.2/prime-content-v2.6.2.zip",
+  "sha256": "1aceeac93b20cc0fe7adf604d03550fbf56b25dc7a969bd54998be6c96e52166",
+  "notes": "Guidage des duels, visuels responsive, filtre de decks réel et campagne solo ; sauvegardes conservées."
 }
