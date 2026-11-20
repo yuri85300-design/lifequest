@@ -131,17 +131,30 @@ async function main(){
     const paths=await page.locator('a[href*="/cards/"]').evaluateAll(nodes=>nodes.map(n=>new URL(n.href).pathname));
     paths.forEach(x=>officialPaths.add(x));
     listingPages.push({page:pageNo,found:paths.length});
-    const next=page.getByText('Next',{exact:true}).last();
-    if(!(await next.count()))break;
     const beforePage=pageNo;
-    await next.click({timeout:8000}).catch(()=>{});
-    await page.waitForFunction(previous=>{
-      const m=document.body.innerText.match(/Page\s+(\d+)\s+of\s+\d+/i);
-      return Boolean(m&&Number(m[1])>previous);
-    },beforePage,{timeout:10000}).catch(()=>{});
+    const totalPages=Number(current.match(/Page\s+\d+\s+of\s+(\d+)/i)?.[1]||0);
+    if(totalPages && pageNo>=totalPages)break;
+    let advanced=false;
+    // The published catalogue is client-rendered; on busy CI runners the
+    // Next control can briefly disappear during rerenders. Retry navigation,
+    // but never mark the catalogue complete unless every page is seen.
+    for(let attempt=0;attempt<4&&!advanced;attempt++){
+      const next=page.getByText('Next',{exact:true}).last();
+      try{
+        if(await next.count())await next.click({timeout:5000});
+        else await page.waitForTimeout(1200);
+        await page.waitForFunction(previous=>{
+          const m=document.body.innerText.match(/Page\s+(\d+)\s+of\s+\d+/i);
+          return Boolean(m&&Number(m[1])>previous);
+        },beforePage,{timeout:7000});
+        advanced=true;
+      }catch{
+        if(attempt<3)await page.waitForTimeout(1500);
+      }
+    }
     const after=await page.locator('body').innerText();
     const newPage=Number(after.match(/Page\s+(\d+)\s+of\s+\d+/i)?.[1]||0);
-    if(newPage<=beforePage)break;
+    if(!advanced||newPage<=beforePage)break;
   }
   result.listingPages=listingPages;
   result.listingItemsFound=officialPaths.size;
