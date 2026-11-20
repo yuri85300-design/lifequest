@@ -152,7 +152,7 @@ public class PrimeUpdater254Activity extends Activity {
           "screen:!!h,button:!!button,native:!!window.Native7Gigs&&typeof Native7Gigs.checkForUpdates==='function',"+
           "scroll:!!h&&css.overflowY==='auto'&&h.scrollHeight>h.clientHeight,"+
           "dock:!!rect&&!!r&&rect.bottom<=r.bottom+3&&rect.top>=r.top-3&&rect.height>45,"+
-          "menu:typeof gameMenu==='function'};"+
+          "menu:!!document.querySelector('.sim-main-nav [data-prime-update]')};"+
           "console.error((Object.values(checks).every(Boolean)?'PRIME_UI_QA_PASS:':'PRIME_UI_QA_FAIL:')+JSON.stringify(checks));"+
           "})()",null),1800);
         if(!otaQaRequested)return;
