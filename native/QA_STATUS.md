@@ -13,9 +13,10 @@ Dernière mise à jour : 2026-11-20. [Registre de preuves sémantiques](SEMANTIC
 | Textes anglais des 150 cartes | 150/150 fiches récupérées et empreintes calculées ; examen sémantique clause par clause NON EFFECTUÉ |
 | Errata officiels | 7 entrées parcourues ; deux errata de mécanique Johnny/Kiroshi testés, cinq corrections de crédits d'illustration |
 | Métadonnées officielles des cartes | 150/150 conformes (type, coût, puissance, RAM) ; 2 légendes promo supplémentaires hors périmètre |
-| Oracles sémantiques indépendants | 173/173 oracles réussis en exécution directe après correctif Viktor ; 170/170 confirmés indépendamment sur GitHub avant ce correctif sur 150 cartes distinctes ; aucune carte sans oracle dédié ; couverture des clauses complètes non acquise |
+| Oracles sémantiques indépendants | 174/174 oracles réussis en exécution directe après correctif Viktor ; 170/170 confirmés indépendamment sur GitHub avant ce correctif sur 150 cartes distinctes ; aucune carte sans oracle dédié ; couverture des clauses complètes non acquise |
 | Scénarios individuels des cartes | 150/150 cycles de vie réussis en CI ; ce contrôle n'est pas une certification des effets |
 | Correction sémantique Viktor Vektor | Premier CYBERWARE joué gratuitement consomme désormais l'unique réduction du tour ; oracles positif/négatif ajoutés |
+| Segments candidats des textes anglais | 280 segments extraits des 150 fiches, dont 76 avec condition et 54 avec option, sans revue complète indépendante des branches |
 | Certification des effets | NON ACQUISE : aucune carte n'est attestée clause par clause avec exhaustivité |
 | NIGHTMARE réentraînement compétitif | BLOQUÉ par NIGHTMARE_TRAINING_CERTIFIED=false |
 | Web Worker tactique | Chargement en Chromium observé ; 1 action de décision synthétique légale ; stress tests avancés non validés |
@@ -40,7 +41,7 @@ Le rapport de l'audit porte exclusivement sur des invariants techniques et des
 exécutions synthétiques. Un contrôle combinatoire par paires ne valide pas
 automatiquement l'intégralité des timings, effets, choix et errata officiels.
 
-Avant la correction Viktor, les 170 oracles ont passé GitHub Actions : https://github.com/yuri85300-design/lifequest/actions/runs/44773649539. Après correction, 173 oracles passent l'exécution directe et les workflows sont à revalider.. Le registre retient **150 cartes avec au moins un oracle mais 0 carte certifiée intégralement**, car les branches et combinaisons supplémentaires restent non vérifiées.
+Avant la correction Viktor, les 170 oracles ont passé GitHub Actions : https://github.com/yuri85300-design/lifequest/actions/runs/44773649539. Après correction, 174 oracles passent l'exécution directe, dont quatre régressions sur les équipements gratuits et la réinitialisation au changement de tour. Confirmation CI à effectuer sur cette révision.. Le registre retient **150 cartes avec au moins un oracle mais 0 carte certifiée intégralement**, car les branches et combinaisons supplémentaires restent non vérifiées.
 
 Les workflows **7 Gigs PRIME - audit technique**, **7 Gigs PRIME - PC browser smoke**, **7 Gigs PRIME - current official card catalogue** et **7 Gigs PRIME - Android debug APK** se trouvent dans GitHub Actions.
 Le contrôle Chromium étendu a réussi ses 16 scénarios (8 parcours sur deux formats d'écran).
