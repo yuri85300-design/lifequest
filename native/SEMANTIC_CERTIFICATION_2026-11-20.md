@@ -404,3 +404,29 @@ observées sur l'exécution réussie, sans ignorer les 32 dernières référence
 
 **NIGHTMARE reste en entraînement expérimental ; aucune promotion
 certifiée ni certification sémantique intégrale n'est affirmée.**
+
+## Second rapprochement de preuves partielles existantes (20 novembre 2026)
+
+L'exécution officielle
+[44815073122](https://github.com/yuri85300-design/lifequest/actions/runs/44815073122)
+confirme **329/329 oracles PASS**, **81/280 fragments liés à des témoins
+partiels**, **199 fragments sans rapprochement**, et **0/150 carte
+entièrement certifiée**. Le catalogue officiel contient bien 152
+références accessibles en trois pages, dont les 150 cartes du moteur.
+
+L'exécution indépendante
+[44815628916](https://github.com/yuri85300-design/lifequest/actions/runs/44815628916)
+confirme **334/334 oracles PASS**, dont cinq nouveaux cas pour Gilded
+Matón (sacrifice facultatif, choix d'une unité adverse admissible,
+absence de cible et exclusion d'une cible trop chère).
+
+Les 29 liens supplémentaires dans
+`native/official_clause_witnesses.cjs` réutilisent uniquement des
+oracles déjà exécutés avec succès et des empreintes officielles
+concordantes. Ces liens restent **des témoins partiels** : aucune
+branche non testée, interaction combinée ou certification complète
+ne peut être inférée. Leur validation par le workflow officiel
+ultérieur est à contrôler avant de réviser les comptes.
+
+Le verrou de promotion `NIGHTMARE_TRAINING_CERTIFIED` reste
+**false**. Le laboratoire expérimental reste autorisé.
