@@ -1286,6 +1286,25 @@ html.prime-readable :focus-visible{outline:3px solid #f4d580!important;outline-o
 .prime-guide-score{display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding:8px 13px;border-radius:10px;background:#0d253b;color:#e3edfa;font-weight:850;font-size:13px}
 .prime-guide-score b{color:#ffda80;font:900 22px var(--disp)}
+/* PRIME 2.6.1 — prevent hero copy/art overlap on narrow touch devices. */
+@media(max-width:530px){
+  #app>.screen.hub-home .hub-hero{min-height:340px;padding:23px 18px 18px}
+  #app>.screen.hub-home .hub-hero .hub-title{
+    font-size:clamp(50px,12vw,62px)!important;line-height:.95;
+    max-width:95%;margin:15px 0 9px
+  }
+  #app>.screen.hub-home .hub-hero .hub-title span{
+    font-size:.69em;letter-spacing:0;white-space:nowrap
+  }
+  #app>.screen.hub-home .hub-art{right:-30px;top:63px;width:43%;opacity:.86}
+  #app>.screen.hub-home .hub-hero .hub-desc{max-width:62%;min-height:52px;margin:11px 0 16px}
+  #app>.screen.hub-home .hub-hero-actions{margin-top:16px}
+}
+@media(max-width:370px){
+  #app>.screen.hub-home .hub-hero .hub-title{font-size:50px!important}
+  #app>.screen.hub-home .hub-art{right:-41px;width:43%;opacity:.8}
+  #app>.screen.hub-home .hub-hero .hub-desc{max-width:66%;font-size:11.5px}
+}
 </style></head>
 <body><div id="app"></div>
 <script>
