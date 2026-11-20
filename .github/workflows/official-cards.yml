@@ -23,6 +23,7 @@ on:
       - 'native/card_lifecycle_oracles.cjs'
       - 'native/semantic_register.cjs'
       - 'native/semantic_gap_matrix.cjs'
+      - 'native/semantic_gap_matrix_contract.cjs'
       - '.github/workflows/official-cards.yml'
   pull_request:
     paths:
@@ -40,6 +41,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify semantic matrix fail-closed contract
+        run: node native/semantic_gap_matrix_contract.cjs
       - name: Install browser tooling
         run: |
           npm install --no-save playwright@1.56.1
