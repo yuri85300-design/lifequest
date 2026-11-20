@@ -194,7 +194,7 @@ class Game {
       const sd = this.def(src.inst);
       if (sd.rivalCostMod) { const delta = sd.rivalCostMod(this, src.inst, inst, p, mode, src) || 0; c += delta; if (delta < 0) reduced = true; }
     }
-    if (mode === 'solo' && this.P(p).tf.soloDiscountTarget === inst.uid) { c -= this.P(p).tf.soloDiscount || 2; reduced = true; }
+    if (mode === 'solo' && this.P(p).tf.soloDiscount > 0) { c -= this.P(p).tf.soloDiscount; reduced = true; }
     if (mode === 'play' && d.type === 'Program' && this.P(p).tf.progDiscount) { c -= this.P(p).tf.progDiscount; reduced = true; }
     // CR 11.11.3: cumulative reductions cannot make a played card cost 0.
     // An explicit fixed payment (card text) is distinct from a reduction;
@@ -821,6 +821,9 @@ class Game {
     const l = p.legends.find(x => x.uid === uid); if (!l || !l.faceUp) return;
     const cost = this.costOf(l, i, solo ? 'solo' : 'field');
     if (!(await this.pay(i, cost, [], l.uid))) return;
+    // Nocturne grants one Go Solo discount usable later this turn by any
+    // eligible friendly Legend; consume it only on a successful Go Solo.
+    if (solo && p.tf.soloDiscount > 0) p.tf.soloDiscount = 0;
     p.legends.splice(p.legends.indexOf(l), 1);
     l.lag = true; l.flags = { solo }; if (solo) l.ready = true;
     p.field.push(l);
@@ -1883,7 +1886,7 @@ C('nocturne-op55-n1', 'Nocturne OP55 N1', null, P, B, 3, 2, null, 'ARASAKA|PLAN'
     onPlay: async (g, c, i) => pickMode(g, i, 'Nocturne : choisissez', [
       { label: 'Piochez 2', score: 1, run: () => g.draw(i, 2) },
       { label: 'Une Unité ne peut pas attaquer jusqu\'à votre prochain tour', score: rU(g, i).some(u => u.ready) ? 0.8 : -1, run: async () => { const u = await g.pickUnit(i, 'Unité immobilisée', g.allUnits(), x => (g.controllerOf(x) === i ? -1 : 1) * g.eff(x)); if (u) g.flag(u, 'cantAttack', 'next', i); } },
-      { label: 'EN SOLO coûte -2 €$ ce tour', score: g.P(i).legends.some(l => l.faceUp && g.hasKw(l, 'GO_SOLO')) ? 1.2 : -1, run: async () => { const pool = g.P(i).legends.filter(l => l.faceUp && g.hasKw(l, 'GO_SOLO')); const chosen = await g.pickUnit(i, 'Nocturne : choisissez une Légende EN SOLO', pool, l => val(g, l)); if (chosen) { g.P(i).tf.soloDiscount = 2; g.P(i).tf.soloDiscountTarget = chosen.uid; } } }]) });
+      { label: 'EN SOLO coûte -2 €$ ce tour', score: g.P(i).legends.some(l => l.faceUp && g.hasKw(l, 'GO_SOLO')) ? 1.2 : -1, run: async () => { g.P(i).tf.soloDiscount = 2; } }]) });
 C('pyramid-song', 'Pyramid Song', null, P, B, 3, 3, null, 'BRAINDANCE', [],
   'Choisissez un effet. Si un d4 ami est un Gig minimum, choisissez les deux.\n• Une Unité rivale reçoit -4 de puissance ce tour.\n• Placez sous son deck une Unité rivale de puissance 0.',
   { canPlay: (g, i) => rU(g, i).length > 0, onPlay: async (g, c, i) => {
