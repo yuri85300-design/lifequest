@@ -38,6 +38,7 @@ jobs:
           path: |
             audit-results/semantic-oracles.json
             audit-results/semantic-register.json
+            audit-results/semantic-gaps.md
             audit-results/card-lifecycle.json
           if-no-files-found: error
       - name: Assert NIGHTMARE remains certification-locked
