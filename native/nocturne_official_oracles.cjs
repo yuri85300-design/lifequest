@@ -52,5 +52,27 @@ module.exports=async function runNocturne(api,assert){
   p.legends=[l];l.faceUp=true;p.tf.soloDiscount=80;
   assert.equal(g.costOf(l,0,'solo'),1);
  });
+ await check('solo-discount-stacks-with-rival-riot-shield-surcharge',async()=>{
+  const g=make(),p=g.P(0),l=g.newInst('v-corporate-exile',0);
+  p.legends=[l];l.faceUp=true;
+  const foe=g.newInst('animals-wrecker',1),shield=g.newInst('riot-shield',1);
+  foe.gear.push(shield);g.P(1).field.push(foe);
+  const base=CARDS[l.id].cost;
+  assert.equal(g.costOf(l,0,'solo'),base+2);
+  chooseMode(g,2);await CARDS['nocturne-op55-n1'].onPlay(g,g.newInst('nocturne-op55-n1',0),0);
+  assert.equal(g.costOf(l,0,'solo'),base);
+  assert.equal(g.costOf(l,0,'field'),base);
+ });
+ await check('unused-solo-discount-expires-at-end-of-turn',async()=>{
+  const g=make(),p=g.P(0);chooseMode(g,2);
+  await CARDS['nocturne-op55-n1'].onPlay(g,g.newInst('nocturne-op55-n1',0),0);
+  assert.equal(p.tf.soloDiscount,2);await g.endTurn();
+  assert.equal(!!p.tf.soloDiscount,false);
+ });
+ await check('fixed-payment-one-even-if-another-program-discount-would-apply',()=>{
+  const g=make(),p=g.P(0),n=g.newInst('nocturne-op55-n1',0);
+  p.fixer=[];p.tf.progDiscount=3;
+  assert.equal(g.costOf(n,0),1);
+ });
  return {count:tests.length,passed:tests.filter(x=>x.status==='PASS').length,failed:tests.filter(x=>x.status==='FAIL').length,tests};
 };
