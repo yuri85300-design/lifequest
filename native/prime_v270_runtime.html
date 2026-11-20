@@ -1355,6 +1355,8 @@ html.prime-readable :focus-visible{outline:3px solid #f4d580!important;outline-o
 .prime-deck-suggestion .btn{min-height:44px}
 .prime-opponent-brief{margin-top:13px;padding:12px;border:1px solid #587d98;border-left:3px solid #eecb7c;border-radius:10px;background:#102337;color:#b9ddeb;font-size:13px;line-height:1.5}
 @media(max-width:530px){.sim-builder-footer{display:flex;gap:5px;flex-wrap:wrap}.sim-builder-footer .btn{flex:1 1 85px;padding:10px 6px;font-size:12px}}
+
+.prime-mission-brief{padding:10px;border-left:2px solid #edc176;background:#20354d;color:#d6e9f7;font-size:12px;line-height:1.55}
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -4549,6 +4551,15 @@ const CampaignProgress={
     return store.set(this.key,state);
   }
 };
+const CampaignLore=Object.freeze({
+  watson:'Briefing : un contrat discret à Watson. Préservez vos premières ressources avant de contrôler le terrain.',
+  maelstrom:'Briefing : une embuscade dans les entrepôts. Votre objectif est de résister à la pression initiale.',
+  pacifica:'Briefing : les relais de Pacifica sont compromis. Anticipez les réactions et les programmes.',
+  badlands:'Briefing : convoyage à travers les Badlands. Préparez vos unités contre les équipements adverses.',
+  samurai:'Briefing : le tempo s’accélère au centre-ville. Chaque Gig remporté compte.',
+  final:'Briefing : NIGHTMARE analyse vos décisions. Aucun accès aux cartes cachées, aucune victoire artificielle.'
+});
+
 function campaignScreen(){
   S.campaignRun=null;
   const progress=CampaignProgress.read(),complete=progress.wins.length;
@@ -4559,7 +4570,7 @@ function campaignScreen(){
       const done=progress.wins.includes(m.id),available=CampaignProgress.available(i);
       return `<article class="prime-campaign-mission ${done?'done':available?'':'locked'}">
         <small class="tag">${done?'✓ TERMINÉE':available?'MISSION DISPONIBLE':'VERROUILLÉE'}</small>
-        <h3>${esc(m.title)}</h3><p>${esc(m.desc)}</p>
+        <h3>${esc(m.title)}</h3><p>${esc(m.desc)}</p><p class="prime-mission-brief">${esc(CampaignLore[m.id]||'')}</p>
         <small>IA : ${esc(LEVELS[m.level][0])} · Deck adverse : ${esc(PRESETS[m.enemy]?.name||m.enemy)}</small>
         <button type="button" class="btn ${available?'primary':'ghost'}" data-campaign="${i}" ${available?'':'disabled'}>${done?'Rejouer':available?'Lancer le duel':'Terminer la mission précédente'}</button>
       </article>`;
@@ -4840,8 +4851,11 @@ function deckStatsScreen(){
 
 const TACTICAL_PUZZLES=Object.freeze([
   {title:'Économie d’Eddies',objective:'Obtenir 1 Eddie en vendant une carte autorisée.',tip:'Une carte portant le symbole de vente peut générer un Eddie.',goal:'sell'},
-  {title:'Équiper une Unité',objective:'Attacher Bras de Gorille au Destructeur des Animals.',tip:'Choisissez le Gear et son hôte. Les coûts sont ceux du moteur officiel de PRIME.',goal:'gear'},
-  {title:'Le septième Gig',objective:'Voler suffisamment de Gigs pour gagner en prolongation.',tip:'Une Unité prête et sans latence peut attaquer les Gigs ennemis.',goal:'gigs'}
+  {title:'Équiper une Unité',objective:'Attacher Bras de Gorille au Destructeur des Animals.',tip:'Choisissez le Gear et son hôte. Les coûts sont ceux du moteur.',goal:'gear'},
+  {title:'Le septième Gig',objective:'Voler suffisamment de Gigs pour gagner en prolongation.',tip:'Une Unité prête et sans latence peut attaquer les Gigs ennemis.',goal:'gigs'},
+  {title:'Déployer une Unité',objective:'Jouer le Destructeur des Animals en payant son coût.',tip:'Vérifiez votre réserve disponible avant toute pose.',goal:'deploy'},
+  {title:'Appeler une Légende',objective:'Retourner une de vos Légendes grâce à un Appel légal.',tip:'Les Légendes face cachée ne sont révélées que par un effet légal.',goal:'call'},
+  {title:'Combat ciblé',objective:'Déclarer et résoudre une attaque autorisée sur une Unité adverse.',tip:'La cible doit être légalement attaquable ; les ripostes peuvent encore modifier le résultat.',goal:'unit'}
 ]);
 function makeTacticalPuzzle(index){
   const k=Math.max(0,Math.min(TACTICAL_PUZZLES.length-1,index));
@@ -4864,13 +4878,32 @@ function makeTacticalPuzzle(index){
     for(const sides of [4,6])issue(r,sides);
     g.s.overtime=true;
   }
+  if(k===3){
+    p.hand.push(g.newInst('animals-wrecker',0));
+    for(let j=0;j<6;j++)p.eddies.push({uid:g.s.uid++,ready:true,card:g.newInst('mantis-blades',0)});
+  }
+  if(k===4){
+    // Original legends are hidden until a legal Call resolves.
+    p.legends.forEach(l=>{l.faceUp=false;});
+    p.eddies.push({uid:g.s.uid++,ready:true,card:g.newInst('mantis-blades',0)});
+  }
+  if(k===5){
+    p.field.push(g.newInst('animals-wrecker',0));
+    const enemy=g.newInst('6th-street-recruits',1);
+    enemy.ready=false;
+    r.field.push(enemy);
+  }
   return g;
 }
 function puzzlePassed(g,index,win){
   const p=g.P(0);
-  return index===0?p.eddies.length>0 && p.soldThisTurn:
-    index===1?p.field.some(u=>u.gear.some(x=>x.id==='gorilla-arms')):
-    p.gigs.length>=7 && (win===0 || g.s.overtime);
+  if(index===0)return p.eddies.length>0 && p.soldThisTurn;
+  if(index===1)return p.field.some(u=>u.gear.some(x=>x.id==='gorilla-arms'));
+  if(index===2)return p.gigs.length>=7 && (win===0 || g.s.overtime);
+  if(index===3)return p.field.some(u=>u.id==='animals-wrecker');
+  if(index===4)return p.legends.some(l=>l.faceUp);
+  if(index===5)return !g.P(1).field.some(u=>u.id==='6th-street-recruits');
+  return false;
 }
 function tacticalPuzzlesScreen(index=0){
   const k=Math.max(0,Math.min(TACTICAL_PUZZLES.length-1,index));
@@ -5978,7 +6011,7 @@ function setupScreen() {
     <button class="btn ghost" data-nav="analyse" style="width:100%;margin-top:8px">Analyser mon deck</button>
     ${GameArchive.read()?`<button class="btn primary" id="resumeGame" style="width:100%;margin-top:8px">Reprendre la partie sauvegardée</button><button class="btn ghost" id="exportGame">Exporter la partie</button>`:''}
     <button class="btn ghost" id="importGame">Importer une sauvegarde</button>
-    <button class="btn ghost" data-nav="academy">Académie — quiz</button><button class="btn ghost" data-nav="puzzles">Académie — 3 missions jouables</button><button class="btn ghost" data-nav="tutorial">Guide des règles</button>
+    <button class="btn ghost" data-nav="academy">Académie — quiz</button><button class="btn ghost" data-nav="puzzles">Académie — 6 missions jouables</button><button class="btn ghost" data-nav="tutorial">Guide des règles</button>
     <button class="btn ghost" data-nav="journal">Journal de la dernière partie</button>
   </div><div class="actionbar"><button class="btn primary" style="flex:1" id="start">Commencer le duel</button></div></div>`);
   const resume=app.querySelector('#resumeGame');if(resume)resume.onclick=()=>startGame(true);
