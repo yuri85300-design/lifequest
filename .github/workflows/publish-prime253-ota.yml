@@ -27,7 +27,7 @@ jobs:
           PRIME_ENGINE_PATH=/tmp/prime-ota/engine.js node --max-old-space-size=512 native/audit_230.cjs > /tmp/prime-ota/audit-resume.json
           PRIME_ENGINE_PATH=/tmp/prime-ota/engine.js node --max-old-space-size=512 native/audit_220.cjs > /tmp/prime-ota/audit-regles.json
           grep -Fq '"TECHNICAL_PASS_NOT_OFFICIAL_CERTIFIED"' /tmp/prime-ota/audit-regles.json
-          PRIME_HTML=native/prime_v253_runtime.html node native/audit_253.cjs | tee /tmp/prime-ota/audit-academie.json
+          PRIME_HTML=native/prime_v253_runtime.html node native/audit_252.cjs | tee /tmp/prime-ota/audit-academie.json
           grep -Fq '"publicReplay": "PASS"' /tmp/prime-ota/audit-academie.json
           npm install --no-save --no-package-lock linkedom@0.18.12
           node -e "console.log('DOM parser:', require.resolve('linkedom'))"
