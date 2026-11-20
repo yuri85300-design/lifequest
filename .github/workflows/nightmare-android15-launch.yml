@@ -55,7 +55,9 @@ jobs:
             adb install -r android/app/build/outputs/apk/debug/app-debug.apk
             adb logcat -c
             adb shell am start -W -n com.sevengigs.prime/.MainActivity | tee /tmp/nightmare-android15/launch.txt
-            sleep 10
+            sleep 2
+            adb shell input tap 710 508
+            sleep 8
             adb shell dumpsys activity activities > /tmp/nightmare-android15/activity.txt
             adb logcat -d > /tmp/nightmare-android15/logcat.txt
             adb shell screencap -p /sdcard/nightmare.png
