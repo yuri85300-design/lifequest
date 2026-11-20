@@ -13,7 +13,7 @@ Dernière mise à jour : 2026-11-20. [Registre de preuves sémantiques](SEMANTIC
 | Textes anglais des 150 cartes | 150/150 fiches récupérées et empreintes calculées ; examen sémantique clause par clause NON EFFECTUÉ |
 | Errata officiels | 7 entrées parcourues ; deux errata de mécanique Johnny/Kiroshi testés, cinq corrections de crédits d'illustration |
 | Métadonnées officielles des cartes | 150/150 conformes (type, coût, puissance, RAM) ; 2 légendes promo supplémentaires hors périmètre |
-| Oracles sémantiques indépendants | 15/15 contrôles réussis sur 12 cartes distinctes ; 138 cartes sans oracle individuel |
+| Oracles sémantiques indépendants | 21/21 contrôles réussis sur 12 cartes distinctes, incluant les branches négatives ; 138 cartes sans oracle individuel |
 | Certification des effets | NON ACQUISE : aucune carte n'est attestée clause par clause avec exhaustivité |
 | NIGHTMARE réentraînement compétitif | BLOQUÉ par NIGHTMARE_TRAINING_CERTIFIED=false |
 | Web Worker tactique | Chargement en Chromium observé ; 1 action de décision synthétique légale ; stress tests avancés non validés |
