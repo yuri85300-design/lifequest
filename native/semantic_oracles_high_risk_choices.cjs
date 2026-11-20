@@ -47,6 +47,15 @@ module.exports=async function highRiskChoices(api,assert){
   assert.equal(s.g.hasFlag(s.u,'attackReady'),false);
   assert.equal(s.g.eff(s.u),before+3);
  });
+ await t(G,'gunpoint-attack-ready-privilege-is-consumed-by-next-attack',async()=>{
+  const s=make(2,1),enemy=s.g.newInst('corpo-security',1);
+  s.q.field=[enemy];enemy.ready=true;s.g.pickUnit=async()=>s.u;
+  await gun(s);
+  assert.equal(s.g.hasFlag(s.u,'attackReady'),true);
+  assert.equal(s.g.attackTargets(s.u).some(x=>x.kind==='unit'&&x.uid===enemy.uid),true);
+  await s.g.attack(0,s.u.uid,{kind:'unit',uid:enemy.uid});
+  assert.equal(s.g.hasFlag(s.u,'attackReady'),false);
+ });
  await t(G,'gunpoint-no-friendly-unit-cannot-play',async()=>{
   const s=make();s.p.field=[];
   assert.equal(CARDS[G].canPlay(s.g,0),false);
