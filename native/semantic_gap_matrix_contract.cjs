@@ -35,9 +35,10 @@ try{
  assert.equal(output.unlinkedSegments,240);assert.equal(output.fullyCertifiedSegments,0);
  assert.ok(output.pending.every(x=>x.reviewStatus==='NO_LINKED_ORACLE'&&!x.semanticCertified));
  assert.ok(output.pending.every(x=>x.branchReviewCertified.length===0&&x.interactionReviewCertified.length===0));
+ const originalSourceHash=cards[0].officialTextSha256;
  official.cardEvidence[0].officialTextSha256=hash(99999);write();r=run();
  assert.notEqual(r.status,0,'Stale official hash must fail');
- official.cardEvidence[0].officialTextSha256=cards[0].officialTextSha256;
+ official.cardEvidence[0].officialTextSha256=originalSourceHash;
  ledger.cards[0].independentOfficialSegmentWitnesses[0].officialSegmentSha256=hash(88888);
  write();r=run();assert.notEqual(r.status,0,'Segment witness hash mismatch must fail');
  ledger.cards[0].independentOfficialSegmentWitnesses[0].officialSegmentSha256=cards[0].candidateOfficialSegments[0].textSha256;
