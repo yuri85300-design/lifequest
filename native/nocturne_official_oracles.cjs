@@ -76,3 +76,5 @@ module.exports=async function runNocturne(api,assert){
  });
  return {count:tests.length,passed:tests.filter(x=>x.status==='PASS').length,failed:tests.filter(x=>x.status==='FAIL').length,tests};
 };
+
+// Independent GitHub Actions regression evidence.

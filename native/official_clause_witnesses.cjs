@@ -46,3 +46,5 @@ module.exports={
   sourceHash:'307a65587ec4ef0a416958ae2d666524449db3d8445cce5b2b1d9e803205aa1b',
   segments:[{index:1,hash:'307a65587ec4ef0a416958ae2d666524449db3d8445cce5b2b1d9e803205aa1b',cases:['lag-rush-allows-gigs-but-not-units-only-when-behind'],branches:['behind-gig-count','equal-gig-count','only-gigs']}]}
 };
+
+// Independent GitHub Actions regression evidence.
