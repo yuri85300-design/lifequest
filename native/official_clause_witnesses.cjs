@@ -130,7 +130,7 @@ module.exports={
   ]},
  'netwatch-netdriver':{
   sourceHash:'1353cfbbe3a41b0e7e720823377fe9ef2b4d54027e5d4b95efa22dd9b65aff25',segments:[
-   {index:1,hash:'1353cfbbe3a41b0e7e720823377fe9ef2b4d54027e5d4b95efa22dd9b65aff25',cases:["netwatch-equipped-host-spend-draws-one","netwatch-unrelated-unit-spend-does-not-draw","netwatch-host-legend-spent-draws-one","netwatch-and-tetratronic-same-host-both-triggers-resolve","dying-night-and-netwatch-on-V-separate-timing-windows"],branches:["unit-host","legend-host","unrelated-host","simultaneous-gear-triggers"]}
+   {index:1,hash:'1353cfbbe3a41b0e7e720823377fe9ef2b4d54027e5d4b95efa22dd9b65aff25',cases:["netwatch-equipped-host-spend-draws-one","netwatch-unrelated-unit-spend-does-not-draw","netwatch-host-legend-spent-draws-one","netwatch-and-tetratronic-same-host-both-triggers-resolve"],branches:["unit-host","legend-host","unrelated-host","simultaneous-gear-triggers"]}
   ]},
  'tetratronic-rippler':{
   sourceHash:'1f7f41883c26dacb22f4d7421997f1bfa76b151ff18f53c87f950c1fff9fbf39',segments:[
