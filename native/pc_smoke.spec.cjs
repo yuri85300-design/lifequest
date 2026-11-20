@@ -160,3 +160,18 @@ test('collection parser rejects unknown names and honors copy quantities',async 
   expect(parsed.errors).toHaveLength(1);
   expect(parsed.owned['totally-fictional-card']).toBeUndefined();
 });
+
+test('synergy advice distinguishes ready combinations from missing components',async ({page})=>{
+  const result=await page.evaluate(()=>{
+    const owned={'netwatch-netdriver':1,'tetratronic-rippler':1,'goro-takemura-vengeful-bodyguard':1};
+    return CollectionAdvisor.synergies(owned,CARDS,null).map(x=>({
+      a:x.a,b:x.b,ready:x.ready,missing:x.missing
+    }));
+  });
+  const netwatch=result.find(x=>x.a==='netwatch-netdriver');
+  expect(netwatch.ready).toBe(true);
+  expect(netwatch.missing).toEqual([]);
+  const goro=result.find(x=>x.a==='goro-takemura-vengeful-bodyguard');
+  expect(goro.ready).toBe(false);
+  expect(goro.missing).toEqual(['corpo-security']);
+});
