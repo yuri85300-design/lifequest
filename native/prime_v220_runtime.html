@@ -2291,7 +2291,6 @@ C('arasaka-emergency-radioport', 'Arasaka Emergency Radioport', null, G, R, 2, 2
   { on: { spent: async (g, self, d, src) => {
       if (!src.host || d.inst !== src.host) return;
       const i = g.controllerOf(src.host); const p = g.P(i);
-      if (p.calledThisTurn) return;
       const fd = p.legends.filter(l => !l.faceUp); if (!fd.length) return;
       if (!(await g.yesNo(i, 'Radioport : regarder une Légende face cachée ?', true))) return;
       const l = await g.pickFaceDownLegend(i, 'Radioport : choisissez une Légende face cachée',
@@ -2300,7 +2299,7 @@ C('arasaka-emergency-radioport', 'Arasaka Emergency Radioport', null, G, R, 2, 2
       const ld = g.def(l);
       l.known = true;
       await g.ui('peek', { p: i, inst: l });
-      if ((ld.tags.includes('ARASAKA') || (ld.kw || []).includes('GO_SOLO')) && await g.yesNo(i, `Appeler ${g.name(l)} gratuitement ?`, true)) await g.callFree(i, l);
+      if (!p.calledThisTurn && (ld.tags.includes('ARASAKA') || (ld.kw || []).includes('GO_SOLO')) && await g.yesNo(i, `Appeler ${g.name(l)} gratuitement ?`, true)) await g.callFree(i, l);
     } } });
 C('deadman-transmitter', 'Deadman Transmitter', null, G, R, 3, 3, 1, 'CYBERWARE|TRAUMA TEAM', [],
   'Équipement.\nSi cette Unité devait être vaincue, vainquez cet ÉMETTEUR DEADMAN à la place.',
