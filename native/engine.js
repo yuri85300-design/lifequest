@@ -775,9 +775,11 @@ class Game {
     if (!opt.free) {
       const cost = this.costOf(c, i, 'play');
       if (!(await this.pay(i, cost))) return;
-      for (const src of this.sources(i)) { const sd = this.def(src.inst); if (sd.afterPay) sd.afterPay(this, src.inst, c, i); }
       if (d.type === 'Program' && p.tf.progDiscount) p.tf.progDiscount = 0;
     }
+    // A free play is still a play: once-per-turn "first Gear played" effects
+    // must be consumed even if the card's payment was waived (Viktor Vektor).
+    for (const src of this.sources(i)) { const sd = this.def(src.inst); if (sd.afterPay) sd.afterPay(this, src.inst, c, i); }
     const src = p.hand.includes(c) ? p.hand : opt.from;
     src.splice(src.indexOf(c), 1);
     if (opt.rushUnits && d.type === 'Unit') { /* appliqué après l'entrée */ }
