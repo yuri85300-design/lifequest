@@ -49,10 +49,10 @@ function keywordAlignment(english,french){
    ['attack',/\{Attack\}/i,/\[ATTAQUE\]/i],
    ['call',/\{Call\}/i,/\[APPEL\]/i],
    ['defeated',/\{Defeated\}/i,/\[VAINCU\]/i],
-   ['blocker',/\{Blocker\}/i,/\[BLOQUEUR\]/i],
-   ['goSolo',/\{Go Solo\}/i,/\[SOLO\]/i],
+   ['blocker',/\{Blocker\}/i,/\bBLOQUEUR\b/i],
+   ['goSolo',/\{Go Solo\}/i,/(?:\[SOLO\]|EN SOLO)/i],
    ['quick',/\{Quick\}/i,/\[RAPIDE\]/i],
-   ['adrenaline',/\{Adrenaline\}/i,/\[ADRÉNALINE\]/i],
+   ['adrenaline',/\{Adrenaline\}/i,/ADRÉNALINE/i],
    ['spend',/\{Spend\}/i,/\[⟳\]/i],
  ];
  return checks.filter(([,a,b])=>a.test(english)!==b.test(french||''))
