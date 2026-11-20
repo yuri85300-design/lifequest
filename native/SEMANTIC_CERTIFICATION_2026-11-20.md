@@ -359,3 +359,48 @@ Aucune de ces améliorations ne modifie
 `NIGHTMARE_TRAINING_CERTIFIED = false`. L'entraînement expérimental
 reste disponible. La certification réclame la qualification humaine
 de chaque clause atomique et les interactions opposées pertinentes.
+
+## Nouvelles campagnes de rapprochement et de branches (20 novembre 2026)
+
+Les tests supplémentaires portent sur des *scénarios réellement exécutés*
+par `native/semantic_oracle_runner.cjs`, et non sur une certification
+déduite de la présence d'un handler.
+
+- `native/semantic_oracles_cyberware_timing.cjs` : NetWatch Netdriver,
+  Tetratronic Rippler, Dying Night, ordre de résolution de plusieurs
+  équipements sur le même hôte et fenêtres `spent` / `turnEnd`.
+- `native/semantic_oracles_core_conditions.cjs` : Field Operator,
+  Delamain Cab, Corpo Security, Hacked Corpo ; valeurs limites de
+  Street Cred, fin de tour, interdiction d'attaque et transfert de cartes
+  du dessus du deck vers les zones de jeu.
+- `native/semantic_oracles_trigger_conditions.cjs` : Evelyn Parker
+  Scheming Siren, Jacked-In Voodoo Boy, Maelstrom Goons, Chrome Reverie ;
+  attaque, effets facultatifs, Gig volé et conditions pour appeler
+  une Légende. Deux échecs initiaux Maelstrom ont révélé une main
+  adverse vide dans le fixture ; ils ont été corrigés, sans masquer
+  les résultats historiques d'échec.
+- `native/semantic_oracles_high_risk_replacements.cjs` :
+  Deadman Transmitter, Synapse Burnout et Pepe Najarro ;
+  remplacement de défaite, bonus de combat limité au Rival,
+  expiration et sélection facultative des Légendes MERC.
+
+Résultats **indépendants vérifiés** :
+- [44813699899](https://github.com/yuri85300-design/lifequest/actions/runs/44813699899) : 295/295 PASS.
+- [44814125066](https://github.com/yuri85300-design/lifequest/actions/runs/44814125066) : 298/298 PASS.
+- [44814466782](https://github.com/yuri85300-design/lifequest/actions/runs/44814466782) : **309/309 PASS**.
+
+Résultat **officiel complet vérifié** :
+[44813699978](https://github.com/yuri85300-design/lifequest/actions/runs/44813699978),
+295/295 PASS, **72/280 segments avec témoins partiels, 208 sans
+rapprochement, 0/150 cartes intégralement certifiées**. Les runs officiels
+ultérieurs doivent être consultés pour confirmer les nouveaux témoins.
+
+Un passage officiel intermédiaire a échoué parce que le catalogue de
+152 références n'avait livré que 120 liens en pagination client.
+`native/official_card_audit.cjs` effectue désormais des tentatives
+de navigation supplémentaires tout en conservant le verrou
+`listingComplete`. Les trois pages (60+60+32) ont ensuite été
+observées sur l'exécution réussie, sans ignorer les 32 dernières références.
+
+**NIGHTMARE reste en entraînement expérimental ; aucune promotion
+certifiée ni certification sémantique intégrale n'est affirmée.**
