@@ -320,9 +320,10 @@ public class PrimeUpdaterActivity extends Activity {
         }
         int installed=Math.max(BASE_CONTENT_CODE,updatePrefs.getInt("active",BASE_CONTENT_CODE));
         installed=Math.max(installed,updatePrefs.getInt("pending",0));
+        final int installedFinal=installed;
         if(code<=installed) {
           runOnUiThread(()->new AlertDialog.Builder(this).setTitle("PRIME est à jour")
-            .setMessage("Version du jeu : "+(installed==BASE_CONTENT_CODE?"2.5.0":String.valueOf(installed))+
+            .setMessage("Version du jeu : "+(installedFinal==BASE_CONTENT_CODE?"2.5.0":String.valueOf(installedFinal))+
                "\nLes 150 images françaises restent disponibles hors connexion.")
             .setPositiveButton("OK",null)
             .setNeutralButton("Réparer le jeu",(d,w)->restoreBundledVersion()).show());
