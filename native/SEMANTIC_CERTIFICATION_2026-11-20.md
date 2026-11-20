@@ -139,7 +139,7 @@ ni un taux d'exhaustivité global ni un certificat des 280 segments officiels.
   de pioche, de BLOQUEUR et plusieurs effets conditionnels.
 
 Audits indépendants :
-https://github.com/yuri85300-design/lifequest/actions/runs/44785343165
+https://github.com/yuri85300-design/lifequest/actions/runs/44785592330
 et https://github.com/yuri85300-design/lifequest/actions/runs/44785592350 .
 
 Ces 40 segments sont **liés à des preuves partielles**, non déclarés certifiés
