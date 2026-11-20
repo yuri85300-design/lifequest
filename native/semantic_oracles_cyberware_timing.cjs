@@ -81,6 +81,33 @@ module.exports=async function cyberwareTiming(api,assert){
   assert.equal(p.hand.length,hand+1);
   assert.equal(p.deck.length,deck-1);
  });
+ for(const order of [['netwatch-netdriver','tetratronic-rippler'],['tetratronic-rippler','netwatch-netdriver']]){
+  const suffix=order[0]==='netwatch-netdriver'?'netwatch-first':'tetratronic-first';
+  await t('tetratronic-rippler','combined-gears-accept-trash-'+suffix,async()=>{
+   const {g,p,host}=make();
+   for(const id of order)gear(g,host,id);
+   const deck=p.deck.length,hand=p.hand.length,trash=p.trash.length;
+   const top=p.deck.slice(0,2);
+   g.yesNo=async()=>true;
+   await g.spendUnit(host);
+   assert.equal(p.deck.length,deck-2,'one draw and one optional trash');
+   assert.equal(p.hand.length,hand+1);assert.equal(p.trash.length,trash+1);
+   assert.equal(top.filter(c=>p.hand.includes(c)).length,1);
+   assert.equal(top.filter(c=>p.trash.includes(c)).length,1);
+  });
+ }
+ await t('dying-night-v-s-pistol','dying-night-and-netwatch-on-V-separate-timing-windows',async()=>{
+  const {g,p}=make(),v=g.newInst('v-corporate-exile',0);
+  v.faceUp=true;v.ready=true;p.legends=[v];
+  gear(g,v,'netwatch-netdriver');gear(g,v,'dying-night-v-s-pistol');
+  p.eddies=[{uid:207730,ready:false},{uid:207731,ready:false},{uid:207732,ready:false}];
+  const hand=p.hand.length,deck=p.deck.length;
+  await g.spendUnit(v);
+  assert.equal(p.hand.length,hand+1);assert.equal(p.deck.length,deck-1);
+  assert.equal(p.eddies.filter(e=>e.ready).length,0);
+  await g.emit('turnEnd',{p:0});
+  assert.equal(p.eddies.filter(e=>e.ready).length,2);
+ });
  await t('dying-night-v-s-pistol','dying-night-attack-reduces-selected-gig-by-two',async()=>{
   const {g,p,host}=make(),c=gear(g,host,'dying-night-v-s-pistol');
   p.gigs=[{uid:207710,value:4,sides:6}];

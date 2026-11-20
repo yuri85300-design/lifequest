@@ -130,17 +130,17 @@ module.exports={
   ]},
  'netwatch-netdriver':{
   sourceHash:'1353cfbbe3a41b0e7e720823377fe9ef2b4d54027e5d4b95efa22dd9b65aff25',segments:[
-   {index:1,hash:'1353cfbbe3a41b0e7e720823377fe9ef2b4d54027e5d4b95efa22dd9b65aff25',cases:["netwatch-equipped-host-spend-draws-one","netwatch-unrelated-unit-spend-does-not-draw","netwatch-host-legend-spent-draws-one","netwatch-and-tetratronic-same-host-both-triggers-resolve"],branches:["unit-host","legend-host","unrelated-host","simultaneous-gear-triggers"]}
+   {index:1,hash:'1353cfbbe3a41b0e7e720823377fe9ef2b4d54027e5d4b95efa22dd9b65aff25',cases:["netwatch-equipped-host-spend-draws-one","netwatch-unrelated-unit-spend-does-not-draw","netwatch-host-legend-spent-draws-one","netwatch-and-tetratronic-same-host-both-triggers-resolve","dying-night-and-netwatch-on-V-separate-timing-windows"],branches:["unit-host","legend-host","unrelated-host","simultaneous-gear-triggers"]}
   ]},
  'tetratronic-rippler':{
   sourceHash:'1f7f41883c26dacb22f4d7421997f1bfa76b151ff18f53c87f950c1fff9fbf39',segments:[
    {index:1,hash:'4356dc651226074dbf23f0521079bd8de6997d05f132fa9b0b65c9e35f0925d9',cases:["tetratronic-owner-declines-top-card-trash","tetratronic-owner-accepts-top-card-trash","tetratronic-other-unit-does-not-expose-top"],branches:["gear-host-spent","unrelated-unit","look-then-choose"]},
-   {index:2,hash:'5d87b7ac2083d3a54b342deeee153d329b632ff7c046e5e67e441a5588df5afa',cases:["tetratronic-owner-accepts-top-card-trash","tetratronic-owner-declines-top-card-trash","tetratronic-no-deck-is-safe-no-fabricated-card"],branches:["decline","accept","empty-deck"]}
+   {index:2,hash:'5d87b7ac2083d3a54b342deeee153d329b632ff7c046e5e67e441a5588df5afa',cases:["tetratronic-owner-accepts-top-card-trash","tetratronic-owner-declines-top-card-trash","tetratronic-no-deck-is-safe-no-fabricated-card","combined-gears-accept-trash-netwatch-first","combined-gears-accept-trash-tetratronic-first"],branches:["decline","accept","empty-deck"]}
   ]},
  'dying-night-v-s-pistol':{
   sourceHash:'0eba4b10638f5bbfe32836d74b8c7ad6ab0a328db49c1ae5494ca1f55b9d1397',segments:[
    {index:1,hash:'26486ffdf42641fa6cdff067203e5a5f052bb6e3f6b9f8f47e29c4ff40b00b30',cases:["dying-night-attack-reduces-selected-gig-by-two","dying-night-attack-optional-adjustment-may-be-declined"],branches:["attack","selected-gig","max-two","optional-decline"]},
-   {index:2,hash:'e2f781266cb26e3a73f1fef71e611edded39f1b4b396d76d3fc8ed87f1eadfb5',cases:["dying-night-on-V-end-turn-readies-two-eddies","dying-night-non-V-host-no-end-turn-refund","dying-night-V-host-does-not-ready-on-rival-turn"],branches:["host-V","host-not-V","controller-turn-end"]}
+   {index:2,hash:'e2f781266cb26e3a73f1fef71e611edded39f1b4b396d76d3fc8ed87f1eadfb5',cases:["dying-night-on-V-end-turn-readies-two-eddies","dying-night-non-V-host-no-end-turn-refund","dying-night-V-host-does-not-ready-on-rival-turn","dying-night-and-netwatch-on-V-separate-timing-windows"],branches:["host-V","host-not-V","controller-turn-end"]}
   ]},
  'valentino-street-racer':{
   sourceHash:'8f2f1f53cd17327ba8aa22c3bac3caa5f515f75a54e07a38324effc0ee4f5b2b',
