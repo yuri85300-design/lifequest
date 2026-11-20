@@ -17,6 +17,7 @@ on:
       - 'native/semantic_oracles_quick_contracts.cjs'
       - 'native/semantic_oracles_relic_contracts.cjs'
       - 'native/semantic_oracles_cross_card.cjs'
+      - 'native/semantic_oracles_radioport.cjs'
       - 'native/official_independent_oracles.cjs'
       - 'native/nocturne_official_oracles.cjs'
       - 'native/official_clause_witnesses.cjs'
