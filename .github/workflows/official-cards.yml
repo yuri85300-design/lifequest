@@ -22,6 +22,7 @@ on:
       - 'native/semantic_oracle_runner.cjs'
       - 'native/card_lifecycle_oracles.cjs'
       - 'native/semantic_register.cjs'
+      - 'native/semantic_gap_matrix.cjs'
       - '.github/workflows/official-cards.yml'
   pull_request:
     paths:
@@ -56,6 +57,9 @@ jobs:
       - name: Generate 150-card semantic evidence ledger
         if: always()
         run: node native/semantic_register.cjs
+      - name: Build prioritized unresolved official segment review matrix
+        if: always() && steps.audit.outcome == 'success'
+        run: node native/semantic_gap_matrix.cjs
       - name: Upload comparison evidence
         if: always()
         uses: actions/upload-artifact@v4
