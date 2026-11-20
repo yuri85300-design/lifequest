@@ -7,7 +7,11 @@
  */
 const {chromium}=require('playwright');
 const fs=require('node:fs'),crypto=require('node:crypto'),path=require('node:path');
-const engine=require('./engine.js');
+const vm=require('node:vm');
+const sandbox={console,performance,Date,Math,setTimeout,clearTimeout,structuredClone};
+sandbox.window=sandbox;sandbox.globalThis=sandbox;vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync(path.join(__dirname,'engine.js'),'utf8'),sandbox);
+const engine={CARDS:sandbox.CARDS};
 const cards=Object.values(engine.CARDS);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const sha=text=>crypto.createHash('sha256').update(text.normalize('NFC')).digest('hex');
