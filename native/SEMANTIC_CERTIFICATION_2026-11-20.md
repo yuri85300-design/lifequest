@@ -4,14 +4,14 @@
 
 **Certification exhaustive non obtenue. Réentraînement compétitif NIGHTMARE toujours verrouillé.**
 
-Une correspondance de caractéristiques, un contrôle de mots-clés et 22 500
+Six scénarios négatifs complémentaires ont été validés : absence de Gig\néligible pour Gorilla Arms, disparition conditionnelle d'Adrénaline,\nnon-consommation de l'avantage Viktor par un équipement non-CYBERWARE,\nrefus de Corporate Surveillance sans cible légale, choix unique de\nTowerfall lorsque le joueur n'est pas derrière, et absence de révélation\npar Kiroshi Optics lorsqu'aucune Légende n'est face cachée.\n\nUne correspondance de caractéristiques, un contrôle de mots-clés et 22 500
 paires d'entrées en jeu n'impliquent pas que toutes les clauses du texte
 officiel soient respectées dans tous les états.
 
 ## Résultats supplémentaires mesurés
 
-- **15 / 15** oracles comportementaux indépendants réussis, couvrant
-  **12 / 150** cartes distinctes sur des branches ciblées.
+- **21 / 21** oracles comportementaux indépendants réussis, couvrant
+  **12 / 150** cartes distinctes sur des branches positives et négatives ciblées.
 - Cartes soumises à des oracles : Johnny Silverhand: Never Stop Fighting,
   Corpo Security, Kiroshi Optics, Zetatech Berserk, Viktor Vektor:
   Drop Your Illusions, Riot Shield, Adrenaline Converter, Towerfall,
