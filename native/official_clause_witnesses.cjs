@@ -165,6 +165,22 @@ module.exports={
  'mantis-blades':{
   sourceHash:'c1cef6d5fa9d207231df521a505b5a7b18ab611f8816cd609c3090f9546d05b7',segments:[{index:1,hash:'c1cef6d5fa9d207231df521a505b5a7b18ab611f8816cd609c3090f9546d05b7',cases:['vanilla-gear-adds-exactly-two-power'],branches:['vanilla-gear-adds-exactly-two-power']}]
  },
+ 'gunpoint-diplomacy':{
+  sourceHash:'25e435f029a05688c41f385581b79723e7493e2c521ed21dec1fb48bc21b6125',segments:[
+   {index:1,hash:'7ac7e25f6edbdf320e928ceac6bedd9f1b49fa54349f962d52e18c830f887b6c',cases:["gunpoint-not-behind-gains-both-effects","gunpoint-no-friendly-unit-cannot-play"],branches:["target-friendly-unit","no-target"]},
+   {index:2,hash:'b365eac73a511779afbbe314f3903a557d041c3d6e5f90b9cb31a19c46cd0824',cases:["gunpoint-behind-rival-chooses-ready-attack-only","gunpoint-behind-rival-chooses-power-only","gunpoint-not-behind-gains-both-effects"],branches:["behind-rival-selects","not-behind-both","choice-one","choice-two"]},
+   {index:3,hash:'fd83bda5a2bafac6e87a5569c3a72b30a293e0c6beafea6599523bd649736302',cases:["gunpoint-power-bonus-expires-after-turn","gunpoint-not-behind-gains-both-effects"],branches:["next-attack-ready-target","power-three-this-turn","turn-expiry"]}
+  ]},
+ 'bonnie-and-clyde':{
+  sourceHash:'d008fefe1673914cd4d75eff63341a490df5219dc21cc3daac7100bf60a5be6c',segments:[
+   {index:1,hash:'c48ab8cff085efdc9aa7846b34737d71a7cba32763943bede9ee2dd94501e107',cases:["bonnie-not-behind-defeats-only-one","bonnie-power-greater-than-four-is-not-legal-target","bonnie-no-rival-four-or-less-cannot-play"],branches:["power-at-most-four","power-above-four","one-target"]},
+   {index:2,hash:'75e8d5823e13c939c5a50193fb02b81f120d1014bf7f665e7ad327a636b470fd',cases:["bonnie-two-gig-deficit-may-defeat-two","bonnie-second-defeat-is-optional","bonnie-not-behind-defeats-only-one"],branches:["gig-count-two-behind","not-behind","second-optional"]}
+  ]},
+ 'mox-inciters':{
+  sourceHash:'39a7fb0fc3476f915e7ceba6c90dbd62ad9dc9991ec7b57cbba0a19c828bd275',segments:[
+   {index:1,hash:'44c73da3200abc31c8b165276e6fcdcfeebf6ef4e91ac275c0c315c7b094e28b',cases:["mox-play-forces-selected-rival-to-attack","mox-no-rival-unit-no-must-attack-flag"],branches:["rival-target-present","rival-absent","must-attack-next-turn"]},
+   {index:2,hash:'f938b9d1ac11a616175f7dd8a7ab7231eb2caeb4cc5234be7bbc95e4def85429',cases:["mox-blocker-keyword-is-present"],branches:["printed-blocker"]}
+  ]},
  'gilded-mato-n':{
   sourceHash:'c627ce5476069aa4c3b3a7eb8f58b2bcbe1ae16220facacff837ad9c5f196870',
   segments:[
