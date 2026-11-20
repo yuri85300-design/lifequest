@@ -133,5 +133,53 @@ module.exports=async function runSemanticOracles(api,assert){
   p.fixer=[];assert.equal(g.costOf(c,0),1);
   p.fixer=[4,6];assert.equal(g.costOf(c,0),standard);
  });
+ await check('gorilla-arms','no-bonus-if-all-rival-gig-values-already-friendly',async()=>{
+  const g=make(),host=put(g,'animals-wrecker'),gr=g.newInst('gorilla-arms',0);
+  host.gear.push(gr);g.P(0).gigs=[gig(93001,2)];
+  const a=gig(93002,3),b=gig(93003,2);
+  g.P(1).gigs=[a,b];
+  await g.stealGig(0,a,host);
+  assert.equal(g.P(0).gigs.length,2);
+  assert.equal(g.P(1).gigs.includes(b),true);
+ });
+ await check('adrenaline-converter','adrenaline-removes-itself-when-gig-lead-disappears',()=>{
+  const g=make(),host=put(g,'corpo-security'),gr=g.newInst('adrenaline-converter',0);
+  host.gear.push(gr);g.P(0).gigs=[gig(93001,1)];
+  g.P(1).gigs=[gig(93002,2),gig(93003,3),gig(93004,4)];
+  assert.equal(g.hasKw(host,'ADRENALINE'),true);
+  g.P(1).gigs.pop();assert.equal(g.hasKw(host,'ADRENALINE'),false);
+ });
+ await check('viktor-vektor-drop-your-illusions','non-cyberware-does-not-consume-first-cyberware-discount',async()=>{
+  const g=make(),p=g.P(0),v=put(g,'viktor-vektor-drop-your-illusions');
+  p.eddies=Array.from({length:10},(_,n)=>({uid:94000+n,ready:true}));
+  const ordinary=g.newInst('riot-shield',0);p.hand.push(ordinary);
+  await g.withTimingWindow(()=>g.playCard(0,ordinary.uid,v.uid));
+  assert.equal(p.tf.cyberPlayed||false,false);
+  assert.equal(g.costOf(g.newInst('gorilla-arms',0),0),1);
+ });
+ await check('corporate-surveillance','cannot-be-played-without-ready-eligible-target',()=>{
+  const g=make(),expensive=put(g,'animals-wrecker',1),c=g.newInst('corporate-surveillance',0);
+  assert.equal(CARDS[c.id].canPlay(g,0),false);
+  const cheap=put(g,'corpo-security',1);cheap.ready=false;
+  assert.equal(CARDS[c.id].canPlay(g,0),false);
+  cheap.ready=true;assert.equal(CARDS[c.id].canPlay(g,0),true);
+  assert.equal(expensive.ready,true);
+ });
+ await check('towerfall','not-behind-selects-only-one-effect',async()=>{
+  const g=make(),weak=put(g,'maelstrom-zealots',1),strong=put(g,'animals-wrecker',1);
+  g.P(0).gigs=[gig(94001,6)];g.P(1).gigs=[gig(94002,1)];
+  assert.equal(g.lessSC(0),false);
+  await CARDS['towerfall'].onPlay(g,g.newInst('towerfall',0),0);
+  const weakGone=!g.onField(weak),strongDebuffed=g.eff(strong)===5;
+  assert.equal(weakGone&&strongDebuffed,false);
+  assert.equal(weakGone||strongDebuffed,true);
+ });
+ await check('kiroshi-optics','no-facedown-legend-does-not-reveal-anything',async()=>{
+  const g=make(),p=g.P(0),u=put(g,'6th-street-recruits'),gr=g.newInst('kiroshi-optics',0);
+  u.gear.push(gr);p.legends.forEach(l=>l.faceUp=true);
+  await CARDS[gr.id].onHostAttack(g,gr,u,0);
+  assert.equal(p.legends.filter(l=>l.known).length,0);
+  assert.equal(p.legends.every(l=>l.faceUp),true);
+ });
  return {count:tests.length,passed:tests.filter(t=>t.status==='PASS').length,failed:tests.filter(t=>t.status==='FAIL').length,tests};
 };
