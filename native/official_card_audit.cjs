@@ -2,6 +2,7 @@
 /**
  * Audit metadata against current public official Cyberpunk TCG card pages.
  * Collects official text fingerprints; never labels French text semantically certified.
+ * Independent review of current publisher rules and candidate clause structure.
  * Run: node native/official_card_audit.cjs
  * Requires: npm install --no-save playwright
  */
