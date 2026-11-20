@@ -1,0 +1,60 @@
+name: PRIME 2.6.0 - Audit direct des 150 cartes (certification separée)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-officiel-prime260.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  official:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python requests et BeautifulSoup
+        run: python3 -m pip install --disable-pip-version-check requests beautifulsoup4
+      - name: Generer le perimetre de 150 cartes depuis le moteur
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const fs=require('fs'),vm=require('vm'),h=fs.readFileSync('native/prime_v260_runtime.html','utf8');
+          const start=h.indexOf('/* Android: exporting JSON via the system document picker');
+          const end=h.indexOf('// ============================================================================\n//  SEPT GIGS — interface',start);
+          const cx={console,Math,Date,performance,structuredClone,setTimeout,clearTimeout};cx.window=cx;cx.globalThis=cx;
+          vm.createContext(cx);
+          vm.runInContext(h.slice(start,end)+'\nglobalThis.CATALOGUE=Object.values(CARDS).map(d=>({id:d.id,type:d.type,color:d.color,cost:d.cost,ram:d.ram,power:d.power,tags:d.tags,sell:d.sell}));',cx);
+          if(cx.CATALOGUE.length!==150)throw new Error('Catalogue local different de 150 cartes');
+          fs.writeFileSync('/tmp/prime260-catalogue.json',JSON.stringify(cx.CATALOGUE));
+          JS
+      - name: Comparer caractere par caractere avec les pages et API de l'editeur
+        id: compare
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p /tmp/official-260
+          python3 native/audit_texte_exact_live.py --game /tmp/prime260-catalogue.json --out /tmp/official-260 --workers 5
+      - name: Publier les preuves meme en cas de divergence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PRIME-260-SOURCES-EDITEUR-AUDIT
+          path: |
+            /tmp/official-260/
+            /tmp/prime260-catalogue.json
+          if-no-files-found: warn
+      - name: Bloquer tout certificat non prouve
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path('/tmp/official-260/rapport.json')
+          if not p.exists():sys.exit('RAPPORT ABSENT : NON CERTIFIE')
+          d=json.loads(p.read_text())
+          print('Certification officielle:',d.get('certification'), 'cartes:',d.get('summary',{}).get('cards'))
+          if not d.get('certification'):sys.exit('AUDIT NON CERTIFIE : divergence, indisponibilite ou carte hors perimetre')
+          PY
