@@ -10,6 +10,15 @@ const st=source.indexOf('function requestPrimeUpdate()');
 const en=source.indexOf('function topbar(',st);
 assert(st>0&&en>st,'Missing actual menu/update helper');
 assert(source.includes('function homeScreen()'),'Home screen missing');
+assert(source.includes('function homeMenu()'),'Home Menu dialog handler missing');
+assert(source.includes('data-open-home-menu aria-haspopup="dialog"'),'Home menu button must be discoverable and accessible');
+assert(source.includes('prime-home-menu-bar'),'Home menu bar CSS missing');
+assert(source.includes('position:sticky;top:calc(6px + var(--safe-t));'),'Menu must remain reachable while scrolling');
+assert(source.includes('min-width:110px;min-height:48px;'),'Home menu touch target too small');
+assert(source.includes('Mise à jour · Vérifier sur GitHub'),'Update must be located inside Menu');
+assert(source.includes('sc.querySelector(\'.sheet\').setAttribute(\'aria-labelledby\',\'prime-home-menu-title\')'),'Menu modal accessible name missing');
+assert(source.includes("if(menu){e.preventDefault();homeMenu();return;}"),'Home Menu click handler missing');
+
 assert(source.includes('function gameMenu()'),'Command center menu missing');
 assert(source.includes('.sheet .prime-menu-scroll'),'No scrollable command center CSS');
 assert(source.includes('<div class="body prime-menu-scroll"><div class="acts">'),'Command center must scroll');
@@ -47,7 +56,7 @@ assert.equal(app.querySelector('.prime-update-dock'),null,'Do not cover battlefi
 delete window.Native7Gigs;
 assert.equal(requestPrimeUpdate(),false);
 assert(messages.some(x=>x.includes('Android')),'Web preview should show a sensible fallback');
-const report={version:'2.5.4',updateDock:'PASS',homeScrollable:'PASS',
+const report={version:'2.5.4',homeMenu:'PASS',updateInsideMenu:'PASS',stickyMenu:'PASS',updateDock:'PASS',homeScrollable:'PASS',
   anchorOutsideScroll:'PASS',androidBridge:'PASS',allMenus:'PASS',
   battleUnobstructed:'PASS',mobileTouchScroll:'PASS',cssAccessible:'PASS',
   browserFallback:'PASS'};
