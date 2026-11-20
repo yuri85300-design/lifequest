@@ -1,0 +1,260 @@
+name: 7 Gigs PRIME 2.5.4 - Correctif accueil et mise a jour visible
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/prime_v254_runtime.html'
+      - 'native/PrimeUpdater254Activity.java'
+      - '.github/workflows/build-prime254.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Assemble PRIME 2.5.4 and matching NIGHTMARE worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/prime254/assets/www
+          cp native/prime_v254_runtime.html /tmp/prime254/assets/www/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('/tmp/prime254/assets/www/index.html').read_text(encoding='utf-8')
+          start=h.index('/* Android: exporting JSON via the system document picker')
+          end=h.index('// ============================================================================\n//  SEPT GIGS — interface',start)
+          handler="""self.onmessage=async function(event){
+           const d=event.data||{};
+           if(!Number.isInteger(d.id))return;
+           try{
+            self.AIChampion=()=>d.weights||null;
+            self.AIPlanChampion=()=>d.plans||self.DeckPlanAI?.INITIAL;
+            self.RivalLearningSession=()=>d.session||null;
+            self.RivalLearningData=()=>d.memory||null;
+            const g=new Game(d.state,[FastPolicy,FastPolicy],{thinking:()=>{}});
+            const policy=makeAI(d.level||'expert');
+            const action=d.method==='react'
+              ?await policy.react(g,d.side,d.attack,d.actions)
+              :await policy.mainAction(g,d.side,d.actions);
+            self.postMessage({id:d.id,action});
+           }catch(err){self.postMessage({id:d.id,error:String(err?.stack||err)})}
+          };
+          self.postMessage({ready:true});
+          """
+          worker='self.window=self;\n\n'+h[start:end]+'\n'+handler
+          out=Path('/tmp/prime254/assets/www/ai-worker.js')
+          out.write_text(worker,encoding='utf-8')
+          assert len(h)>500000 and len(worker)>200000
+          assert 'TacticalWorker' in h and "new Worker('ai-worker.js')" in h
+          assert 'self.onmessage=async function' in worker
+          print('HTML',len(h),'codepoints; worker',len(worker),'codepoints')
+          PY
+          node --check /tmp/prime254/assets/www/ai-worker.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/prime254/assets/www/index.html').read_text(encoding='utf-8')
+          Path('/tmp/prime254/inline.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          PY
+          node --check /tmp/prime254/inline.js
+      - name: Audit regles et interactions de 150 cartes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('/tmp/prime254/assets/www/index.html').read_text(encoding='utf-8')
+          start=h.index('/* Android: exporting JSON via the system document picker')
+          end=h.index('// ============================================================================\n//  SEPT GIGS — interface',start)
+          Path('/tmp/prime254/engine.js').write_text(h[start:end],encoding='utf-8')
+          PY
+          node --check /tmp/prime254/engine.js
+          PRIME_ENGINE_PATH=/tmp/prime254/engine.js node --max-old-space-size=512 native/audit_230.cjs | tee /tmp/prime254/audit-resume.json
+          PRIME_ENGINE_PATH=/tmp/prime254/engine.js node --max-old-space-size=512 native/audit_220.cjs | tee /tmp/prime254/audit-regles.json
+          grep -Fq '"TECHNICAL_PASS_NOT_OFFICIAL_CERTIFIED"' /tmp/prime254/audit-regles.json
+          PRIME_HTML=native/prime_v254_runtime.html node native/audit_252.cjs | tee /tmp/prime254/audit-academie.json
+          grep -Fq '"publicReplay": "PASS"' /tmp/prime254/audit-academie.json
+          npm install --no-save --no-package-lock linkedom@0.18.12
+          PRIME_HTML=native/prime_v254_runtime.html node native/audit_253.cjs | tee /tmp/prime254/audit-selection.json
+          grep -Fq '"noNestedButtons": "PASS"' /tmp/prime254/audit-selection.json
+          PRIME_HTML=native/prime_v254_runtime.html node native/audit_254.cjs | tee /tmp/prime254/audit-menu.json
+          grep -Fq '"updateDock": "PASS"' /tmp/prime254/audit-menu.json
+      - name: Telecharger strictement 150 vrais visuels officiels VF dans les assets APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/prime254/export-ids.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),{performance}=require('perf_hooks');
+          const core=fs.readFileSync('/tmp/prime254/engine.js','utf8');
+          const ctx={console,performance,Date,Math,setTimeout,clearTimeout,structuredClone};
+          ctx.window=ctx;ctx.globalThis=ctx;vm.createContext(ctx);
+          vm.runInContext(core+'\nglobalThis.ids=Object.keys(CARDS);',ctx);
+          fs.writeFileSync('/tmp/prime254/ids.json',JSON.stringify(ctx.ids));
+          if(ctx.ids.length!==150)throw Error('wrong card count: '+ctx.ids.length);
+          JS
+          node /tmp/prime254/export-ids.cjs
+          mkdir -p /tmp/prime254/assets/www/images_vf
+          python3 native/offline_fr_bundle.py --strict --ids /tmp/prime254/ids.json --out /tmp/prime254/assets/www/images_vf --report /tmp/prime254/rapport_vf.json
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('/tmp/prime254')
+          report=json.loads((root/'rapport_vf.json').read_text(encoding='utf-8'))
+          assert report['french_images_ready']==report['catalogue']==150
+          entries=report['results']
+          assert all(r['status']=='downloaded_fr' for r in entries)
+          paths={r['id']:r['path'] for r in entries}
+          assert len(paths)==150
+          for id,loc in paths.items():
+              p=root/'assets/www'/loc
+              assert p.is_file() and p.stat().st_size>2000,(id,loc)
+          html=root/'assets/www/index.html'
+          source=html.read_text(encoding='utf-8')
+          needle='const LOCAL_FR_ART = Object.freeze({});'
+          assert source.count(needle)==1, 'offline French art mapping must have one build-time insertion point'
+          source=source.replace(needle,'const LOCAL_FR_ART = Object.freeze('+json.dumps(paths,ensure_ascii=False,separators=(',',':'))+');')
+          assert source.count('images_vf/')>=150
+          html.write_text(source,encoding='utf-8')
+          print('VERIFIED EMBEDDED OFFLINE FR ASSETS 150/150, total',report['total_bytes'],'bytes')
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/prime254/assets/www/index.html').read_text(encoding='utf-8')
+          Path('/tmp/prime254/inline-built.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          PY
+          node --check /tmp/prime254/inline-built.js
+      - name: Install Android SDK platform and build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | head -1)"
+          test -n "$MANAGER"
+          "$MANAGER" "platforms;android-35" "build-tools;35.0.0"
+          test -f "$SDK/platforms/android-35/android.jar"
+          test -x "$SDK/build-tools/35.0.0/apksigner"
+      - name: Compile Android DEX and sign verified APK
+        shell: bash
+        env:
+          PRIME_KEYSTORE_B64: ${{ secrets.PRIME_KEYSTORE_B64 }}
+          PRIME_KEYSTORE_PASS: ${{ secrets.PRIME_KEYSTORE_PASS }}
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          BT="$SDK/build-tools/35.0.0"
+          mkdir -p /tmp/prime254/classes /tmp/prime254/dex
+          cat > /tmp/prime254/AndroidManifest.xml <<'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena.prime254" android:versionCode="25004" android:versionName="2.5.4">
+            <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <application android:label="7 Gigs PRIME 2.5.4" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
+              <activity android:name="dev.septgigs.neonarena.prime.PrimeUpdater254Activity" android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          MANIFEST
+          javac -encoding UTF-8 -source 8 -target 8 -cp "$SDK/platforms/android-35/android.jar" -d /tmp/prime254/classes native/PrimeUpdater254Activity.java
+          (cd /tmp/prime254/classes && jar cf /tmp/prime254/classes.jar .)
+          "$BT/d8" --lib "$SDK/platforms/android-35/android.jar" --min-api 26 --output /tmp/prime254/dex /tmp/prime254/classes.jar
+          "$BT/aapt2" link -I "$SDK/platforms/android-35/android.jar" --manifest /tmp/prime254/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 35 -o /tmp/prime254/base.apk
+          python3 - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from pathlib import Path
+          root=Path('/tmp/prime254')
+          with ZipFile(root/'base.apk') as source, ZipFile(root/'unsigned.apk','w',compression=ZIP_DEFLATED) as out:
+              for info in source.infolist():out.writestr(info,source.read(info.filename))
+              out.write(root/'dex/classes.dex','classes.dex')
+              for name in ('index.html','ai-worker.js'):
+                  out.write(root/'assets/www'/name,'assets/www/'+name)
+              images=sorted((root/'assets/www/images_vf').glob('*'))
+              assert len(images)==150, 'incomplete offline French artwork'
+              for img in images:
+                  assert img.suffix.lower() in ('.webp','.png','.jpg')
+                  out.write(img,'assets/www/images_vf/'+img.name)
+              print('OFFLINE_BUNDLED_CARDS:',len(images))
+          PY
+          "$BT/zipalign" -f -p 4 /tmp/prime254/unsigned.apk /tmp/prime254/aligned.apk
+          if [ -n "${PRIME_KEYSTORE_B64:-}" ] && [ -n "${PRIME_KEYSTORE_PASS:-}" ]; then
+            printf '%s' "$PRIME_KEYSTORE_B64" | base64 --decode > /tmp/prime254/persistent-signing.jks
+            KEYSTORE=/tmp/prime254/persistent-signing.jks
+            SIGN_PASS="$PRIME_KEYSTORE_PASS"
+            echo 'PERSISTENT_SIGNING_CERTIFICATE_CONFIGURED=YES'
+          else
+            echo '::warning::No repository signing secret; APK is for initial testing ONLY. Future native APK upgrades cannot share this ephemeral signature.'
+            keytool -genkeypair -alias septgigs -keyalg RSA -keysize 4096 -validity 10000 -keystore /tmp/prime254/test-signing.jks -storepass "septgigsTest250" -keypass "septgigsTest250" -dname "CN=7 Gigs PRIME OTA Bootstrap TEST" -noprompt
+            KEYSTORE=/tmp/prime254/test-signing.jks
+            SIGN_PASS="septgigsTest250"
+          fi
+          "$BT/apksigner" sign --ks "$KEYSTORE" --ks-key-alias septgigs --ks-pass "pass:$SIGN_PASS" --key-pass "pass:$SIGN_PASS" --out /tmp/prime254/7Gigs-PRIME-2.5.4.apk /tmp/prime254/aligned.apk
+          "$BT/apksigner" verify --print-certs /tmp/prime254/7Gigs-PRIME-2.5.4.apk | grep 'Signer #1 certificate SHA-256 digest'
+          "$BT/apksigner" verify --verbose /tmp/prime254/7Gigs-PRIME-2.5.4.apk
+          "$BT/zipalign" -c -p 4 /tmp/prime254/7Gigs-PRIME-2.5.4.apk
+          "$BT/aapt" dump badging /tmp/prime254/7Gigs-PRIME-2.5.4.apk | tee /tmp/prime254/badging.txt
+          grep -Fq "versionName='2.5.4'" /tmp/prime254/badging.txt
+          grep -Fq "package: name='dev.septgigs.neonarena.prime254'" /tmp/prime254/badging.txt
+          unzip -t /tmp/prime254/7Gigs-PRIME-2.5.4.apk | tail -3
+          python3 - <<'PY'
+          import zipfile
+          p='/tmp/prime254/7Gigs-PRIME-2.5.4.apk'
+          with zipfile.ZipFile(p) as z:
+              names=z.namelist()
+              cards=[x for x in names if x.startswith('assets/www/images_vf/')]
+              assert len(cards)==150, (len(cards),cards[:8])
+              assert len(set(cards))==150
+              assert all(z.getinfo(x).file_size>2000 for x in cards)
+              assert z.testzip() is None
+              print('FINAL_APK_OFFLINE_FR_CHECK PASS 150/150')
+          PY
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7Gigs-PRIME-254-APK
+          path: /tmp/prime254/7Gigs-PRIME-2.5.4.apk
+          if-no-files-found: error
+      - name: Conserver le rapport d'audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7Gigs-PRIME-254-RAPPORT
+          path: |
+            /tmp/prime254/audit-regles.json
+            /tmp/prime254/audit-resume.json
+            /tmp/prime254/audit-academie.json
+            /tmp/prime254/audit-selection.json
+            /tmp/prime254/audit-menu.json
+          if-no-files-found: error
+      - name: Rapport de couverture VF telechargeable
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7Gigs-PRIME-254-ART-VF-REPORT
+          path: /tmp/prime254/rapport_vf.json
+          if-no-files-found: error
+
+      - name: Publication directe de l'APK sur GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: prime-v2.5.4
+          name: 7 Gigs PRIME 2.5.4 - Ecran mobile et mises a jour
+          prerelease: true
+          make_latest: false
+          generate_release_notes: false
+          files: /tmp/prime254/7Gigs-PRIME-2.5.4.apk
+          fail_on_unmatched_files: true
+          body: |
+            APK direct Android de 7 Gigs PRIME 2.5.4 : page d'accueil scrollable et bouton GitHub Mise a jour fixe au bas des menus ; bouton egalement dans le menu de combat.
+            Toutes les 150 images VF officielles sont integrees hors connexion.
+            Compatible avec les futures mises a jour de contenu directement depuis le jeu (version >2.5.4).
+            IMPORTANT : cette application utilise l'identifiant dev.septgigs.neonarena.prime254 pour s'installer a cote de PRIME 2.5.0, dont la signature test temporaire ne peut pas etre reutilisee.
+            Les sauvegardes de l'ancienne application ne sont pas transferees automatiquement : exportez-les et importez-les si necessaire.
+            En l'absence de PRIME_KEYSTORE_B64/PRIME_KEYSTORE_PASS, l'APK est signe avec une cle de test temporaire : les futures modifications Android peuvent exiger un nouvel APK distinct.
