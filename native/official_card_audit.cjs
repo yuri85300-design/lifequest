@@ -83,11 +83,11 @@ function inspectEnglishTriggerCoverage(english,card) {
  ];
  const actual=[];
  for(const [token,field] of standards){
-  if(new RegExp('\\\\{'+token+'\\\\}','i').test(english)){
+  if(english.includes('{'+token+'}')){
    actual.push({trigger:token,handler:field,implemented:typeof card[field]==='function',source:'official-current-text'});
   }
  }
- const hasBeginning=(token)=>new RegExp('^\\\\s*\\\\{'+token+'\\\\}','i').test(english);
+ const hasBeginning=(token)=>english.trimStart().startsWith('{'+token+'}');
  if(hasBeginning('Go Solo'))actual.push({trigger:'Go Solo',handler:'kw:GO_SOLO',implemented:(card.kw||[]).includes('GO_SOLO'),source:'official-current-text'});
  if(hasBeginning('Adrenaline'))actual.push({trigger:'Adrenaline',handler:'kw:ADRENALINE',implemented:(card.kw||[]).includes('ADRENALINE'),source:'official-current-text'});
  if(hasBeginning('Blocker'))actual.push({trigger:'Blocker',handler:'kw:BLOCKER',implemented:(card.kw||[]).includes('BLOCKER'),source:'official-current-text'});
