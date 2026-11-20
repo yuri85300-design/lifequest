@@ -298,5 +298,26 @@ module.exports=async function runSemanticOracles(api,assert){
   await g.fight({attacker:u.uid,p:0,target:{kind:'unit',uid:e.uid}});
   assert.equal(g.onField(e),false);
  });
+ await check('river-ward-detective-on-the-hunt','quick-spend-ability-requires-friendly-host-and-cheap-gear',()=>{
+  const g=make(),p=g.P(0),l=g.newInst('river-ward-detective-on-the-hunt',0);
+  p.legends=[l];l.faceUp=true;
+  put(g,'animals-wrecker');p.hand.push(g.newInst('mantis-blades',0));
+  assert.equal(CARDS[l.id].abilities.some(a=>a.quick&&a.spend),true);
+  const ready=g.legalActions(0,{reaction:true});
+  assert.equal(ready.some(a=>a.type==='activate'&&a.uid===l.uid),true);
+  l.ready=false;
+  assert.equal(g.legalActions(0,{reaction:true}).some(a=>a.type==='activate'&&a.uid===l.uid),false);
+ });
+ await check('goro-takemura-vengeful-bodyguard','quick-spend-ability-requires-legal-friendly-target-and-one-eddie',()=>{
+  const g=make(),p=g.P(0),l=g.newInst('goro-takemura-vengeful-bodyguard',0);
+  p.legends=[l];l.faceUp=true;
+  put(g,'corpo-security');
+  const ability=CARDS[l.id].abilities.find(a=>a.quick);
+  assert.equal(ability.cost,1);
+  p.eddies=[];l.ready=false;
+  assert.equal(g.legalActions(0,{reaction:true}).some(a=>a.type==='activate'&&a.uid===l.uid),false);
+  l.ready=true;p.eddies=[{uid:899001,ready:true}];
+  assert.equal(g.legalActions(0,{reaction:true}).some(a=>a.type==='activate'&&a.uid===l.uid),true);
+ });
  return {count:tests.length,passed:tests.filter(t=>t.status==='PASS').length,failed:tests.filter(t=>t.status==='FAIL').length,tests};
 };
