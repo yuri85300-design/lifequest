@@ -49,7 +49,7 @@ automatiquement l'intégralité des timings, effets, choix et errata officiels.
 Workflow : https://github.com/yuri85300-design/lifequest/actions/runs/44785343305 .
 Les 280 fragments officiels restent candidats jusqu'à revue indépendante ;
 les quarante correspondances de segments reliées aux oracles n'attestent pas une certification totale.
-Dernier contrôle officiel consolidé réussi : https://github.com/yuri85300-design/lifequest/actions/runs/44785343165 (150/150 fiches, 201/201 oracles, 13/280 segments associés à des preuves).\nLa certification sémantique est toujours à **0/150**, faute d'une démonstration
+Dernier contrôle officiel consolidé réussi : https://github.com/yuri85300-design/lifequest/actions/runs/44785592330 (150/150 fiches, 201/201 oracles, 13/280 segments associés à des preuves).\nLa certification sémantique est toujours à **0/150**, faute d'une démonstration
 de toutes les branches et interactions.
 
 Les workflows **7 Gigs PRIME - audit technique**, **7 Gigs PRIME - PC browser smoke**, **7 Gigs PRIME - current official card catalogue** et **7 Gigs PRIME - Android debug APK** se trouvent dans GitHub Actions.
