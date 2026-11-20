@@ -4,7 +4,7 @@ Mise à jour : 20 novembre 2026
 ## Verdict et périmètre
 
 **150/150 cartes disposent d'au moins un oracle comportemental individualisé.
-189/189 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
+199/199 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
 
 Ces deux chiffres ne sont pas contradictoires : un test dédié vérifie une ou
 plusieurs propriétés concrètes mais ne démontre pas toutes les phrases,
@@ -23,7 +23,7 @@ technique, du nombre d'oracles ou des empreintes officielles.
 | Empreintes officielles en anglais | 150/150 | Fiches enregistrées et versionnées |
 | Gestionnaires de déclencheurs imprimés | 0 manquant détecté | Existence du gestionnaire, pas exactitude |
 | Scénarios individuels cycle de vie | 150/150 | Entrée en jeu, destination, UID, propriétaire |
-| Oracles comportementaux dédiés | **189/189 PASS** | **150 cartes distinctes** |
+| Oracles comportementaux dédiés | **199/199 PASS** | **150 cartes distinctes** |
 | Interactions paires techniques | 22 500/22 500 | Invariants d'état |
 | Parties IA/IA | 1 000/1 000 | Terminaison, légalité des coups |
 | Écran PC / mobile émulé Chromium | 16/16 | Parcours de l'interface |
@@ -40,7 +40,7 @@ texte officiel.
 
 ## Infrastructure de validation
 
-- `native/semantic_oracle_runner.cjs` regroupe **11 suites** ;
+- `native/semantic_oracle_runner.cjs` regroupe **12 suites** ;
   il échoue si une carte n'a aucun oracle dédié, si une attente échoue, ou
   si l'inventaire diverge de 150.
 - `native/card_lifecycle_oracles.cjs` vérifie le cycle de vie séparément.
@@ -67,7 +67,7 @@ Source canonique : textes anglais officiels des deux cartes sur
 https://cyberpunktcg.com/cards . Le moteur `native/engine.js` et la
 version jouable `native/prime_v220_runtime.html` ont été corrigés ensemble.
 
-Les **189 oracles** ont réussi dans GitHub Actions, dont 12 nouveaux contrôles de clauses officielles. Le statut de
+Les **199 oracles** ont réussi dans GitHub Actions, dont 12 nouveaux contrôles de clauses officielles. Le statut de
 l'exécution indépendante GitHub doit être vérifié séparément ; ne jamais
 inférer qu'un commit rend les workflows verts.
 
@@ -80,14 +80,33 @@ Royce (Don't Call Me Simon), All is Lost, Shattered Memories, MaxTac AV et Nadia
 (Fighting Through Grief). Les conditions positives, négatives et les choix
 facultatifs ont été exercés sur les cas explicitement nommés dans les tests.
 
-Le registre `native/official_clause_witnesses.cjs` associe **10 segments officiels**
+Le registre `native/official_clause_witnesses.cjs` associe **13 segments officiels**
 à leurs empreintes SHA-256 et aux douze tests, avec invalidation en cas de modification
 du texte publié. Cette traçabilité reste une **preuve partielle** : elle ne
 certifie ni toutes les branches possibles ni toutes les interactions.
 
-Résultats : [189/189 oracles dans GitHub Actions](https://github.com/yuri85300-design/lifequest/actions/runs/44775805966).
+Résultats : [199/199 oracles dans GitHub Actions](https://github.com/yuri85300-design/lifequest/actions/runs/44775805966).
 Le passage complet officiel et la confrontation des empreintes sont vérifiés
 séparément sur GitHub.
+
+## Correction vérifiée entre la version jouable et le moteur partagé
+
+L'audit GitHub a détecté une divergence entre `native/engine.js` et le
+moteur embarqué dans `native/prime_v220_runtime.html`, après correction
+de Nocturne OP55N1. Le moteur partagé a été **réextrait du runtime HTML**
+sans changement fonctionnel arbitraire. Les tests ont été relancés sur
+cette version synchronisée.
+
+Le texte anglais officiel de Nocturne OP55N1 a été consulté directement.
+La batterie dédiée compte désormais **10 oracles** couvrant le prix fixe
+quand la zone Fixer est vide, les trois effets au choix, les paiements
+EN SOLO, la consommation/expiration de la remise, le minimum de 1 €$
+et la surtaxe de Riot Shield. Les **trois fragments candidats anglais**
+de Nocturne ont été liés aux empreintes officielles et aux tests.
+
+Cela porte le total à **199 oracles PASS**, sur **150 cartes distinctes**.
+Ces vérifications sont réelles, mais elles ne couvrent pas encore chaque
+condition et interaction du référentiel officiel.
 
 ## Verrous restant à lever pour une certification effective
 
