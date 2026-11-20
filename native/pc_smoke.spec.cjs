@@ -56,6 +56,11 @@ test('local challenge persists first leg without masquerading as PvP',async ({pa
 test('starting a real solo duel shows a playable hand',async ({page})=>{
   await page.locator('[data-nav="setup"]').first().click();
   await page.locator('#start').click();
+  // A human who wins the opening d20 may choose whether to play first;
+  // the mulligan cannot appear until this mandatory choice is answered.
+  const firstPlayerChoice=page.getByRole('dialog').getByRole('button',{name:'Oui',exact:true});
+  await firstPlayerChoice.waitFor({state:'visible',timeout:2000}).catch(()=>{});
+  if(await firstPlayerChoice.isVisible().catch(()=>false)) await firstPlayerChoice.click();
   await expect(page.getByText('Votre main de départ')).toBeVisible({timeout:20000});
   await page.locator('[data-m="0"]').click();
   await expect(page.locator('.board .hand')).toBeVisible({timeout:20000});
