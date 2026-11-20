@@ -13,6 +13,7 @@ on:
       - 'native/semantic_oracles_last_a.cjs'
       - 'native/semantic_oracles_last_b.cjs'
       - 'native/semantic_oracles_branches.cjs'
+      - 'native/semantic_oracles_quick_contracts.cjs'
       - 'native/official_independent_oracles.cjs'
       - 'native/nocturne_official_oracles.cjs'
       - 'native/official_clause_witnesses.cjs'
