@@ -1,0 +1,44 @@
+name: 7 Gigs PRIME - current official card catalogue
+on:
+  push:
+    paths:
+      - 'native/engine.js'
+      - 'native/official_card_audit.cjs'
+      - '.github/workflows/official-cards.yml'
+  pull_request:
+    paths:
+      - 'native/engine.js'
+      - 'native/official_card_audit.cjs'
+      - '.github/workflows/official-cards.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  official-catalogue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser tooling
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Inspect published English official card metadata
+        id: audit
+        continue-on-error: true
+        run: node native/official_card_audit.cjs
+      - name: Upload comparison evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prime-official-card-comparison
+          path: audit-results/
+          if-no-files-found: warn
+      - name: Fail when any card cannot be verified
+        if: steps.audit.outcome != 'success'
+        run: |
+          echo "Official metadata comparison not complete; never certify on incomplete data."
+          exit 1
