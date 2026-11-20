@@ -56,7 +56,7 @@ jobs:
             adb logcat -c
             adb shell am start -W -n com.sevengigs.prime/.MainActivity | tee /tmp/nightmare-android15/launch.txt
             sleep 2
-            adb shell input tap 710 508
+            adb shell input tap 915 655
             sleep 8
             adb shell dumpsys activity activities > /tmp/nightmare-android15/activity.txt
             adb logcat -d > /tmp/nightmare-android15/logcat.txt
