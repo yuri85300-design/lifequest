@@ -12,6 +12,7 @@ chacune des **150 cartes jouables du moteur**.
   puissance et RAM.
 - **0** désaccord sur ces quatre caractéristiques.
 - **0** carte du moteur absente du catalogue officiel.
+- **0** divergence de marqueurs de mots-clés détectée par le rapprochement anglais/français (déclencheurs et mentions reconnues). Cette vérification lexicale ne certifie pas les effets.
 - Les textes officiels en anglais ont été lus et leur empreinte SHA-256
   enregistrée dans l'artefact GitHub Actions. L'empreinte permet de détecter
   une modification future du texte ; elle ne démontre **pas** la bonne
@@ -69,6 +70,7 @@ pour débloquer le réentraînement compétitif de NIGHTMARE.
 ## Exécution
 
 - Workflow: `.github/workflows/official-cards.yml`.
+- Exécution GitHub Actions concluante : https://github.com/yuri85300-design/lifequest/actions/runs/44763928163
 - Résultats JSON: artefact `prime-official-card-comparison`.
 - Source de la collecte: `native/official_card_audit.cjs`.
 - Politique: échec du contrôle si une des 150 cartes de base est
