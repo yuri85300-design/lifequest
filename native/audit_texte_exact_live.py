@@ -62,25 +62,24 @@ def official_live(s):
     return cards
 
 def extract_publisher_text(html):
-    """Récupération du texte rendu sous 'OFFICIAL CURRENT RULES TEXT'.
+    """Lire le bloc de texte original de la page SSR, caractère par caractère.
 
-    Une absence ou une structure de page inconnue produit None, jamais une preuve.
-    Les sauts de ligne HTML peuvent varier: toujours comparer en deux niveaux
-    (raw exact, puis différences uniquement d'espacement), sans passer pour exact.
+    Ne jamais utiliser soup.get_text('\\n') sur toute la page : ce séparateur
+    introduit des caractères entre nœuds inline et transforme {Spend}: en
+    {Spend} \\n : de façon artificielle. Le bloc whitespace-pre-wrap contient
+    le texte exact, et get_text('', strip=False) préserve ses caractères.
     """
     soup=BeautifulSoup(html,'html.parser')
-    for tag in soup(['script','style','noscript','svg']):tag.decompose()
-    # Le site sert actuellement le texte sous un titre et avant 'SET:'.
-    tokens=[x.strip() for x in soup.get_text('\n',strip=True).splitlines() if x.strip()]
-    inds=[i for i,x in enumerate(tokens) if LABEL.search(x) and 'ENGLISH' in x.upper()]
-    if len(inds)!=1:return None, f'HEADER_COUNT_{len(inds)}'
-    start=inds[0]+1
-    stop=next((j for j in range(start,len(tokens)) if END.match(tokens[j])),None)
-    if stop is None or stop<=start:return None,'UNBOUNDED_RULES_REGION'
-    parts=tokens[start:stop]
-    if len(parts)>80 or sum(map(len,parts))>8000:return None,'RULES_REGION_UNEXPECTED_LENGTH'
-    # La page est traitée comme rendue, pas comme le JSON du backend.
-    text='\n'.join(parts)
+    labels=[x for x in soup.find_all(string=LABEL) if 'ENGLISH' in str(x).upper()]
+    if len(labels)!=1:return None,f'HEADER_COUNT_{len(labels)}'
+    title=labels[0].parent
+    region=title.find_next_sibling('div')
+    if region is None or 'whitespace-pre-wrap' not in (region.get('class') or []):
+        return None,'OFFICIAL_RULES_REGION_NOT_FOUND'
+    if region.find(['script','style','noscript']):
+        return None,'UNEXPECTED_NESTED_CODE'
+    text=region.get_text(separator='',strip=False)
+    if len(text)>8000:return None,'RULES_REGION_UNEXPECTED_LENGTH'
     return text,'OK'
 
 def sha(s):return hashlib.sha256(s.encode('utf-8')).hexdigest()
@@ -140,9 +139,13 @@ def fetch_html(card,urls,api_off):
             response.raise_for_status()
             if 'html' not in response.headers.get('Content-Type','').lower():
                 attempts.append(f'{url}: non-HTML');continue
-            visible,reason=extract_publisher_text(response.text)
+            # Les pages declarent UTF-8 en HTML. Requests peut pourtant
+            # deviner Latin-1 si Content-Type n'indique pas charset ; decoder
+            # les OCTETS source explicitement, sans corruption silencieuse.
+            html=response.content.decode('utf-8',errors='strict')
+            visible,reason=extract_publisher_text(html)
             if reason!='OK':attempts.append(f'{url}: {reason}');continue
-            return {'url':url,'visible':visible,'html':response.text,'reason':'OK','attempts':attempts}
+            return {'url':url,'visible':visible,'html':html,'reason':'OK','attempts':attempts}
         except Exception as e:attempts.append(f'{url}: {type(e).__name__}: {str(e)[:160]}')
     return {'url':choices[0] if choices else None,'visible':None,'html':None,'reason':'FETCH_OR_EXTRACTION_FAILED','attempts':attempts}
 
@@ -159,9 +162,9 @@ def main(argv=None):
     report={'created_utc':dt.datetime.now(dt.timezone.utc).isoformat(), 'mode':'STRICT_OFFICIAL_LIVE',
             'game':args.game,'api':API,'baseline':args.reference or REFERENCE,
             'official_page':SITE,'certification':False,'cards_expected':150,
-            'errors':[],'summary':{},'notes':[
+            'errors':[],'summary':{},'reference_150_exact':False,'notes':[
               'Comparaison littérale Unicode sans suppression des parenthèses, symboles ni texte de rappel.',
-              'Le rendu HTML peut différer du champ JSON seulement par la mise en page; cette différence n’est jamais EXACT.',
+              'Les pages déclarent UTF-8 et le bloc SSR de règles est comparé au JSON sans ajout artificiel de séparateurs.',
               'Une archive ne peut jamais certifier le contenu actuellement publié.']}
     game=read_game(args.game)
     try:
@@ -265,9 +268,14 @@ def main(argv=None):
             'page_vs_api_layout_only':sum(r['page_to_api_status']=='LAYOUT_DIFFERENCE_NOT_EXACT' for r in rows),
             'text_changes_vs_archive':sum(r['api_to_archive_status'] not in ('EXACT_CODEPOINTS','UNAVAILABLE') for r in rows),
             'characters_diff_records':len(differences),'extras':len(extras)}
-        report['certification']=bool(len(rows)==150 and all(r['api_to_archive_status']=='EXACT_CODEPOINTS' for r in rows)
-           and all(r['page_to_api_status'] in ('EXACT_CODEPOINTS','LAYOUT_DIFFERENCE_NOT_EXACT') for r in rows)
-           and not report['errors'])
+        report['reference_150_exact']=bool(len(rows)==150 and
+           all(r['api_live_found'] and r['page_status']=='FETCHED_TEXT_EXTRACTED' for r in rows) and
+           all(r['api_to_archive_status']=='EXACT_CODEPOINTS' for r in rows) and
+           all(r['page_to_api_status']=='EXACT_CODEPOINTS' for r in rows) and
+           not any(r['other_differences'] or r['error'] for r in rows))
+        # Une certification complète incluant toutes les nouvelles cartes est
+        # distincte du certificat du périmètre historique des 150.
+        report['certification']=bool(report['reference_150_exact'] and not report['errors'])
     except Exception as ex:
         report['errors'].append(type(ex).__name__+': '+str(ex))
         report['certification']=False
