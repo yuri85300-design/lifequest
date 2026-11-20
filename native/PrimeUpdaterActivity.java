@@ -103,6 +103,7 @@ public class PrimeUpdaterActivity extends Activity {
     updatePrefs = getSharedPreferences("prime_content_updates", MODE_PRIVATE);
     otaQaRequested = getIntent()!=null && getIntent().getBooleanExtra("otaQa",false);
     activatePendingOnStartup();
+    Log.i("7Gigs-PRIME","ACTIVE_PRIME_CONTENT="+updatePrefs.getInt("active",BASE_CONTENT_CODE));
     web.setWebViewClient(new WebViewClient() {
       @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
         Uri uri=req.getUrl();
