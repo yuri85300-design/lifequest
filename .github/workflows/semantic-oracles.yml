@@ -4,6 +4,7 @@ on:
     paths:
       - 'native/engine.js'
       - 'native/semantic_oracles.cjs'
+      - 'native/semantic_oracles_extra.cjs'
       - 'native/card_lifecycle_oracles.cjs'
       - 'native/semantic_oracle_runner.cjs'
       - 'native/semantic_register.cjs'
