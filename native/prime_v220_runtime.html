@@ -885,6 +885,7 @@ html,body{background:#030813}
 .prime-mission p{font-size:13px;line-height:1.5}.prime-mission .btn{display:block;margin-top:9px;min-height:44px;width:100%}.prime-mission.cleared{border-color:#267b70}
 .prime-history{border-bottom:1px solid #53748955;padding:8px 0;font-size:12px}
 
+.collection-synergy{padding:10px 0;border-bottom:1px solid rgba(165,201,230,.16)}.collection-synergy:last-child{border-bottom:0}.collection-synergy b{color:#f4d59a}.collection-synergy p{margin:5px 0;font-size:13px}.collection-synergy small{color:#b4cada}
 /* Collection and owned-card advisor */
 .sim-collection{display:flex;flex-direction:column;gap:16px;max-width:1150px;margin:0 auto;width:100%;box-sizing:border-box;padding-bottom:100px}
 .collection-intro,.collection-panel{border:1px solid rgba(165,201,230,.18);background:rgba(9,24,40,.78);border-radius:17px;padding:17px}
@@ -5483,7 +5484,28 @@ async function startGame() {
       totalCopies:Object.values(owned).reduce((a,n)=>a+n,0),
       unique:Object.keys(owned).length};
   }
-  const api={clean,importText,suggest,ownedDeck};
+
+  // High-confidence engine-mechanic pairs, not card-certification claims.
+  const PAIRS=[
+    {a:'netwatch-netdriver',b:'tetratronic-rippler',why:'Épuiser un même hôte permet de piocher, puis éventuellement de défausser la carte du dessus.'},
+    {a:'goro-takemura-vengeful-bodyguard',b:'corpo-security',why:'Goro renforce les options BLOQUEUR ; Corpo Security protège vos Gigs.'},
+    {a:'evelyn-parker-beautiful-enigma',b:'animals-wrecker',why:'Un GANGER qui vole des Gigs peut déclencher le redressement d’un Eddie avec Evelyn.'},
+    {a:'jackie-welles-pour-one-out-for-me',b:'delamain-cab',why:'Une première unité bleue déclenche l’ajustement de Gig de Jackie et une pioche conditionnelle.'},
+    {a:'yorinobu-arasaka-steel-dragon',b:'field-operator',why:'Yorinobu peut jouer gratuitement une unité ARASAKA de coût admissible.'},
+    {a:'dying-night-v-s-pistol',b:'v-corporate-exile',why:'Équiper V avec Dying Night permet de redresser des Eddies en fin de tour.'}
+  ];
+  function synergies(owned,cards,deck){
+    const ids=new Set([...(deck?.main||[]),...(deck?.legends||[])]);
+    return PAIRS.filter(x=>cards[x.a]&&cards[x.b]&&
+      ((owned[x.a]||0)>0||(owned[x.b]||0)>0))
+      .map(x=>{
+        const missing=[x.a,x.b].filter(id=>!(owned[id]>0));
+        const bothInDeck=ids.has(x.a)&&ids.has(x.b);
+        return {...x,missing,bothInDeck,ready:missing.length===0};
+      }).sort((a,b)=>Number(b.bothInDeck)-Number(a.bothInDeck)||
+        a.missing.length-b.missing.length||a.a.localeCompare(b.a));
+  }
+  const api={clean,importText,suggest,ownedDeck,synergies};
   root.CollectionAdvisor=api;
   if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
@@ -5506,6 +5528,7 @@ function collectionScreen(){
     pool.sort((a,b)=>(owned[b.id]||0)-(owned[a.id]||0)||a.name.localeCompare(b.name));
     const best=result.closest;
     const mine=result.ownedBest;
+    const relevantSynergies=CollectionAdvisor.synergies(owned,CARDS,best?.deck).slice(0,6);
     const rows=best?missingText(best):[];
     mount(`<div class="screen">${topbar('Ma collection & synergies','decks')}<div class="scroll pad sim-collection">
       <div class="collection-intro"><h3>Construis ton deck avec tes vraies cartes</h3>
@@ -5527,6 +5550,14 @@ function collectionScreen(){
           <details ${rows.length?'open':''}><summary>Cartes à obtenir (${rows.reduce((n,r)=>n+r.count,0)})</summary>
             <div class="collection-missing">${rows.length?rows.map(r=>`<div><b>${r.count}×</b> ${esc(displayCard(r.id))}</div>`).join(''):'<p>Tu possèdes toutes les cartes de cet archétype.</p>'}</div></details>
           <div class="acts"><button class="btn small" id="collectionTargetEditor">Voir le deck cible</button></div>`:'<p>Il n’existe pas encore d’archétype légal à comparer.</p>'}
+      </div>
+      <div class="collection-panel"><h3>Synergies recommandées</h3>
+        ${relevantSynergies.length?relevantSynergies.map(s=>`<div class="collection-synergy">
+          <b>${esc(displayCard(s.a))} + ${esc(displayCard(s.b))}</b>
+          <p>${esc(s.why)}</p>
+          <small>${s.ready?'✓ Les deux cartes sont possédées.':('À rechercher : '+s.missing.map(id=>esc(displayCard(id))).join(', '))}
+          ${s.bothInDeck?' · Synergie présente dans le deck cible.':' · Vérifier couleurs et RAM du deck.'}</small>
+        </div>`).join(''):'<p class="sub">Ajoute quelques cartes pour découvrir des combinaisons concrètes entre leurs effets.</p>'}
       </div>
       <div class="collection-panel"><h3>3 · Deck avec uniquement mes cartes</h3>
         ${mine?`<p><b>${mine.deck.main.length}/40</b> cartes principales disponibles · ${mine.missingLegends.length} Légende(s) manquante(s) · basé sur ${esc(mine.basedOn)}</p>

@@ -100,7 +100,28 @@
       totalCopies:Object.values(owned).reduce((a,n)=>a+n,0),
       unique:Object.keys(owned).length};
   }
-  const api={clean,importText,suggest,ownedDeck};
+
+  // High-confidence engine-mechanic pairs, not card-certification claims.
+  const PAIRS=[
+    {a:'netwatch-netdriver',b:'tetratronic-rippler',why:'Épuiser un même hôte permet de piocher, puis éventuellement de défausser la carte du dessus.'},
+    {a:'goro-takemura-vengeful-bodyguard',b:'corpo-security',why:'Goro renforce les options BLOQUEUR ; Corpo Security protège vos Gigs.'},
+    {a:'evelyn-parker-beautiful-enigma',b:'animals-wrecker',why:'Un GANGER qui vole des Gigs peut déclencher le redressement d’un Eddie avec Evelyn.'},
+    {a:'jackie-welles-pour-one-out-for-me',b:'delamain-cab',why:'Une première unité bleue déclenche l’ajustement de Gig de Jackie et une pioche conditionnelle.'},
+    {a:'yorinobu-arasaka-steel-dragon',b:'field-operator',why:'Yorinobu peut jouer gratuitement une unité ARASAKA de coût admissible.'},
+    {a:'dying-night-v-s-pistol',b:'v-corporate-exile',why:'Équiper V avec Dying Night permet de redresser des Eddies en fin de tour.'}
+  ];
+  function synergies(owned,cards,deck){
+    const ids=new Set([...(deck?.main||[]),...(deck?.legends||[])]);
+    return PAIRS.filter(x=>cards[x.a]&&cards[x.b]&&
+      ((owned[x.a]||0)>0||(owned[x.b]||0)>0))
+      .map(x=>{
+        const missing=[x.a,x.b].filter(id=>!(owned[id]>0));
+        const bothInDeck=ids.has(x.a)&&ids.has(x.b);
+        return {...x,missing,bothInDeck,ready:missing.length===0};
+      }).sort((a,b)=>Number(b.bothInDeck)-Number(a.bothInDeck)||
+        a.missing.length-b.missing.length||a.a.localeCompare(b.a));
+  }
+  const api={clean,importText,suggest,ownedDeck,synergies};
   root.CollectionAdvisor=api;
   if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
