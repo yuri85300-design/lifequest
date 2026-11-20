@@ -68,3 +68,31 @@ test('starting a real solo duel shows a playable hand',async ({page})=>{
   // The test verifies that engine setup reaches the board; a full interactive
   // human match still requires additional end-to-end gameplay tests.
 });
+
+test('150-card library, filters and card details',async ({page})=>{
+  await page.locator('[data-nav="cards"]').first().click();
+  await expect(page.locator('[data-card]')).toHaveCount(150);
+  await page.locator('#type').selectOption('Gear');
+  await expect(page.locator('[data-card]')).toHaveCount(17);
+  await page.locator('[data-card]').first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+});
+
+test('NIGHTMARE laboratory remains certification-locked',async ({page})=>{
+  await page.locator('#homeMenuBtn').click();
+  await page.locator('[data-lab]').click();
+  await expect(page.locator('#labTrain')).toBeDisabled();
+  await expect(page.locator('.lab-status')).toContainText('certifiés');
+  await expect(page.locator('#rivalToggle')).toBeVisible();
+});
+
+test('deck editor and rules screen are accessible',async ({page})=>{
+  await page.locator('[data-nav="decks"]').first().click();
+  await page.locator('#newDeck').click();
+  await expect(page.locator('#deckName')).toHaveValue('Nouveau deck');
+  await expect(page.locator('[data-slot]')).toHaveCount(3);
+  await page.locator('[data-nav="decks"]').first().click();
+  await page.locator('[data-nav="home"]').first().click();
+  await page.locator('[data-nav="rules"]').first().click();
+  await expect(page.getByText('Résumé des attaques et des Gigs')).toBeVisible();
+});
