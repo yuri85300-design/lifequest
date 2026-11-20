@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 25001,
-  "version": "2.5.1",
+  "version_code": 25002,
+  "version": "2.5.2",
   "min_shell": 25000,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.5.1/prime-content-v2.5.1.zip",
-  "sha256": "a46817d501804995e53a512a287f3e9e252d3f1918a7ac399e4efc133ed61e3b",
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.5.2/prime-content-v2.5.2.zip",
+  "sha256": "1ec19a404510c37f21fab34e1740cb73dc9596a22cb728ea9749cf34116dbe34",
   "notes": "Mise a jour du jeu uniquement, sauvegardes et images VF conservees."
 }
