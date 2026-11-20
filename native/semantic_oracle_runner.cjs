@@ -8,7 +8,8 @@ vm.runInContext(source+'\nglobalThis.__semanticApi={Game,GameOver,CARDS,presetDe
 (async()=>{
  const primary=await require('./semantic_oracles.cjs')(sandbox.__semanticApi,assert);
  const secondary=await require('./semantic_oracles_extra.cjs')(sandbox.__semanticApi,assert);
- const result={count:primary.count+secondary.count,passed:primary.passed+secondary.passed,failed:primary.failed+secondary.failed,tests:[...primary.tests,...secondary.tests]};
+ const reactive=await require('./semantic_oracles_interactions.cjs')(sandbox.__semanticApi,assert);
+ const result={count:primary.count+secondary.count+reactive.count,passed:primary.passed+secondary.passed+reactive.passed,failed:primary.failed+secondary.failed+reactive.failed,tests:[...primary.tests,...secondary.tests,...reactive.tests]};
  const output=path.join(__dirname,'..','audit-results');fs.mkdirSync(output,{recursive:true});
  const payload={date:new Date().toISOString(),source:'current engine.js',certification:'NOT_CERTIFIED',
   independentOracles:result.count,passed:result.passed,failed:result.failed,tests:result.tests};
