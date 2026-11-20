@@ -92,6 +92,19 @@ module.exports={
  'zetatech-berserk':{sourceHash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',segments:[{index:1,hash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',cases:["face-up-legend-discount-and-floor"],branches:["zero-face-up","one-face-up","three-face-up"]}]},
  'corporate-surveillance':{sourceHash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',segments:[{index:1,hash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',cases:["only-ready-rival-units-cost-four-or-less","cannot-be-played-without-ready-eligible-target"],branches:["eligible-ready","no-eligible","excludes-cost-over-four"]}]},
  'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]},
+ 'arasaka-emergency-radioport':{
+  sourceHash:'00566b66733945919717141acfdf6bce8ac22c95cc1bcebee2bcb1918b81bc31',
+  segments:[
+   {index:1,hash:'f1441161d03b750cb848ead092546db4e420bb12f161ab9a29c1ecf7615e9b55',
+    cases:['radioport-spent-host-optional-decline-hides-legend',
+     'radioport-unrelated-unit-spent-does-not-trigger'],
+    branches:['host-spent','optional-decline','unrelated-unit-spent']},
+   {index:2,hash:'1181a27defb8ccfb50871f3766de5d49691580b3a54643cd4fe2a13e9a4692f7',
+    cases:['radioport-qualifying-arasaka-legend-offers-free-call',
+     'radioport-ineligible-legend-cannot-be-called',
+     'radioport-existing-call-blocks-another-call'],
+    branches:['arasaka-qualifies','ineligible-legend-no-call','once-per-turn-call-limit']}
+  ]},
  'the-relic-experimental-biochip':{
    sourceHash:'ed4d3db825206d69529f02aef4e6b49d3e6101887526d8448aca4a343ed0e9ea',
    segments:[
