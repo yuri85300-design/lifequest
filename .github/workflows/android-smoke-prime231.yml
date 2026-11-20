@@ -58,7 +58,6 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            set -euo pipefail
             adb install -r /tmp/prime231-apk/7Gigs-PRIME-2.3.1.apk
             adb shell svc wifi disable
             adb shell svc data disable
