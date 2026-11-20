@@ -97,7 +97,7 @@ const gapMd=[
  ...reviewed.map(c=>'| '+c.id+' | '+c.independentlyPassingOracles+' | À décomposer et prouver clause par clause |'),
  '',
  'La priorité n’est qu’un classement de complexité. Elle ne prouve ni les effets ni leur conformité.'
-].join('\\n');
+].join('\n');
 fs.writeFileSync(path.join(artifactDir,'semantic-gaps.md'),gapMd);
 
 console.log(JSON.stringify({cardCount:result.cardCount,cardsWithOfficialEnglishText:result.cardsWithOfficialEnglishText,cardsWithLifecycleWitness:result.cardsWithLifecycleWitness,cardsWithIndependentBehaviourOracles:result.cardsWithIndependentBehaviourOracles,testedBehaviourBranches:result.testedBehaviourBranches,cardsFullySemanticallyCertified:0,semanticCertification:'BLOCKED'},null,2));
