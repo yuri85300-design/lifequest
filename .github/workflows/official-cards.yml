@@ -30,6 +30,12 @@ jobs:
         id: audit
         continue-on-error: true
         run: node native/official_card_audit.cjs
+      - name: Run independent semantic oracle suite
+        if: always()
+        run: node native/semantic_oracle_runner.cjs
+      - name: Generate 150-card semantic evidence ledger
+        if: always()
+        run: node native/semantic_register.cjs
       - name: Upload comparison evidence
         if: always()
         uses: actions/upload-artifact@v4
