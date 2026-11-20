@@ -12,7 +12,7 @@ module.exports=defineConfig({
     {name:'mobile-chromium',use:{...devices['Desktop Chrome'],viewport:{width:390,height:844},isMobile:true,hasTouch:true}}
   ],
   webServer:{
-    command:'python3 -m http.server 8765 --bind 127.0.0.1 --directory native',
+    command:'python3 -m http.server 8765 --bind 127.0.0.1 --directory '+JSON.stringify(__dirname),
     url:'http://127.0.0.1:8765/prime_v220_runtime.html',
     reuseExistingServer:!process.env.CI,
     timeout:30000
