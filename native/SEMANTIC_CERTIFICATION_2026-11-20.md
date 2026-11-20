@@ -32,6 +32,22 @@ La batterie `native/card_lifecycle_oracles.cjs` a validé **150/150 scénarios**
 
 Dix autres oracles ont été ajoutés pour Octant, Ruthless Lowlife, Field Operator, Swordwise Huscle, Trauma Team Operatives, MaxTac Heavy, 6th Street Recruits, Maelstrom Zealots, River Ward: Detective on the Hunt et Goro Takemura: Vengeful Bodyguard : réductions conditionnelles, interdiction d'attaque, pioche, seuils de puissance et combats.
 
+## Vérification systématique des déclencheurs officiels
+
+Le contrôle `native/official_card_audit.cjs` confronte les marqueurs
+`Play`, `Attack`, `Call`, `Defeated`, `Go Solo`, `Adrenaline`,
+`Blocker` et `Quick` publiés en anglais aux gestionnaires runtime.
+
+**Résultat GitHub vérifié : 150/150 fiches lues, 0 caractéristique
+divergente, 0 gestionnaire de déclencheur manquant détecté.**
+Deux cas `Quick` de Légendes ont été distingués des Programmes Quick ;
+leur comportement activable est couvert par les oracles 39 et 40.
+
+Cela prouve la présence structurelle des gestionnaires détectés,
+**pas** l'exactitude de toutes leurs clauses internes.
+
+Exécution : https://github.com/yuri85300-design/lifequest/actions/runs/44769066019
+
 ## État des 150 cartes
 
 Le registre `native/semantic_register.cjs` produit un fichier
