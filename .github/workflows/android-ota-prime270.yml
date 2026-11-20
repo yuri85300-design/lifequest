@@ -90,10 +90,7 @@ jobs:
             adb pull /sdcard/pre-visual.xml /tmp/prime270-proof/pre-visual.xml
             # Emulator system launcher occasionally ANRs independently of PRIME.
             # Do not call a screenshot successful while that modal covers the app.
-            if grep -q "Pixel Launcher isn" /tmp/prime270-proof/pre-visual.xml; then
-              adb shell input tap 450 1200
-              sleep 4
-            fi
+            if grep -q "Pixel Launcher isn" /tmp/prime270-proof/pre-visual.xml; then adb shell input tap 450 1200; sleep 4; fi
             adb shell uiautomator dump /sdcard/prime270-ui.xml
             adb pull /sdcard/prime270-ui.xml /tmp/prime270-proof/ui-accessibility.xml
             ! grep -qi "isn.*responding" /tmp/prime270-proof/ui-accessibility.xml
