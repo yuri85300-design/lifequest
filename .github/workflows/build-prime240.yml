@@ -1,4 +1,4 @@
-name: PRIME 2.4.0 Mobile First Build
+name: 7 Gigs PRIME 2.4.0 - Mobile First
 on:
   push:
     branches: [main]
@@ -9,9 +9,209 @@ on:
 permissions:
   contents: read
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - name: Verify application source
-        run: test -s native/prime_v240_runtime.html
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Assemble PRIME 2.4.0 and matching NIGHTMARE worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/prime240/assets/www
+          cp native/prime_v240_runtime.html /tmp/prime240/assets/www/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('/tmp/prime240/assets/www/index.html').read_text(encoding='utf-8')
+          start=h.index('/* Android: exporting JSON via the system document picker')
+          end=h.index('// ============================================================================\n//  SEPT GIGS — interface',start)
+          handler="""self.onmessage=async function(event){
+           const d=event.data||{};
+           if(!Number.isInteger(d.id))return;
+           try{
+            self.AIChampion=()=>d.weights||null;
+            self.AIPlanChampion=()=>d.plans||self.DeckPlanAI?.INITIAL;
+            self.RivalLearningSession=()=>d.session||null;
+            self.RivalLearningData=()=>d.memory||null;
+            const g=new Game(d.state,[FastPolicy,FastPolicy],{thinking:()=>{}});
+            const policy=makeAI(d.level||'expert');
+            const action=d.method==='react'
+              ?await policy.react(g,d.side,d.attack,d.actions)
+              :await policy.mainAction(g,d.side,d.actions);
+            self.postMessage({id:d.id,action});
+           }catch(err){self.postMessage({id:d.id,error:String(err?.stack||err)})}
+          };
+          self.postMessage({ready:true});
+          """
+          worker='self.window=self;\n\n'+h[start:end]+'\n'+handler
+          out=Path('/tmp/prime240/assets/www/ai-worker.js')
+          out.write_text(worker,encoding='utf-8')
+          assert len(h)>500000 and len(worker)>200000
+          assert 'TacticalWorker' in h and "new Worker('ai-worker.js')" in h
+          assert 'self.onmessage=async function' in worker
+          print('HTML',len(h),'codepoints; worker',len(worker),'codepoints')
+          PY
+          node --check /tmp/prime240/assets/www/ai-worker.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/prime240/assets/www/index.html').read_text(encoding='utf-8')
+          Path('/tmp/prime240/inline.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          PY
+          node --check /tmp/prime240/inline.js
+      - name: Audit regles et interactions de 150 cartes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('/tmp/prime240/assets/www/index.html').read_text(encoding='utf-8')
+          start=h.index('/* Android: exporting JSON via the system document picker')
+          end=h.index('// ============================================================================\n//  SEPT GIGS — interface',start)
+          Path('/tmp/prime240/engine.js').write_text(h[start:end],encoding='utf-8')
+          PY
+          node --check /tmp/prime240/engine.js
+          PRIME_ENGINE_PATH=/tmp/prime240/engine.js node --max-old-space-size=512 native/audit_230.cjs | tee /tmp/prime240/audit-resume.json
+          PRIME_ENGINE_PATH=/tmp/prime240/engine.js node --max-old-space-size=512 native/audit_220.cjs | tee /tmp/prime240/audit-regles.json
+          grep -Fq '"TECHNICAL_PASS_NOT_OFFICIAL_CERTIFIED"' /tmp/prime240/audit-regles.json
+      - name: Telecharger strictement 150 vrais visuels officiels VF dans les assets APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/prime240/export-ids.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),{performance}=require('perf_hooks');
+          const core=fs.readFileSync('/tmp/prime240/engine.js','utf8');
+          const ctx={console,performance,Date,Math,setTimeout,clearTimeout,structuredClone};
+          ctx.window=ctx;ctx.globalThis=ctx;vm.createContext(ctx);
+          vm.runInContext(core+'\nglobalThis.ids=Object.keys(CARDS);',ctx);
+          fs.writeFileSync('/tmp/prime240/ids.json',JSON.stringify(ctx.ids));
+          if(ctx.ids.length!==150)throw Error('wrong card count: '+ctx.ids.length);
+          JS
+          node /tmp/prime240/export-ids.cjs
+          mkdir -p /tmp/prime240/assets/www/images_vf
+          python3 native/offline_fr_bundle.py --strict --ids /tmp/prime240/ids.json --out /tmp/prime240/assets/www/images_vf --report /tmp/prime240/rapport_vf.json
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('/tmp/prime240')
+          report=json.loads((root/'rapport_vf.json').read_text(encoding='utf-8'))
+          assert report['french_images_ready']==report['catalogue']==150
+          entries=report['results']
+          assert all(r['status']=='downloaded_fr' for r in entries)
+          paths={r['id']:r['path'] for r in entries}
+          assert len(paths)==150
+          for id,loc in paths.items():
+              p=root/'assets/www'/loc
+              assert p.is_file() and p.stat().st_size>2000,(id,loc)
+          html=root/'assets/www/index.html'
+          source=html.read_text(encoding='utf-8')
+          needle='const LOCAL_FR_ART = Object.freeze({});'
+          assert source.count(needle)==1, 'offline French art mapping must have one build-time insertion point'
+          source=source.replace(needle,'const LOCAL_FR_ART = Object.freeze('+json.dumps(paths,ensure_ascii=False,separators=(',',':'))+');')
+          assert source.count('images_vf/')>=150
+          html.write_text(source,encoding='utf-8')
+          print('VERIFIED EMBEDDED OFFLINE FR ASSETS 150/150, total',report['total_bytes'],'bytes')
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/prime240/assets/www/index.html').read_text(encoding='utf-8')
+          Path('/tmp/prime240/inline-built.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          PY
+          node --check /tmp/prime240/inline-built.js
+      - name: Install Android SDK platform and build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | head -1)"
+          test -n "$MANAGER"
+          "$MANAGER" "platforms;android-35" "build-tools;35.0.0"
+          test -f "$SDK/platforms/android-35/android.jar"
+          test -x "$SDK/build-tools/35.0.0/apksigner"
+      - name: Compile Android DEX and sign verified APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          BT="$SDK/build-tools/35.0.0"
+          mkdir -p /tmp/prime240/classes /tmp/prime240/dex
+          cat > /tmp/prime240/AndroidManifest.xml <<'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.septgigs.neonarena.prime240" android:versionCode="24000" android:versionName="2.4.0">
+            <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <application android:label="7 Gigs PRIME 2.4.0" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
+              <activity android:name="dev.septgigs.neonarena.prime.Prime231Activity" android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          MANIFEST
+          javac -encoding UTF-8 -source 8 -target 8 -cp "$SDK/platforms/android-35/android.jar" -d /tmp/prime240/classes native/Prime231Activity.java
+          (cd /tmp/prime240/classes && jar cf /tmp/prime240/classes.jar .)
+          "$BT/d8" --lib "$SDK/platforms/android-35/android.jar" --min-api 26 --output /tmp/prime240/dex /tmp/prime240/classes.jar
+          "$BT/aapt2" link -I "$SDK/platforms/android-35/android.jar" --manifest /tmp/prime240/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 35 -o /tmp/prime240/base.apk
+          python3 - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from pathlib import Path
+          root=Path('/tmp/prime240')
+          with ZipFile(root/'base.apk') as source, ZipFile(root/'unsigned.apk','w',compression=ZIP_DEFLATED) as out:
+              for info in source.infolist():out.writestr(info,source.read(info.filename))
+              out.write(root/'dex/classes.dex','classes.dex')
+              for name in ('index.html','ai-worker.js'):
+                  out.write(root/'assets/www'/name,'assets/www/'+name)
+              images=sorted((root/'assets/www/images_vf').glob('*'))
+              assert len(images)==150, 'incomplete offline French artwork'
+              for img in images:
+                  assert img.suffix.lower() in ('.webp','.png','.jpg')
+                  out.write(img,'assets/www/images_vf/'+img.name)
+              print('OFFLINE_BUNDLED_CARDS:',len(images))
+          PY
+          "$BT/zipalign" -f -p 4 /tmp/prime240/unsigned.apk /tmp/prime240/aligned.apk
+          keytool -genkeypair -alias septgigs -keyalg RSA -keysize 4096 -validity 10000 -keystore /tmp/prime240/test-signing.jks -storepass "septgigsTest230" -keypass "septgigsTest230" -dname "CN=7 Gigs PRIME 2.4.0 test" -noprompt
+          "$BT/apksigner" sign --ks /tmp/prime240/test-signing.jks --ks-key-alias septgigs --ks-pass pass:septgigsTest230 --key-pass pass:septgigsTest230 --out /tmp/prime240/7Gigs-PRIME-2.4.0.apk /tmp/prime240/aligned.apk
+          "$BT/apksigner" verify --verbose /tmp/prime240/7Gigs-PRIME-2.4.0.apk
+          "$BT/zipalign" -c -p 4 /tmp/prime240/7Gigs-PRIME-2.4.0.apk
+          "$BT/aapt" dump badging /tmp/prime240/7Gigs-PRIME-2.4.0.apk | tee /tmp/prime240/badging.txt
+          grep -Fq "versionName='2.4.0'" /tmp/prime240/badging.txt
+          grep -Fq "package: name='dev.septgigs.neonarena.prime240'" /tmp/prime240/badging.txt
+          unzip -t /tmp/prime240/7Gigs-PRIME-2.4.0.apk | tail -3
+          python3 - <<'PY'
+          import zipfile
+          p='/tmp/prime240/7Gigs-PRIME-2.4.0.apk'
+          with zipfile.ZipFile(p) as z:
+              names=z.namelist()
+              cards=[x for x in names if x.startswith('assets/www/images_vf/')]
+              assert len(cards)==150, (len(cards),cards[:8])
+              assert len(set(cards))==150
+              assert all(z.getinfo(x).file_size>2000 for x in cards)
+              assert z.testzip() is None
+              print('FINAL_APK_OFFLINE_FR_CHECK PASS 150/150')
+          PY
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7Gigs-PRIME-240-APK
+          path: /tmp/prime240/7Gigs-PRIME-2.4.0.apk
+          if-no-files-found: error
+      - name: Conserver le rapport d'audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7Gigs-PRIME-240-RAPPORT
+          path: |
+            /tmp/prime240/audit-regles.json
+            /tmp/prime240/audit-resume.json
+          if-no-files-found: error
+      - name: Rapport de couverture VF telechargeable
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7Gigs-PRIME-240-ART-VF-REPORT
+          path: /tmp/prime240/rapport_vf.json
+          if-no-files-found: error
