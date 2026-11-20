@@ -16,8 +16,8 @@ module.exports={
    {index:2,hash:'3b652d1fce74c30f9bf3cd44212fb5a1e6c5dfc7f2a958c0dd8e8abecc7b09fb',
     cases:['choice-draw-two-cards-exactly','choice-immobilize-allowed-when-field-empty','choice-solo-discount-can-be-chosen-without-faceup-legend'],branches:['draw-choice','immobilize-choice','solo-choice']},
    {index:3,hash:'824727bced4d4f159fb73491faae54583d539a67182d8042317bdc1113cd99a8',
-    cases:['choice-draw-two-cards-exactly','choice-immobilize-allowed-when-field-empty','choice-solo-applies-to-any-friendly-legend-and-consumes-on-success','failed-solo-payment-must-not-consume-one-use-discount','discount-cannot-lower-go-solo-payment-below-one','solo-discount-stacks-with-rival-riot-shield-surcharge','unused-solo-discount-expires-at-end-of-turn'],
-    branches:['empty-immobilize','draw-two','next-solo-discount','minimum-one','discount-expiry','rival-surcharge','failed-payment-does-not-consume']}]},
+    cases:['choice-draw-two-cards-exactly','choice-immobilize-allowed-when-field-empty','choice-solo-applies-to-any-friendly-legend-and-consumes-on-success','failed-solo-payment-must-not-consume-one-use-discount','discount-cannot-lower-go-solo-payment-below-one','solo-discount-stacks-with-rival-riot-shield-surcharge','unused-solo-discount-expires-at-end-of-turn','immobilize-can-target-friendly-unit-and-expires-on-controller-next-turn','immobilize-rival-unit-stops-rival-attack'],
+    branches:['empty-immobilize','draw-two','next-solo-discount','minimum-one','discount-expiry','rival-surcharge','failed-payment-does-not-consume','friendly-target-duration','rival-target-duration']}]},
  'japantown-jonin':{
   sourceHash:'d5509f7abe9b9f45402e27204d52a4b93d09ec242d3fb6dc56fbee5cba5080f6',
   segments:[{index:1,hash:'d5509f7abe9b9f45402e27204d52a4b93d09ec242d3fb6dc56fbee5cba5080f6',cases:['play-grants-plus-two-power-to-exactly-one-friend'],branches:['effect-executed']}]},
