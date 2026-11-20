@@ -92,6 +92,24 @@ module.exports={
  'zetatech-berserk':{sourceHash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',segments:[{index:1,hash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',cases:["face-up-legend-discount-and-floor"],branches:["zero-face-up","one-face-up","three-face-up"]}]},
  'corporate-surveillance':{sourceHash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',segments:[{index:1,hash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',cases:["only-ready-rival-units-cost-four-or-less","cannot-be-played-without-ready-eligible-target"],branches:["eligible-ready","no-eligible","excludes-cost-over-four"]}]},
  'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]},
+ 'field-operator':{
+  sourceHash:'4f5ce9ecce2c41d7ade1adb8949c8544bdfee9f1b468ff6b66943736dcbd8285',segments:[
+   {index:1,hash:'4f5ce9ecce2c41d7ade1adb8949c8544bdfee9f1b468ff6b66943736dcbd8285',cases:["field-operator-even-street-cred-draw-condition","field-operator-odd-street-cred-draw-condition","field-operator-no-gigs-draw-condition"],branches:["even","odd","no-gigs"]}
+  ]},
+ 'delamain-cab':{
+  sourceHash:'e2e96aa51642c5dd60a74e6447910d84ea5e48fe98b854b3ef3e13485035d38f',segments:[
+   {index:1,hash:'e2e96aa51642c5dd60a74e6447910d84ea5e48fe98b854b3ef3e13485035d38f',cases:["delamain-steal-this-turn-readies-one-eddie","delamain-no-steal-this-turn-does-not-ready","delamain-rival-turn-end-does-not-ready"],branches:["steal-this-turn","no-steal","owner-turn-end","opponent-turn-end"]}
+  ]},
+ 'corpo-security':{
+  sourceHash:'569177d4101753fa03edb0d1396cc54fdba6a93a50fdbcb4a86e8053993f12fc',segments:[
+   {index:1,hash:'c32b54f3157c7ea922e4df0ca56e805ccbc7366b54a671321cd72202090cc040',cases:["corpo-security-cannot-attack-even-ready"],branches:["attack-prohibited","ready-no-exception"]},
+   {index:2,hash:'f938b9d1ac11a616175f7dd8a7ab7231eb2caeb4cc5234be7bbc95e4def85429',cases:["corpo-security-has-blocker-keyword"],branches:["blocker-keyword"]}
+  ]},
+ 'hacked-corpo':{
+  sourceHash:'9e53ea0ac656ebe424f1f3a110d806e7c0e2573897146b780fdd34a98fcbb830',segments:[
+   {index:1,hash:'0739f1bb97723e4cb63c331dad4d21be93cc6986e7a7920e24953591c3417c04',cases:["hacked-corpo-trash-three-and-recover-exactly-one-program","hacked-corpo-no-program-among-three-remains-in-trash","hacked-corpo-short-deck-trashes-only-available-cards"],branches:["trash-three","short-deck"]},
+   {index:2,hash:'b683566cb85d3a552352c3ec437237d3368f2848ce7d528327f507ffd3b2d3e4',cases:["hacked-corpo-trash-three-and-recover-exactly-one-program","hacked-corpo-no-program-among-three-remains-in-trash"],branches:["program-present","no-program"]}
+  ]},
  'netwatch-netdriver':{
   sourceHash:'1353cfbbe3a41b0e7e720823377fe9ef2b4d54027e5d4b95efa22dd9b65aff25',segments:[
    {index:1,hash:'1353cfbbe3a41b0e7e720823377fe9ef2b4d54027e5d4b95efa22dd9b65aff25',cases:["netwatch-equipped-host-spend-draws-one","netwatch-unrelated-unit-spend-does-not-draw","netwatch-host-legend-spent-draws-one","netwatch-and-tetratronic-same-host-both-triggers-resolve"],branches:["unit-host","legend-host","unrelated-host","simultaneous-gear-triggers"]}
