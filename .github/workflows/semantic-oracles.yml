@@ -41,7 +41,7 @@ jobs:
           node-version: '22'
       - name: Independent per-card behaviour oracles
         run: node native/semantic_oracle_runner.cjs
-      - name: Verify independent oracles detect nine deliberately wrong rule variants
+      - name: Verify independent oracles detect deliberately wrong rule variants
         run: node native/semantic_mutation_audit.cjs
       - name: Check 150 individual card lifecycle scenarios
         run: node native/card_lifecycle_oracles.cjs
@@ -61,3 +61,5 @@ jobs:
           if-no-files-found: error
       - name: Assert NIGHTMARE remains certification-locked
         run: grep -q 'const NIGHTMARE_TRAINING_CERTIFIED = false' native/prime_v220_runtime.html
+
+# Validation branch: mutation gate and independent effects proofs.
