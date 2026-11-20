@@ -77,6 +77,18 @@ module.exports={
   ]},
  'octant':{sourceHash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',segments:[{index:1,hash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',cases:['gig-value-eight-or-more-discount-with-minimum-one'],branches:["zero-high-gigs","multiple-high-gigs","floor-one"]}]},
  'ruthless-lowlife':{sourceHash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',segments:[{index:1,hash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',cases:['cannot-attack-gigs-even-when-rival-has-gigs'],branches:["unit-target-allowed","gig-area-target-forbidden"]}]},
+ 'deadman-transmitter':{
+  sourceHash:'702eba428266e90609c02f749acc096b62dcc7f76a5c6962384c4a2fbf3a056e',segments:[
+   {index:1,hash:'702eba428266e90609c02f749acc096b62dcc7f76a5c6962384c4a2fbf3a056e',cases:["deadman-host-defeat-prevented-gear-destroyed-instead","deadman-second-defeat-without-gear-defeats-host","deadman-on-different-host-does-not-prevent-defeat"],branches:["replace-host-defeat","substitute-gear-trash","second-defeat","unrelated-host-no-prevention"]}
+  ]},
+ 'synapse-burnout':{
+  sourceHash:'90f0008e23960ea6fb80656eb61d69c2f0b2dbc2cb26165b58f96f1adee19ef5',segments:[
+   {index:1,hash:'90f0008e23960ea6fb80656eb61d69c2f0b2dbc2cb26165b58f96f1adee19ef5',cases:["synapse-burnout-no-friendly-unit-cannot-play","synapse-burnout-two-faceup-legends-add-two-only-rival-fight","synapse-burnout-no-faceup-legends-zero-bonus","synapse-burnout-buff-expires-after-current-turn"],branches:["quick-no-target","two-faceup-legends","no-legends","fight-only","opponent-unit-only","turn-expiry"]}
+  ]},
+ 'pepe-najarro-working-doubles':{
+  sourceHash:'ec8bd1ce8862ab4595ff35dbf4d6b447c08e77b05d7f66429e009fc360025049',segments:[
+   {index:1,hash:'ec8bd1ce8862ab4595ff35dbf4d6b447c08e77b05d7f66429e009fc360025049',cases:["pepe-matched-gig-values-ready-up-to-two-merc-legends","pepe-no-gig-value-pair-no-legend-ready","pepe-optional-decline-does-not-ready-any-legend","pepe-already-ready-merc-excluded-from-choice"],branches:["gig-pair","no-pair","up-to-two-MERC","non-MERC-excluded","optional-decline","already-ready-excluded"]}
+  ]},
  'evelyn-parker-scheming-siren':{
   sourceHash:'cb2d451a585d953eb1f3215c62809d866fe7fe2ef75eae5d8dcc3fbbc12d2441',segments:[
    {index:1,hash:'915accf2c1fdbd880a2e47936e2f9c3c465f1410ddc46f1c1e5b1e4340be57f6',cases:["scheming-siren-attack-draws-one-when-behind","scheming-siren-attack-ahead-draw-then-discard-one","scheming-siren-equal-cred-does-not-discard"],branches:["attack-draw-one","always-draw"]},
