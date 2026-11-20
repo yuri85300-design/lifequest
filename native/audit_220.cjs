@@ -12,7 +12,8 @@ vm.runInContext(fs.readFileSync(engine,'utf8')+'\nglobalThis.PRIME_AUDIT={Game,G
 const {Game,GameOver,CARDS,presetDecks,FastPolicy}=context.PRIME_AUDIT;
 const presets=presetDecks(),deckNames=Object.keys(presets),ids=Object.keys(CARDS);
 const newGame=(seed=17)=>Game.create([presets['the-heist'],presets['embracing-power']],[FastPolicy,FastPolicy],{seed,hooks:{sim:true}});
-const report={version:'2.2.0',semantics:[],pairs:{total:0,pass:0,fail:0,gameovers:0,errors:[]},selfplay:{total:1000,completed:0,incomplete:0,errors:[],illegal:0}};
+const report={version:'2.3.0',officialCertified:false,officialComparison:'NOT_EXECUTED',semantics:[],perCard:{},pairs:{total:0,pass:0,fail:0,gameovers:0,errors:[]},selfplay:{total:1000,completed:0,incomplete:0,errors:[],illegal:0}};
+for(const id of ids) report.perCard[id]={exercised:0,pass:0,fail:0};
 async function test(name,fn){
  try{await fn();report.semantics.push({name,status:'PASS'})}
  catch(e){report.semantics.push({name,status:'FAIL',error:String(e.stack||e).slice(0,650)})}
@@ -73,6 +74,7 @@ async function play(g,id,i){
  });
  for(let n=0;n<ids.length;n++)for(let k=0;k<ids.length;k++){
   const id=ids[n],other=ids[k];report.pairs.total++;
+  report.perCard[id].exercised++;report.perCard[other].exercised++;
   try{
    const g=newGame(47001+n*31+k*1091);g.s.phase='main';
    g.P(0).gigs=[{uid:80001,sides:4,value:1},{uid:80002,sides:8,value:3},{uid:80003,sides:10,value:8}];
@@ -81,10 +83,10 @@ async function play(g,id,i){
    g.P(1).field=[g.newInst('animals-wrecker',1)];
    g.s.active=1;await play(g,other,1);
    g.s.active=0;await play(g,id,0);
-   invariant(g);report.pairs.pass++;
+   invariant(g);report.pairs.pass++;report.perCard[id].pass++;report.perCard[other].pass++;
   }catch(e){
-   if(e instanceof GameOver){report.pairs.gameovers++;report.pairs.pass++;}
-   else {report.pairs.fail++;if(report.pairs.errors.length<15)report.pairs.errors.push({a:id,b:other,error:String(e.stack||e).slice(0,500)})}
+   if(e instanceof GameOver){report.pairs.gameovers++;report.pairs.pass++;report.perCard[id].pass++;report.perCard[other].pass++;}
+   else {report.pairs.fail++;report.perCard[id].fail++;report.perCard[other].fail++;if(report.pairs.errors.length<15)report.pairs.errors.push({a:id,b:other,error:String(e.stack||e).slice(0,500)})}
   }
  }
  for(let n=0;n<1000;n++){
@@ -101,7 +103,7 @@ async function play(g,id,i){
   try{const result=await g.run(100);if(result.status==='incomplete')report.selfplay.incomplete++;else report.selfplay.completed++;}
   catch(e){if(report.selfplay.errors.length<15)report.selfplay.errors.push({game:n,error:String(e.stack||e).slice(0,450)})}
  }
- const bad=report.semantics.some(x=>x.status!=='PASS')||report.pairs.fail||report.selfplay.incomplete||report.selfplay.errors.length||report.selfplay.illegal||ids.length!==150;
- report.cards=ids.length;report.conclusion=bad?'FAILED':'TECHNICAL_PASS_NOT_OFFICIAL_CERTIFIED';
+ const bad=report.semantics.some(x=>x.status!=='PASS')||report.pairs.fail||report.selfplay.incomplete||report.selfplay.errors.length||report.selfplay.illegal||ids.length!==150||Object.values(report.perCard).some(x=>x.exercised!==ids.length*2);
+ report.cards=ids.length;report.coverage={cardsWithTechnicalPairs:Object.values(report.perCard).filter(x=>x.exercised>0).length,pairsTested:report.pairs.total,verifiedOfficialTexts:0,expectedOfficialTexts:150};report.conclusion=bad?'FAILED':'TECHNICAL_PASS_NOT_OFFICIAL_CERTIFIED';
  console.log(JSON.stringify(report,null,2));if(bad)process.exitCode=1;
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1});
