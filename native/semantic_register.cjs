@@ -65,6 +65,41 @@ const result={
 };
 fs.mkdirSync(artifactDir,{recursive:true});
 fs.writeFileSync(path.join(artifactDir,'semantic-register.json'),JSON.stringify(result,null,2));
+const risk=c=>{
+ const m=c.officialClauseSignals||{};
+ return c.implementationBehaviours.length*2+(m.conditionalMentions||0)*3+
+   (m.choiceMentions||0)*2+(m.optionalMentions||0)*2+
+   (m.triggerMentions||0)*2+(m.timingMentions||0);
+};
+const unfinished=entries.filter(c=>!c.independentlyPassingOracles).sort((a,b)=>risk(b)-risk(a)||a.id.localeCompare(b.id));
+const reviewed=entries.filter(c=>c.independentlyPassingOracles);
+const gapMd=[
+ '# Certification sémantique : lacunes individualisées',
+ '',
+ '> Ce document est un plan de vérification automatique, pas une certification.',
+ '',
+ '- Fiches officielles anglaises reconnues : '+result.cardsWithOfficialEnglishText+'/'+result.cardCount,
+ '- Cycles de vie vérifiés : '+result.cardsWithLifecycleWitness+'/'+result.cardCount,
+ '- Cartes ayant au moins un oracle d’effet indépendant : '+result.cardsWithIndependentBehaviourOracles+'/'+result.cardCount,
+ '- Clauses comportementales testées : '+result.testedBehaviourBranches,
+ '- Cartes certifiées intégralement : 0',
+ '',
+ '## Cartes sans oracle sémantique individuel, par priorité',
+ '',
+ '| Carte | Gestionnaires moteur | Indices de complexité | Preuve à ajouter |',
+ '| --- | --- | ---: | --- |',
+ ...unfinished.map(c=>'| '+c.id+' | '+(c.implementationBehaviours.join(', ')||'mécanique imprimée de base')+' | '+risk(c)+' | Oracle positif et négatif conforme au texte anglais |'),
+ '',
+ '## Cartes avec des oracles partiels',
+ '',
+ '| Carte | Oracles réussis | Clauses restantes |',
+ '| --- | ---: | --- |',
+ ...reviewed.map(c=>'| '+c.id+' | '+c.independentlyPassingOracles+' | À décomposer et prouver clause par clause |'),
+ '',
+ 'La priorité n’est qu’un classement de complexité. Elle ne prouve ni les effets ni leur conformité.'
+].join('\\n');
+fs.writeFileSync(path.join(artifactDir,'semantic-gaps.md'),gapMd);
+
 console.log(JSON.stringify({cardCount:result.cardCount,cardsWithOfficialEnglishText:result.cardsWithOfficialEnglishText,cardsWithLifecycleWitness:result.cardsWithLifecycleWitness,cardsWithIndependentBehaviourOracles:result.cardsWithIndependentBehaviourOracles,testedBehaviourBranches:result.testedBehaviourBranches,cardsFullySemanticallyCertified:0,semanticCertification:'BLOCKED'},null,2));
 if(entries.length!==150||(oracleData.tests||[]).some(x=>x.status!=='PASS'))process.exitCode=1;
 if(process.argv.includes('--require-certification')){console.error('FAIL CLOSED: 150-card semantic certification evidence incomplete.');process.exitCode=2;}
