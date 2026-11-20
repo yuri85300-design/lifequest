@@ -2,6 +2,7 @@
 /* Independently authored edge-case oracles grounded on the current published
  * English text of Cyberpsychosis, Take Control and Reboot Optics.
  * Source fingerprints and clause mappings reside in official_clause_witnesses.
+ * GitHub Actions cross-checks every cited SHA-256 against current publisher text.
  */
 module.exports=async function verifyQuickContracts(api,assert){
  const {Game,CARDS,presetDecks,FastPolicy}=api;
