@@ -1,0 +1,51 @@
+name: Couverture illustrations françaises hors ligne PRIME
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/offline_fr_bundle.py'
+      - '.github/workflows/prime-fr-coverage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extraire 150 identifiants du moteur reel
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('native/prime_v230_runtime.html').read_text(encoding='utf-8')
+          st=h.index('/* Android: exporting JSON via the system document picker')
+          en=h.index('// ============================================================================\n//  SEPT GIGS — interface',st)
+          Path('/tmp/game-core.js').write_text(h[st:en],encoding='utf-8')
+          PY
+          cat > /tmp/export-ids.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),{performance}=require('perf_hooks');
+          const s=fs.readFileSync('/tmp/game-core.js','utf8');
+          const context={console,performance,Date,Math,setTimeout,clearTimeout,structuredClone};
+          context.window=context;context.globalThis=context;vm.createContext(context);
+          vm.runInContext(s+'\nglobalThis.cardIDs=Object.keys(CARDS);',context);
+          fs.writeFileSync('/tmp/cards150.json',JSON.stringify(context.cardIDs));
+          console.log('Cards in game:',context.cardIDs.length);
+          JS
+          node /tmp/export-ids.cjs
+      - name: Verifier et telecharger les vrais scans francais depuis la source officielle
+        run: python3 native/offline_fr_bundle.py --ids /tmp/cards150.json --out /tmp/images_vf --report /tmp/fr-cover.json
+      - name: Rapporter les manquants sans rendre une fausse certification
+        run: |
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/fr-cover.json'))
+          print("French images:",r['french_images_ready'],'/',r['catalogue'])
+          print("Bytes:",r['total_bytes'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prime-vf-coverage-diagnostics
+          path: /tmp/fr-cover.json
+          if-no-files-found: error
