@@ -58,6 +58,20 @@ function keywordAlignment(english,french){
  return checks.filter(([,a,b])=>a.test(english)!==b.test(french||''))
   .map(([keyword,a,b])=>({keyword,official:a.test(english),local:b.test(french||'')}));
 }
+function officialClauseSignals(text){
+ const t=String(text||'');
+ const hit=re=>[...t.matchAll(re)].length;
+ return {
+   fragmentsApprox:t.split(/\s*\/\/\s*|[.!?]\s+(?=[A-Z{])/).map(s=>s.trim()).filter(Boolean).length,
+   triggerMentions:hit(/\{(?:Play|Attack|Call|Defeated|Blocker|Go Solo|Quick|Adrenaline|Spend)\}/gi),
+   conditionalMentions:hit(/\bif\b/gi),
+   choiceMentions:hit(/\bchoose\b/gi),
+   optionalMentions:hit(/\bmay\b/gi),
+   timingMentions:hit(/\b(?:when|whenever|first time|next turn|this turn)\b/gi),
+   quantifierMentions:hit(/\b(?:each|all|up to|one or more)\b/gi),
+   requiresManualReview:true
+ };
+}
 async function main(){
  const browser=await chromium.launch({headless:true,args:['--disable-dev-shm-usage']});
  const page=await browser.newPage({userAgent:'Mozilla/5.0 (compatible; 7GigsCompatibilityAudit/1.0)'});
@@ -113,6 +127,7 @@ async function main(){
      result.accessible++;
      datum.officialTextSha256=sha(textNorm(official.text));
      datum.officialTextLength=official.text.length;
+     datum.officialClauseSignals=officialClauseSignals(official.text);
      datum.keywordAlignment=keywordAlignment(official.text,c.txt);
      if(datum.keywordAlignment.length)result.keywordMismatches.push({id:c.id,keywords:datum.keywordAlignment});
      for(const [field,expected] of [['type',c.type.toUpperCase()],['cost',c.cost??null],['power',c.power??null],['ram',c.ram??null]]){
