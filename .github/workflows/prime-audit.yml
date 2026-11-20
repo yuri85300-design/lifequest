@@ -1,0 +1,33 @@
+name: 7 Gigs PRIME - audit technique
+on:
+  push:
+    paths:
+      - 'native/prime_v220_runtime.html'
+      - 'native/audit_220.cjs'
+      - 'native/extract_engine.cjs'
+      - '.github/workflows/prime-audit.yml'
+  pull_request:
+    paths:
+      - 'native/**'
+      - '.github/workflows/prime-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  technical-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify runtime JavaScript parses
+        run: |
+          node native/extract_engine.cjs
+          node --check native/engine.js
+      - name: Pairwise 150-card checks and AI self-play
+        run: node native/audit_220.cjs
+      - name: Certification statement
+        if: always()
+        run: echo "Technical checks only; official 150-card semantic certification and external text comparison remain blocked."
