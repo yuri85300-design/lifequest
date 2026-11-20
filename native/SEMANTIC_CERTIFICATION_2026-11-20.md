@@ -430,3 +430,21 @@ ultérieur est à contrôler avant de réviser les comptes.
 
 Le verrou de promotion `NIGHTMARE_TRAINING_CERTIFIED` reste
 **false**. Le laboratoire expérimental reste autorisé.
+
+## Audit final de ce lot — rapprochements confirmés
+
+L'exécution de référence
+[44815628931](https://github.com/yuri85300-design/lifequest/actions/runs/44815628931)
+est **SUCCESS** : 152 fiches sur 152 trouvées sur les trois pages,
+150/150 cartes du moteur accessibles et conformes aux métadonnées,
+**334/334 oracles indépendants PASS (0 FAIL)** et matrice entièrement
+produite : **112/280 fragments avec témoins partiels, 168 sans
+rapprochement et 0/150 carte intégralement certifiée**.
+
+Depuis le jalon de 225 fragments sans rapprochement, 57 fragments ont
+été liés à des scénarios d'oracles effectivement passés (et non certifiés
+intégralement). Les branches et interactions non couvertes restent
+listées et priorisées par `native/semantic_gap_matrix.cjs`.
+L'entraînement NIGHTMARE expérimental est toujours disponible ;
+`NIGHTMARE_TRAINING_CERTIFIED` reste `false` pour ne pas promouvoir
+des politiques sur une conformité non démontrée.
