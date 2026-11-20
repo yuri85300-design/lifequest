@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 26002,
-  "version": "2.6.2",
+  "version_code": 27000,
+  "version": "2.7.0",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.6.2/prime-content-v2.6.2.zip",
-  "sha256": "1aceeac93b20cc0fe7adf604d03550fbf56b25dc7a969bd54998be6c96e52166",
-  "notes": "Guidage des duels, visuels responsive, filtre de decks réel et campagne solo ; sauvegardes conservées."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.0/prime-content-v2.7.0.zip",
+  "sha256": "14bbcbe767999a80924a940fb69ee7a064f83a88deead5e1643e32caca00e705",
+  "notes": "Strategie et coaching : 6 missions, 17 questions, probabilites, assistant de decks, diagnostic NIGHTMARE, confort visuel, controle des versions. Sauvegardes conservees."
 }
