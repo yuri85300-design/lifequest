@@ -105,7 +105,7 @@ test('collection advisor enters from main menu, imports quantities and persists'
   await expect(page.getByText('Construis ton deck avec tes vraies cartes')).toBeVisible();
   await expect(page.locator('#collectionSave')).toHaveCount(0);
   await page.locator('#collectionImport').click();
-  await page.locator('#ownedPaste').fill('2x mantis-blades\\n1x corpo-security');
+  await page.locator('#ownedPaste').fill('2x mantis-blades\n1x corpo-security');
   await page.locator('#ownedApply').click();
   await expect(page.locator('.collection-count')).toContainText('3 exemplaires');
   await page.reload({waitUntil:'domcontentloaded'});
@@ -153,7 +153,7 @@ test('collection advisor never invents owned cards and saves a fully owned legal
 
 test('collection parser rejects unknown names and honors copy quantities',async ({page})=>{
   const parsed=await page.evaluate(()=>CollectionAdvisor.importText(
-    '2x mantis-blades\\n3x totally-fictional-card\\ncorpo-security',
+    '2x mantis-blades\n3x totally-fictional-card\ncorpo-security',
     CARDS,{'mantis-blades':1}));
   expect(parsed.owned['mantis-blades']).toBe(3);
   expect(parsed.owned['corpo-security']).toBe(1);
