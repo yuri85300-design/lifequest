@@ -50,6 +50,20 @@ async function play(g,id,i){
    const d=presets['the-heist'];
    assert(validateDeck({...d,main:[...d.main.slice(0,39),'unknown-card']}).some(x=>x.includes('inconnue')));
  });
+ await test('Official errata: Johnny Never Stop Fighting cannot be sold',()=>{
+   const g=newGame(),j=g.newInst('johnny-silverhand-never-stop-fighting',0);
+   assert.equal(CARDS[j.id].sell,false);
+   assert.equal(g.sellable(j),false);
+ });
+ await test('Official Kiroshi Optics: Gear targets a Unit or face-up Legend only',()=>{
+   const g=newGame(),p=g.P(0);
+   p.field=[g.newInst('6th-street-recruits',0)];
+   p.legends.forEach(l=>l.faceUp=false);
+   assert.equal(g.gearHosts(0).length,1);
+   p.legends[0].faceUp=true;
+   assert(g.gearHosts(0).includes(p.legends[0]));
+   assert(!g.gearHosts(0).includes(p.legends[1]));
+ });
  await test('11.11.3: Viktor plus Zetatech min cost 1',()=>{
   const g=newGame(),p=g.P(0);p.legends.forEach(l=>l.faceUp=true);
   const v=g.newInst('viktor-vektor-drop-your-illusions',0);p.field.push(v);
