@@ -13,7 +13,7 @@ Dernière mise à jour : 2026-11-20. [Registre de preuves sémantiques](SEMANTIC
 | Textes anglais des 150 cartes | 150/150 fiches récupérées et empreintes calculées ; examen sémantique clause par clause NON EFFECTUÉ |
 | Errata officiels | 7 entrées parcourues ; deux errata de mécanique Johnny/Kiroshi testés, cinq corrections de crédits d'illustration |
 | Métadonnées officielles des cartes | 150/150 conformes (type, coût, puissance, RAM) ; 2 légendes promo supplémentaires hors périmètre |
-| Oracles sémantiques indépendants | 160/160 contrôles réussis en GitHub Actions sur 150 cartes distinctes ; aucune carte sans oracle dédié ; couverture des clauses complètes non acquise |
+| Oracles sémantiques indépendants | 170/170 contrôles réussis en GitHub Actions sur 150 cartes distinctes ; aucune carte sans oracle dédié ; couverture des clauses complètes non acquise |
 | Scénarios individuels des cartes | 150/150 cycles de vie réussis en CI ; ce contrôle n'est pas une certification des effets |
 | Certification des effets | NON ACQUISE : aucune carte n'est attestée clause par clause avec exhaustivité |
 | NIGHTMARE réentraînement compétitif | BLOQUÉ par NIGHTMARE_TRAINING_CERTIFIED=false |
@@ -39,7 +39,7 @@ Le rapport de l'audit porte exclusivement sur des invariants techniques et des
 exécutions synthétiques. Un contrôle combinatoire par paires ne valide pas
 automatiquement l'intégralité des timings, effets, choix et errata officiels.
 
-Les 160 oracles ont passé GitHub Actions : https://github.com/yuri85300-design/lifequest/actions/runs/44772982020. Le registre retient **150 cartes avec au moins un oracle mais 0 carte certifiée intégralement**, car les branches et combinaisons supplémentaires restent non vérifiées.
+Les 170 oracles ont passé GitHub Actions : https://github.com/yuri85300-design/lifequest/actions/runs/44773649539. Le registre retient **150 cartes avec au moins un oracle mais 0 carte certifiée intégralement**, car les branches et combinaisons supplémentaires restent non vérifiées.
 
 Les workflows **7 Gigs PRIME - audit technique**, **7 Gigs PRIME - PC browser smoke**, **7 Gigs PRIME - current official card catalogue** et **7 Gigs PRIME - Android debug APK** se trouvent dans GitHub Actions.
 Le contrôle Chromium étendu a réussi ses 16 scénarios (8 parcours sur deux formats d'écran).
