@@ -1,5 +1,9 @@
 name: PRIME 2.5 - Android OTA update and offline QA
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-ota-prime250.yml'
   workflow_run:
     workflows: ["7 Gigs PRIME 2.5.0 - OTA Bootstrap APK"]
     types: [completed]
@@ -9,7 +13,7 @@ permissions:
   actions: read
 jobs:
   emulator:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -19,7 +23,7 @@ jobs:
           name: 7Gigs-PRIME-250-APK
           path: /tmp/prime250-apk
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id || 44725711957 }}
+          run-id: ${{ github.event.workflow_run.id || 44725939824 }}
       - name: Check APK includes 150 French card image assets and correct package name
         shell: bash
         run: |
@@ -55,19 +59,7 @@ jobs:
             adb install -r /tmp/prime250-apk/7Gigs-PRIME-2.5.0.apk
             adb logcat -c
             adb shell am start -W -n dev.septgigs.neonarena.prime/dev.septgigs.neonarena.prime.PrimeUpdaterActivity --ez otaQa true | tee /tmp/prime250-proof/launch.txt
-            n=0
-            while [ "$n" -lt 24 ]; do
-              adb logcat -d > /tmp/prime250-proof/logcat-ota.txt
-              if grep -q 'PRIME_OTA_QA_FAIL' /tmp/prime250-proof/logcat-ota.txt; then
-                echo 'OTA DOWNLOAD OR INSTALL FAILED'
-                exit 1
-              fi
-              if grep -q 'PRIME_OTA_QA_PASS:25001' /tmp/prime250-proof/logcat-ota.txt; then
-                break
-              fi
-              n=$((n+1))
-              sleep 5
-            done
+            sh -c 'n=0; while [ "$n" -lt 24 ]; do adb logcat -d > /tmp/prime250-proof/logcat-ota.txt; if grep -q PRIME_OTA_QA_FAIL /tmp/prime250-proof/logcat-ota.txt; then exit 1; fi; if grep -q PRIME_OTA_QA_PASS:25001 /tmp/prime250-proof/logcat-ota.txt; then exit 0; fi; n=$((n+1)); sleep 5; done; exit 2'
             grep -q 'PRIME_OTA_QA_PASS:25001' /tmp/prime250-proof/logcat-ota.txt
             sleep 10
             adb logcat -d > /tmp/prime250-proof/logcat-after-upgrade.txt
