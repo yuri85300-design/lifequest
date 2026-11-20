@@ -13,7 +13,9 @@ vm.runInContext(source+'\nglobalThis.__semanticApi={Game,GameOver,CARDS,presetDe
  const advanced=await require('./semantic_oracles_advanced.cjs')(sandbox.__semanticApi,assert);
  const advanced2=await require('./semantic_oracles_advanced2.cjs')(sandbox.__semanticApi,assert);
  const complexOne=await require('./semantic_oracles_complex_one.cjs')(sandbox.__semanticApi,assert);
- const suites=[primary,secondary,reactive,programs,advanced,advanced2,complexOne];
+ const lastA=await require('./semantic_oracles_last_a.cjs')(sandbox.__semanticApi,assert);
+ const lastB=await require('./semantic_oracles_last_b.cjs')(sandbox.__semanticApi,assert);
+ const suites=[primary,secondary,reactive,programs,advanced,advanced2,complexOne,lastA,lastB];
  const result={count:suites.reduce((a,x)=>a+x.count,0),passed:suites.reduce((a,x)=>a+x.passed,0),failed:suites.reduce((a,x)=>a+x.failed,0),tests:suites.flatMap(x=>x.tests)};
  const output=path.join(__dirname,'..','audit-results');fs.mkdirSync(output,{recursive:true});
  const payload={date:new Date().toISOString(),source:'current engine.js',certification:'NOT_CERTIFIED',
