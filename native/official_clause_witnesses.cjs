@@ -91,5 +91,15 @@ module.exports={
  'viktor-vektor-drop-your-illusions':{sourceHash:'2e9ada954cf836990616187e6acc5f324511fde3ab322c0ab41b4774d3e40e9e',segments:[{index:1,hash:'2e9ada954cf836990616187e6acc5f324511fde3ab322c0ab41b4774d3e40e9e',cases:["first-cyberware-only-discount","non-cyberware-does-not-consume-first-cyberware-discount"],branches:["first-cyberware","subsequent-cyberware","different-gear-type"]}]},
  'zetatech-berserk':{sourceHash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',segments:[{index:1,hash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',cases:["face-up-legend-discount-and-floor"],branches:["zero-face-up","one-face-up","three-face-up"]}]},
  'corporate-surveillance':{sourceHash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',segments:[{index:1,hash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',cases:["only-ready-rival-units-cost-four-or-less","cannot-be-played-without-ready-eligible-target"],branches:["eligible-ready","no-eligible","excludes-cost-over-four"]}]},
- 'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]}
+ 'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]},
+ 'the-relic-experimental-biochip':{
+   sourceHash:'ed4d3db825206d69529f02aef4e6b49d3e6101887526d8448aca4a343ed0e9ea',
+   segments:[
+    {index:1,hash:'93cc752a8cff3e1298b4b1d8a2497e7891925fd31e107573b9b22a342d693db1',
+     cases:['relic-contract-host-defeat-plays-unit-for-free-and-bottoms-host','relic-contract-only-units-resurrected-no-other-card-types'],
+     branches:['play-one-Unit-from-trash','free-play','exclude-non-unit-card-types']},
+    {index:2,hash:'d39673b44ae127b73a086fb4fadb56e6ec0b7555a9bea3ed067b2fe1bf943624',
+     cases:['relic-contract-host-defeat-plays-unit-for-free-and-bottoms-host','relic-contract-no-eligible-unit-still-bottoms-host'],
+     branches:['bottom-deck-on-resurrection','bottom-deck-no-eligible-unit','gear-follows-host-defeat']}
+   ]}
 };
