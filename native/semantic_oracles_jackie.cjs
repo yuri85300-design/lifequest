@@ -34,7 +34,7 @@ module.exports=async function runJackie(api,assert){
   const {g,p,die}=build(4);
   g.pickOne=async(i,title,options)=>title.startsWith('Jackie :')
    ?options.find(x=>x.value===die.uid+':2')?.value??null:null;
-  await play(g,'kiroshi-optics');
+  await play(g,'tetratronic-rippler');
   assert.equal(die.value,2);assert.equal(p.tf.jackieBlue,true);
  });
  await test('jackie-optional-refusal-does-not-adjust-or-draw',async()=>{
@@ -49,7 +49,7 @@ module.exports=async function runJackie(api,assert){
   let requests=0;
   g.pickOne=async(i,title,options)=>{if(title.startsWith('Jackie :'))requests++;return null};
   await play(g,'delamain-cab');
-  await play(g,'kiroshi-optics');
+  await play(g,'tetratronic-rippler');
   assert.equal(requests,1);assert.equal(die.value,4);
   assert.equal(p.tf.jackieBlue,true);
  });
