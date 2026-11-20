@@ -9,9 +9,11 @@ const events=[],ctx={HUMAN:0,CombatGuide:{mark:x=>events.push(x)}};
 vm.createContext(ctx);
 vm.runInContext('globalThis.observe=function(ev,d){'+actorLine+'}',ctx);
 for(const event of ['sell','play','call','attack','steal']){
+ const before=events.length;
  ctx.observe(event,{p:1});
- assert.equal(events.length,0,'Opponent event awarded progress: '+event);
+ assert.equal(events.length,before,'Opponent event awarded progress: '+event);
  ctx.observe(event,{p:0});
+ assert.equal(events.length,before+1);
  assert.equal(events.at(-1),event);
 }
 const count=events.length;
