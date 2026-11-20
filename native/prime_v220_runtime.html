@@ -5402,11 +5402,14 @@ async function startGame() {
     }
     let parsed=0;
     for(const line of String(raw).split(/[\r\n;]+/).map(x=>x.trim()).filter(Boolean)){
-      const m=line.match(/^(?:(\d{1,2})\s*[x×*]\s*)?(.+?)(?:\s*[x×*]\s*(\d{1,2}))?$/i);
-      if(!m){errors.push(line);continue;}
-      const id=index.get(normal(m[2]));
+      let name=line,amount=1;
+      const prefix=line.match(/^(\d{1,2})\s*[x×*]\s*(.+)$/i);
+      const suffix=!prefix&&line.match(/^(.+?)\s*[x×*]\s*(\d{1,2})$/i);
+      if(prefix){amount=prefix[1];name=prefix[2];}
+      else if(suffix){name=suffix[1];amount=suffix[2];}
+      const id=index.get(normal(name));
       if(!id){errors.push(line);continue;}
-      const n=qty(m[1]||m[3]||1);
+      const n=qty(amount);
       if(!n){errors.push(line);continue;}
       result[id]=Math.min(99,(result[id]||0)+n);parsed+=n;
     }
