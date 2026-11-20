@@ -467,6 +467,7 @@ public class PrimeUpdater254Activity extends Activity {
       });
     }
     @JavascriptInterface public void checkForUpdates() {
+      Log.i("7Gigs-PRIME","PRIME_UPDATE_BUTTON_TAPPED");
       runOnUiThread(()->checkForContentUpdate());
     }
     @JavascriptInterface public void openUpdates() { checkForUpdates(); }
