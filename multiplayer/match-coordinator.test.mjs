@@ -42,6 +42,7 @@ const slow=new MatchCoordinator({engine:slowEngine,tokens:[p0,p1],matchId:'anoth
 const req=slow.submit(p0,{matchId:'another-match',seq:0,action:{type:'end'}});
 assert.equal((await slow.submit(p0,{matchId:'another-match',seq:0,action:{type:'end'}})).code,'ACTION_IN_PROGRESS');
 pendingResolve();assert.equal((await req).ok,true);
+slowState.active=0;
 const badEngine={s:slowState,legalActions:()=>[{type:'end'}],async doAction(){throw Error('partial state may be bad')}};
 const bad=new MatchCoordinator({engine:badEngine,tokens:[p0,p1],matchId:'quarantine-match'});
 assert.equal((await bad.submit(p1,{matchId:'quarantine-match',seq:0,action:{type:'end'}})).code,'NOT_YOUR_TURN');
