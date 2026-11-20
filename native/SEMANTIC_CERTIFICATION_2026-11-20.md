@@ -296,3 +296,39 @@ matrice qu'après réussite de l'audit complet sur les nouveaux commits.
 
 La certification intégrale reste non acquise et le verrou compétitif
 `NIGHTMARE_TRAINING_CERTIFIED = false` doit rester actif.
+
+## Nouvelle divergence corrigée : Arasaka Emergency Radioport
+
+Une revue du texte officiel anglais a révélé une restriction indue :
+`native/engine.js` et `native/prime_v220_runtime.html` bloquaient aussi
+l'action facultative de **regarder** une Légende face cachée lorsque le joueur
+avait déjà appelé une Légende ce tour. Le texte imprimé limite uniquement
+l'action d'**appeler** une Légende une fois par tour. Le contrôle
+`calledThisTurn` a donc été déplacé de l'entrée du déclencheur vers
+la condition de l'appel gratuit. L'oracle exige maintenant que le regard
+reste possible tout en refusant un second appel.
+
+Workflow officiel [44792836433](https://github.com/yuri85300-design/lifequest/actions/runs/44792836433)
+: **success**, 228/228 oracles PASS ; 43/280 segments liés partiellement,
+237 non liés, 0 carte intégralement certifiée. Il s'agit d'une correction
+d'effet réellement fonctionnelle, sans revendication de certification totale.
+
+## Exécution réelle de la campagne complète NIGHTMARE
+
+[44792475752](https://github.com/yuri85300-design/lifequest/actions/runs/44792475752)
+: **300/300 auto-duels** terminés, **80/80 validations** terminées,
+40 victoires / 40 défaites, 0 égalité, 0 validation incomplète,
+champion initial inchangé. Ce résultat prouve le fonctionnement du cycle
+d'entraînement dans ce scénario, pas la supériorité statistique du candidat.
+
+## Android 15 : preuve d'installation et d'ouverture
+
+Le workflow [44792915847](https://github.com/yuri85300-design/lifequest/actions/runs/44792915847)
+a réussi l'assemblage debug, l'installation et l'ouverture sur un émulateur
+Android 15. Son prédécesseur avait déjà prouvé que l'activité principale
+s'ouvrait sans crash ; l'échec provenait du test shell, corrigé depuis.
+Le contrôle ne remplace pas un essai sur les téléphones physiques concernés.
+
+**NIGHTMARE expérimental : actif. Certification compétitive : toujours
+`false`, tant que toutes les clauses et interactions officielles ne sont pas
+indépendamment démontrées.**
