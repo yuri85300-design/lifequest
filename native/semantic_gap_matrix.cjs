@@ -8,7 +8,9 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const assert=require('node:assert/strict');
-const root=path.join(__dirname,'..','audit-results');
+const root=process.env.SEMANTIC_MATRIX_ROOT
+ ? path.resolve(process.env.SEMANTIC_MATRIX_ROOT)
+ : path.join(__dirname,'..','audit-results');
 const read=name=>JSON.parse(fs.readFileSync(path.join(root,name),'utf8'));
 const official=read('official-cards.json');
 const ledger=read('semantic-register.json');
