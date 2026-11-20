@@ -77,6 +77,18 @@ module.exports={
   ]},
  'octant':{sourceHash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',segments:[{index:1,hash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',cases:['gig-value-eight-or-more-discount-with-minimum-one'],branches:["zero-high-gigs","multiple-high-gigs","floor-one"]}]},
  'ruthless-lowlife':{sourceHash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',segments:[{index:1,hash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',cases:['cannot-attack-gigs-even-when-rival-has-gigs'],branches:["unit-target-allowed","gig-area-target-forbidden"]}]},
+ 'rita-wheeler-no-stupid-questions':{
+  sourceHash:'29f27bb8a79873ca9339f3a6b3cdb22a7a42e290e23a9fbb79d5b36743be7feb',segments:[
+   {index:1,hash:'29f27bb8a79873ca9339f3a6b3cdb22a7a42e290e23a9fbb79d5b36743be7feb',cases:["rita-first-spend-draw-then-discard-one","rita-second-spend-same-turn-does-not-trigger","rita-other-unit-spend-does-not-trigger"],branches:["first-spent","repeat-same-turn","other-unit-spent","draw-then-discard"]}
+  ]},
+ 'la-llorona-ghost-of-the-past':{
+  sourceHash:'512cce94f42ce54acea7b33abd1f00a641fb9fc261af995a38c8464ccc299685',segments:[
+   {index:1,hash:'512cce94f42ce54acea7b33abd1f00a641fb9fc261af995a38c8464ccc299685',cases:["la-llorona-own-blocker-increases-gig-by-up-to-three","la-llorona-other-blocker-no-gig-effect","la-llorona-optional-gig-adjustment-declined","la-llorona-die-maximum-prevents-overcap"],branches:["own-blocker","different-blocker","decline","maximum-die-cap"]}
+  ]},
+ 'pacifica-netrunner':{
+  sourceHash:'09702a314ed976116dbafd59fb965ad044acde1c0765fb6b288e1b2f97223b19',segments:[
+   {index:1,hash:'09702a314ed976116dbafd59fb965ad044acde1c0765fb6b288e1b2f97223b19',cases:["pacifica-even-street-cred-blocks-rival-ready","pacifica-odd-street-cred-no-ready-restriction","pacifica-no-gigs-does-not-count-as-even","pacifica-even-cred-without-rival-target-no-op"],branches:["street-cred-even","street-cred-odd","no-gigs","rival-target-required"]}
+  ]},
  'deadman-transmitter':{
   sourceHash:'702eba428266e90609c02f749acc096b62dcc7f76a5c6962384c4a2fbf3a056e',segments:[
    {index:1,hash:'702eba428266e90609c02f749acc096b62dcc7f76a5c6962384c4a2fbf3a056e',cases:["deadman-host-defeat-prevented-gear-destroyed-instead","deadman-second-defeat-without-gear-defeats-host","deadman-on-different-host-does-not-prevent-defeat"],branches:["replace-host-defeat","substitute-gear-trash","second-defeat","unrelated-host-no-prevention"]}

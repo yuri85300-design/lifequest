@@ -30,6 +30,7 @@ on:
       - 'native/semantic_oracles_core_conditions.cjs'
       - 'native/semantic_oracles_trigger_conditions.cjs'
       - 'native/semantic_oracles_high_risk_replacements.cjs'
+      - 'native/semantic_oracles_timing_reactions.cjs'
       - 'native/official_independent_oracles.cjs'
       - 'native/nocturne_official_oracles.cjs'
       - 'native/official_clause_witnesses.cjs'
