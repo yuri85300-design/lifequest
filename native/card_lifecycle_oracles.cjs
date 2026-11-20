@@ -1,7 +1,7 @@
 'use strict';
 /**
  * One independent end-to-end entry scenario per card. This is a LIFECYCLE
- * oracle, not an oracle for every clause in its effect text.
+ * oracle, not an oracle for every clause in its effect text.\n * This branch is used to verify the runtime in GitHub Actions.
  * Each card is brought into a real Game, with zones/owner, timing windows,
  * legal destination and UID integrity verified. Outputs JSON evidence.
  */
