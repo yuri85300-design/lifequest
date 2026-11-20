@@ -12,8 +12,10 @@ module.exports=async function verifyQuickContracts(api,assert){
  async function t(id,clause,fn){try{await fn();checks.push({id,clause,status:'PASS',reference:'https://cyberpunktcg.com/cards/'+id})}
  catch(e){checks.push({id,clause,status:'FAIL',error:String(e.stack||e).slice(0,900),reference:'https://cyberpunktcg.com/cards/'+id})}}
  await t('cyberpsychosis','quick-contract-no-equipped-unit-cannot-play',()=>{
-   const g=G();g.P(0).field=[];g.P(1).field=[];assert.equal(CARDS.cyberpsychosis.canPlay(g,0),false);
-   u(g,'animals-wrecker').gear.push(g.newInst('mantis-blades',0));
+   const g=G();g.P(0).field=[];g.P(1).field=[];
+   u(g,'animals-wrecker');
+   assert.equal(CARDS.cyberpsychosis.canPlay(g,0),false,'bare Unit cannot satisfy equipped-only target');
+   g.P(0).field[0].gear.push(g.newInst('mantis-blades',0));
    assert.equal(CARDS.cyberpsychosis.canPlay(g,0),true);
  });
  await t('cyberpsychosis','quick-contract-two-gears-add-six-power',async()=>{
