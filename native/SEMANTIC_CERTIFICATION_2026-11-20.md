@@ -1,94 +1,75 @@
-# Certification sémantique — registre de preuves (20 novembre 2026)
+# 7 Gigs PRIME — audit sémantique et preuves indépendantes
+Mise à jour : 20 novembre 2026
 
-## Verdict actuel
+## Verdict et périmètre
 
-**Certification exhaustive non obtenue. Réentraînement compétitif NIGHTMARE toujours verrouillé.**
+**150/150 cartes disposent d'au moins un oracle comportemental individualisé.
+160/160 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
 
-Six scénarios négatifs complémentaires ont été validés : absence de Gig\néligible pour Gorilla Arms, disparition conditionnelle d'Adrénaline,\nnon-consommation de l'avantage Viktor par un équipement non-CYBERWARE,\nrefus de Corporate Surveillance sans cible légale, choix unique de\nTowerfall lorsque le joueur n'est pas derrière, et absence de révélation\npar Kiroshi Optics lorsqu'aucune Légende n'est face cachée.\n\nUne correspondance de caractéristiques, un contrôle de mots-clés et 22 500
-paires d'entrées en jeu n'impliquent pas que toutes les clauses du texte
-officiel soient respectées dans tous les états.
+Ces deux chiffres ne sont pas contradictoires : un test dédié vérifie une ou
+plusieurs propriétés concrètes mais ne démontre pas toutes les phrases,
+conditions, alternatives, séquences, interactions et errata.
 
-## Résultats supplémentaires mesurés
+Le verrou `NIGHTMARE_TRAINING_CERTIFIED = false` demeure **actif**.
+Ne pas faire dériver automatiquement la certification de la couverture
+technique, du nombre d'oracles ou des empreintes officielles.
 
-- **40 / 40** oracles comportementaux indépendants réussis, couvrant
-  **31 / 150** cartes distinctes sur des branches positives et négatives ciblées.
-- Cartes soumises à des oracles : Johnny Silverhand: Never Stop Fighting,
-  Corpo Security, Kiroshi Optics, Zetatech Berserk, Viktor Vektor:
-  Drop Your Illusions, Riot Shield, Adrenaline Converter, Towerfall,
-  Corporate Surveillance, Gorilla Arms, Mandibular Upgrade et Nocturne OP55 N1.
-- Vérifications : vente interdite, choix d'hôte, révélation des Légendes,
-  ordre et nombre de déclenchements, seuils de puissance, réductions de coût,
-  partage des valeurs de Gigs, blocage, priorité des effets, et exceptions
-  conditionnelles.
-- Source : `native/semantic_oracles.cjs`, invoquée par
-  `native/semantic_oracle_runner.cjs` et GitHub Actions.
-- Un scénario Towerfall a été corrigé parce que la cible précédente,
-  de puissance 6, ne pouvait pas atteindre 0 après -5. Cet écart était
-  dans le test, **pas un défaut établi du jeu**.
+## Preuves effectivement exécutées
 
-## Vérification individuelle du cycle de vie
+| Test | Résultat | Sens exact |
+| --- | --- | --- |
+| Déclarations de cartes du moteur | 150 | Collection de base |
+| Métadonnées anglaises éditeur | 150/150, sans divergence | Type, coût, puissance, RAM |
+| Empreintes officielles en anglais | 150/150 | Fiches enregistrées et versionnées |
+| Gestionnaires de déclencheurs imprimés | 0 manquant détecté | Existence du gestionnaire, pas exactitude |
+| Scénarios individuels cycle de vie | 150/150 | Entrée en jeu, destination, UID, propriétaire |
+| Oracles comportementaux dédiés | **160/160 PASS** | **150 cartes distinctes** |
+| Interactions paires techniques | 22 500/22 500 | Invariants d'état |
+| Parties IA/IA | 1 000/1 000 | Terminaison, légalité des coups |
+| Écran PC / mobile émulé Chromium | 16/16 | Parcours de l'interface |
+| Cartes certifiées sur toutes les clauses | **0/150** | Revue exhaustive encore manquante |
 
-La batterie `native/card_lifecycle_oracles.cjs` a validé **150/150 scénarios** en CI : entrée de chaque carte, destination, zone, hôte d'équipement, identité et propriété des objets. Ce contrôle n'est pas une preuve complète des effets.
+Workflow indépendamment exécuté et réussi :
+https://github.com/yuri85300-design/lifequest/actions/runs/44772982020
 
-Dix autres oracles ont été ajoutés pour Octant, Ruthless Lowlife, Field Operator, Swordwise Huscle, Trauma Team Operatives, MaxTac Heavy, 6th Street Recruits, Maelstrom Zealots, River Ward: Detective on the Hunt et Goro Takemura: Vengeful Bodyguard : réductions conditionnelles, interdiction d'attaque, pioche, seuils de puissance et combats.
+Le workflow produit les preuves `semantic-oracles.json`,
+`card-lifecycle.json`, `semantic-register.json` et
+`semantic-gaps.md`. Des exécutions réunissant l'audit officiel produisent
+également `official-cards.json`, ses SHA-256 et les segments candidats du
+texte officiel.
 
-## Vérification systématique des déclencheurs officiels
+## Infrastructure de validation
 
-Le contrôle `native/official_card_audit.cjs` confronte les marqueurs
-`Play`, `Attack`, `Call`, `Defeated`, `Go Solo`, `Adrenaline`,
-`Blocker` et `Quick` publiés en anglais aux gestionnaires runtime.
+- `native/semantic_oracle_runner.cjs` regroupe **9 suites** ;
+  il échoue si une carte n'a aucun oracle dédié, si une attente échoue, ou
+  si l'inventaire diverge de 150.
+- `native/card_lifecycle_oracles.cjs` vérifie le cycle de vie séparément.
+- `native/official_card_audit.cjs` contrôle les textes anglais publiés,
+  les caractéristiques et les déclencheurs imprimés.
+- `native/semantic_register.cjs` conserve les preuves par identifiant,
+  les empreintes des textes, les clauses candidates non revues et les lacunes.
+- `.github/workflows/semantic-oracles.yml` et
+  `.github/workflows/official-cards.yml` exécutent les validations en CI.
 
-**Résultat GitHub vérifié : 150/150 fiches lues, 0 caractéristique
-divergente, 0 gestionnaire de déclencheur manquant détecté.**
-Deux cas `Quick` de Légendes ont été distingués des Programmes Quick ;
-leur comportement activable est couvert par les oracles 39 et 40.
+## Verrous restant à lever pour une certification effective
 
-Cela prouve la présence structurelle des gestionnaires détectés,
-**pas** l'exactitude de toutes leurs clauses internes.
+1. Découper chaque texte anglais officiel en clauses contrôlées par un réviseur,
+   et pas uniquement au moyen d'une séparation automatique en phrases.
+2. Relier **chaque clause** à au moins un oracle de comportement indépendant ;
+   tester aussi les conditions vraies et fausses, les cibles indisponibles,
+   les choix optionnels, les zones cachées et les cas limites.
+3. Tester les interactions combinées (plusieurs effets simultanés,
+   capacités Quick, protection/vol de Gigs, deck épuisé, effets de remplacement)
+   selon les règles complètes et errata du **17 novembre 2026**.
+4. Vérifier l'absence d'écart entre comportement, texte anglais et
+   règles générales ; conserver les résultats et la version officielle.
+5. Ne marquer `semanticCertified: true` qu'après cette démonstration,
+   pour chacune des 150 cartes, sans dérogation automatique.
 
-Exécution : https://github.com/yuri85300-design/lifequest/actions/runs/44769066019
+**Le jalon « 100 % des cartes avec oracle individualisé » est atteint.
+Le jalon « 100 % des clauses et interactions certifiées » ne l'est pas.**
 
-## État des 150 cartes
-
-Le registre `native/semantic_register.cjs` produit un fichier
-`audit-results/semantic-register.json`, une entrée par carte :
-
-- URL de référence officielle et empreinte SHA-256 du texte anglais
-  (lorsque l'audit officiel a été exécuté dans la même tâche) ;
-- empreinte de la traduction française, familles de capacités dans le moteur ;
-- oracles réussis et zones explicitement non démontrées ;
-- `semanticCertified: false` pour toute carte tant que sa revue clause
-  par clause n'est pas complète.
-
-Les **119 cartes sans oracle sémantique individualisé** demeurent prioritaires. Les
-12 autres cartes ne sont pas davantage certifiées intégralement : leurs
-tests prouvent seulement les clauses effectivement examinées.
-
-## Critères nécessaires avant certification
-
-1. Décomposer **chaque** carte en clauses officielles atomiques
-   (coût, déclencheur, condition, cible, choix, effet, durée, zone).
-2. Pour chaque condition, tester la branche vraie **et** la branche fausse ;
-   pour chaque choix, toutes les options, les refus et cas limites.
-3. Vérifier indépendamment les fenêtres de timing et les interactions
-   avec les règles complètes actuelles et l'errata.
-4. Enregistrer une preuve automatique ou vérification humaine séparée
-   pour **chacune** de ces clauses, avec version des règles et empreinte du
-   texte officiel.
-5. Aucune carte ne peut être déclarée certifiée si ses clauses ne sont
-   pas toutes rapprochées et démontrées.
-
-La certification reste distincte de la validation technique de
-`native/audit_220.cjs`, des tests Chromium et de la conformité
-des 150 caractéristiques publiées.
-
-## Reproduction
-
-```bash
-node native/semantic_oracle_runner.cjs
-node native/semantic_register.cjs
-node native/semantic_register.cjs --require-certification  # échec attendu
-```
-
-Workflow :
-[7 Gigs PRIME — independent semantic oracles](https://github.com/yuri85300-design/lifequest/actions/workflows/semantic-oracles.yml).
+Références :
+https://cyberpunktcg.com/cards
+https://cyberpunktcg.com/errata
+https://cyberpunktcg.com/comprehensive-rules
