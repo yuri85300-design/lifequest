@@ -4,7 +4,7 @@ Mise à jour : 20 novembre 2026
 ## Verdict et périmètre
 
 **150/150 cartes disposent d'au moins un oracle comportemental individualisé.
-170/170 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
+177/177 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
 
 Ces deux chiffres ne sont pas contradictoires : un test dédié vérifie une ou
 plusieurs propriétés concrètes mais ne démontre pas toutes les phrases,
@@ -23,7 +23,7 @@ technique, du nombre d'oracles ou des empreintes officielles.
 | Empreintes officielles en anglais | 150/150 | Fiches enregistrées et versionnées |
 | Gestionnaires de déclencheurs imprimés | 0 manquant détecté | Existence du gestionnaire, pas exactitude |
 | Scénarios individuels cycle de vie | 150/150 | Entrée en jeu, destination, UID, propriétaire |
-| Oracles comportementaux dédiés | **170/170 PASS** | **150 cartes distinctes** |
+| Oracles comportementaux dédiés | **177/177 PASS** | **150 cartes distinctes** |
 | Interactions paires techniques | 22 500/22 500 | Invariants d'état |
 | Parties IA/IA | 1 000/1 000 | Terminaison, légalité des coups |
 | Écran PC / mobile émulé Chromium | 16/16 | Parcours de l'interface |
@@ -50,6 +50,26 @@ texte officiel.
   les empreintes des textes, les clauses candidates non revues et les lacunes.
 - `.github/workflows/semantic-oracles.yml` et
   `.github/workflows/official-cards.yml` exécutent les validations en CI.
+
+## Deux divergences de jeu corrigées (non seulement des tests)
+
+- **Viktor Vektor — Drop Your Illusions** : le premier équipement
+  CYBERWARE joué gratuitement consomme dorénavant la réduction de son premier
+  équipement du tour. Avant correction, le second CYBERWARE pouvait bénéficier
+  indûment de la réduction. Régressions : main, rebut, équipement non-CYBERWARE
+  et changement de tour.
+- **Alt Cunningham — Soulkiller Architect** : sa réduction du prochain
+  Programme du tour est maintenant consommée même si ce Programme est joué
+  gratuitement. Avant correction, elle était reportée sur le Programme
+  suivant. Régressions : gratuit, payé et tentative de jeu invalide.
+
+Source canonique : textes anglais officiels des deux cartes sur
+https://cyberpunktcg.com/cards . Le moteur `native/engine.js` et la
+version jouable `native/prime_v220_runtime.html` ont été corrigés ensemble.
+
+Les **177 oracles** ont réussi en exécution directe. Le statut de
+l'exécution indépendante GitHub doit être vérifié séparément ; ne jamais
+inférer qu'un commit rend les workflows verts.
 
 ## Verrous restant à lever pour une certification effective
 
