@@ -448,3 +448,41 @@ listées et priorisées par `native/semantic_gap_matrix.cjs`.
 L'entraînement NIGHTMARE expérimental est toujours disponible ;
 `NIGHTMARE_TRAINING_CERTIFIED` reste `false` pour ne pas promouvoir
 des politiques sur une conformité non démontrée.
+
+## Revue ciblée supplémentaire : choix adverses, remplacement et zones (20 nov. 2026)
+
+Contrôles ajoutés sur :
+- **Gunpoint Diplomacy** : les deux effets disponibles quand le
+  contrôleur n'est pas derrière en Street Cred, choix de l'unique effet
+  par le rival quand il est derrière, expiration du bonus et consommation
+  de la permission de cibler une unité prête à la *prochaine attaque*.
+- **Bonnie and Clyde** : ciblage de puissance au plus 4, condition du
+  déficit de deux Gigs, seconde défaite facultative, interaction réelle
+  avec **Deadman Transmitter** qui remplace une défaite par la perte
+  d'un équipement, puis seconde tentative sur une autre unité.
+- **Mox Inciters** : cible adverse et indicateur d'attaque forcée,
+  absence de cible et mot-clé BLOQUEUR.
+- **Lizzy Wizzy, Delicate Weapon** : jeu gratuit d'un Programme
+  admissible depuis la main ou le rebut via `Game.playCard`,
+  placement sous le deck, refus facultatif et exclusion coût >3.
+  Les fixtures ont été corrigées pour distinguer `undefined` de
+  `false` pour l'indicateur `playedProgram`.
+
+Preuves d'exécution :
+- [44817733312](https://github.com/yuri85300-design/lifequest/actions/runs/44817733312)
+  : **350/350 oracles PASS** ;
+- [44818268896](https://github.com/yuri85300-design/lifequest/actions/runs/44818268896)
+  : **356/356 oracles PASS**, sans échec.
+
+Dernier audit officiel complet confirmé à ce moment :
+[44817528013](https://github.com/yuri85300-design/lifequest/actions/runs/44817528013)
+**119/280 fragments avec témoins partiels, 161 non rapprochés,
+0/150 carte intégralement certifiée**. La matrice améliorée distingue
+**88/150 cartes dont tous les fragments candidats sont partiellement
+rapprochés** : elles sont prioritaires pour la revue exhaustive des
+branches et interactions, mais aucune n'est certifiée pour autant.
+L'audit officiel du dernier ajout Lizzy doit encore être vérifié
+avant de compter ses trois nouveaux fragments.
+
+L'entraînement expérimental NIGHTMARE reste disponible, et la promotion
+compétitive certifiée reste verrouillée jusqu'à preuve exhaustive.
