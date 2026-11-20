@@ -98,3 +98,65 @@ test('deck editor and rules screen are accessible',async ({page})=>{
   await page.locator('[data-nav="rules"]').first().click();
   await expect(page.getByText('Résumé des attaques et des Gigs')).toBeVisible();
 });
+
+test('collection advisor enters from main menu, imports quantities and persists',async ({page})=>{
+  await page.locator('#homeMenuBtn').click();
+  await page.locator('[data-collection]').click();
+  await expect(page.getByText('Construis ton deck avec tes vraies cartes')).toBeVisible();
+  await expect(page.locator('#collectionSave')).toHaveCount(0);
+  await page.locator('#collectionImport').click();
+  await page.locator('#ownedPaste').fill('2x mantis-blades\\n1x corpo-security');
+  await page.locator('#ownedApply').click();
+  await expect(page.locator('.collection-count')).toContainText('3 exemplaires');
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#homeMenuBtn').click();
+  await page.locator('[data-collection]').click();
+  await expect(page.locator('.collection-count')).toContainText('3 exemplaires');
+  await page.locator('#collectionSearch').fill('Mantis Blades');
+  await expect(page.locator('[data-own-count="mantis-blades"]')).toHaveText('2');
+  await page.locator('[data-own-plus="mantis-blades"]').click();
+  await expect(page.locator('[data-own-count="mantis-blades"]')).toHaveText('3');
+});
+
+test('collection advisor never invents owned cards and saves a fully owned legal deck',async ({page})=>{
+  const status=await page.evaluate(()=>{
+    const empty=CollectionAdvisor.suggest({},CARDS,presetDecks(),validateDeck,deckRamLimits);
+    const starter=Object.values(presetDecks()).find(d=>d.official&&!validateDeck(d).length);
+    if(!starter)throw Error('No legal official starter');
+    const owned={};
+    for(const id of [...starter.main,...starter.legends])owned[id]=(owned[id]||0)+1;
+    const proposal=CollectionAdvisor.suggest(owned,CARDS,presetDecks(),validateDeck,deckRamLimits);
+    localStorage.setItem('septgigs.collectionV1',JSON.stringify(owned));
+    return {emptyPlayable:!!empty.ownedBest?.playable,sourceMissing:empty.closest?.missingCopies,
+      legal:proposal.ownedBest?.playable,valid:proposal.ownedBest?validateDeck(proposal.ownedBest.deck):['missing'],
+      count:proposal.ownedBest?.deck.main.length};
+  });
+  expect(status.emptyPlayable).toBe(false);
+  expect(status.sourceMissing).toBeGreaterThan(0);
+  expect(status.legal).toBe(true);
+  expect(status.valid).toEqual([]);
+  expect(status.count).toBe(40);
+  await page.locator('#homeMenuBtn').click();
+  await page.locator('[data-collection]').click();
+  await expect(page.locator('#collectionSave')).toBeEnabled();
+  await page.locator('#collectionSave').click();
+  await expect(page.getByText('Vos decks et archétypes')).toBeVisible();
+  const deck=await page.evaluate(()=>{
+    const selected=JSON.parse(localStorage.getItem('septgigs.myDeck'));
+    const decks=JSON.parse(localStorage.getItem('septgigs.decks'));
+    return {selected,deck:decks[selected],errors:validateDeck(decks[selected])};
+  });
+  expect(deck.selected).toMatch(/^collection-/);
+  expect(deck.deck.main).toHaveLength(40);
+  expect(deck.errors).toEqual([]);
+});
+
+test('collection parser rejects unknown names and honors copy quantities',async ({page})=>{
+  const parsed=await page.evaluate(()=>CollectionAdvisor.importText(
+    '2x mantis-blades\\n3x totally-fictional-card\\ncorpo-security',
+    CARDS,{'mantis-blades':1}));
+  expect(parsed.owned['mantis-blades']).toBe(3);
+  expect(parsed.owned['corpo-security']).toBe(1);
+  expect(parsed.errors).toHaveLength(1);
+  expect(parsed.owned['totally-fictional-card']).toBeUndefined();
+});
