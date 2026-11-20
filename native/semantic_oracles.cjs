@@ -2,6 +2,7 @@
 // Targeted independent behavioural oracles grounded in current English card pages.
 // These tests deliberately do not claim exhaustive coverage of any card.
 // Exported as a function so CI and in-memory V8 runners use the SAME assertions.
+// Validation branch: extend evidence from 21 to 38 tested behavioral clauses.
 module.exports=async function runSemanticOracles(api,assert){
  const {Game,GameOver,CARDS,presetDecks,FastPolicy}=api;
  const decks=presetDecks(),tests=[];
@@ -180,6 +181,123 @@ module.exports=async function runSemanticOracles(api,assert){
   await CARDS[gr.id].onHostAttack(g,gr,u,0);
   assert.equal(p.legends.filter(l=>l.known).length,0);
   assert.equal(p.legends.every(l=>l.faceUp),true);
+ });
+ await check('animals-wrecker','vanilla-power-10-and-entry-lag',()=>{
+  const g=make(),u=put(g,'animals-wrecker');u.lag=true;
+  assert.equal(g.eff(u),10);assert.equal(g.canAttackNow(u),false);
+  u.lag=false;assert.equal(g.canAttackNow(u),true);
+ });
+ await check('mantis-blades','vanilla-gear-adds-exactly-two-power',()=>{
+  const g=make(),u=put(g,'animals-wrecker'),gr=g.newInst('mantis-blades',0);
+  assert.equal(g.eff(u),10);u.gear.push(gr);
+  assert.equal(g.eff(u),12);
+ });
+ await check('rockn-rockerboy','vanilla-power-eight-with-normal-entry-lag',()=>{
+  const g=make(),u=put(g,'rockn-rockerboy');u.lag=true;
+  assert.equal(g.eff(u),8);assert.equal(g.canAttackNow(u),false);
+  u.lag=false;assert.equal(g.canAttackNow(u),true);
+ });
+ await check('emergency-atlus','vanilla-power-four-and-no-extra-keywords',()=>{
+  const g=make(),u=put(g,'emergency-atlus');
+  assert.equal(g.eff(u),4);
+  assert.equal(g.hasKw(u,'ADRENALINE'),false);
+  assert.equal(g.hasKw(u,'BLOCKER'),false);
+ });
+ await check('psycho-squad','vanilla-power-six-and-no-extra-keywords',()=>{
+  const g=make(),u=put(g,'psycho-squad');
+  assert.equal(g.eff(u),6);
+  assert.equal(g.hasKw(u,'ADRENALINE'),false);
+  assert.equal(g.hasKw(u,'BLOCKER'),false);
+ });
+ await check('secondhand-bombus','zero-power-blocker-cannot-steal-gigs',()=>{
+  const g=make(),u=put(g,'secondhand-bombus');
+  assert.equal(g.eff(u),0);assert.equal(g.hasKw(u,'BLOCKER'),true);
+  assert.equal(g.stealCount(u),0);
+ });
+ await check('riding-nomad','printed-adrenaline-allows-attack-on-entry',()=>{
+  const g=make(),u=put(g,'riding-nomad');u.lag=true;
+  assert.equal(g.hasKw(u,'ADRENALINE'),true);
+  assert.equal(g.canAttackNow(u),true);
+ });
+ await check('goro-takemura-hands-unclean','legend-go-solo-and-blocker-granted',async()=>{
+  const g=make(),p=g.P(0),l=g.newInst('goro-takemura-hands-unclean',0);
+  p.legends=[l];l.faceUp=true;
+  assert.equal(g.hasKw(l,'GO_SOLO'),true);
+  assert.equal(g.hasKw(l,'BLOCKER'),true);
+  p.eddies=Array.from({length:12},(_,n)=>({uid:800000+n,ready:true}));
+  await g.withTimingWindow(()=>g.goSolo(0,l.uid,true));
+  assert.equal(g.onField(l),true);
+  assert.equal(l.flags.solo,true);
+  assert.equal(g.canAttackNow(l),true);
+ });
+ await check('v-corporate-exile','go-solo-attacks-turn-played-and-exiles-on-defeat',async()=>{
+  const g=make(),p=g.P(0),l=g.newInst('v-corporate-exile',0);
+  p.legends=[l];l.faceUp=true;
+  assert.equal(g.hasKw(l,'GO_SOLO'),true);
+  p.eddies=Array.from({length:12},(_,n)=>({uid:801000+n,ready:true}));
+  await g.withTimingWindow(()=>g.goSolo(0,l.uid,true));
+  assert.equal(g.onField(l),true);assert.equal(g.canAttackNow(l),true);
+  await g.withTimingWindow(()=>g.defeat(l,{effect:true}));
+  assert.equal(g.onField(l),false);
+  assert.equal(p.removed.includes(l),true);
+ });
+ await check('octant','gig-value-eight-or-more-discount-with-minimum-one',()=>{
+  const g=make(),p=g.P(0),u=g.newInst('octant',0);
+  p.gigs=[];assert.equal(g.costOf(u,0),7);
+  p.gigs=[gig(80211,8,8),gig(80212,9,10),gig(80213,10,12)];
+  assert.equal(g.costOf(u,0),4);
+  p.gigs=Array.from({length:8},(_,n)=>gig(80220+n,8,8));
+  assert.equal(g.costOf(u,0),1);
+ });
+ await check('ruthless-lowlife','cannot-attack-gigs-even-when-rival-has-gigs',()=>{
+  const g=make(),u=put(g,'ruthless-lowlife'),e=put(g,'animals-wrecker',1);
+  u.lag=false;e.ready=false;g.P(1).gigs=[gig(80231,3)];
+  assert.equal(g.attackTargets(u).some(t=>t.kind==='gigs'),false);
+  assert.equal(g.attackTargets(u).some(t=>t.kind==='unit'&&t.uid===e.uid),true);
+ });
+ await check('field-operator','even-street-cred-draws-odd-does-not',async()=>{
+  const g=make(),p=g.P(0),c=g.newInst('field-operator',0);
+  p.gigs=[gig(80241,2)];const n=p.hand.length;
+  await CARDS[c.id].onPlay(g,c,0);assert.equal(p.hand.length,n+1);
+  p.gigs=[gig(80242,3)];const m=p.hand.length;
+  await CARDS[c.id].onPlay(g,c,0);assert.equal(p.hand.length,m);
+ });
+ await check('swordwise-huscle','attack-power-five-draw-threshold',async()=>{
+  const g=make(),p=g.P(0),u=put(g,'swordwise-huscle');
+  const n=p.hand.length;await CARDS[u.id].onAttack(g,u,0);
+  assert.equal(p.hand.length,n);
+  g.buff(u,2,'turn',0);
+  await CARDS[u.id].onAttack(g,u,0);
+  assert.equal(p.hand.length,n+1);
+ });
+ await check('trauma-team-operatives','discount-by-unit-in-trash-floor-one',()=>{
+  const g=make(),p=g.P(0),u=g.newInst('trauma-team-operatives',0);
+  const baseline=g.costOf(u,0);
+  p.trash.push(g.newInst('animals-wrecker',0),g.newInst('corpo-security',0));
+  assert.equal(g.costOf(u,0),Math.max(1,baseline-2));
+  p.trash.push(...Array.from({length:12},()=>g.newInst('riding-nomad',0)));
+  assert.equal(g.costOf(u,0),1);
+ });
+ await check('maxtac-heavy','discount-by-rival-units-minimum-one',()=>{
+  const g=make(),u=g.newInst('maxtac-heavy',0),p=g.P(1);
+  p.field=[];const baseline=g.costOf(u,0);
+  p.field.push(g.newInst('animals-wrecker',1),g.newInst('corpo-security',1));
+  assert.equal(g.costOf(u,0),Math.max(1,baseline-2));
+  p.field.push(...Array.from({length:10},()=>g.newInst('riding-nomad',1)));
+  assert.equal(g.costOf(u,0),1);
+ });
+ await check('6th-street-recruits','d6-steal-triggers-gig-increase',async()=>{
+  const g=make(),u=put(g,'6th-street-recruits'),p=g.P(0);
+  p.gigs=[gig(80311,1,10)];const enemyDie=gig(80312,3,6);
+  g.P(1).gigs=[enemyDie];const previous=p.gigs.map(d=>d.value);
+  await g.stealGig(0,enemyDie,u);
+  assert.equal(p.gigs.length,2);
+  assert.equal(p.gigs.some((d,i)=>d.value>(previous[i]??3)),true);
+ });
+ await check('maelstrom-zealots','losing-fight-defeats-opposing-unit',async()=>{
+  const g=make(),u=put(g,'maelstrom-zealots'),e=put(g,'animals-wrecker',1);
+  await g.fight({attacker:u.uid,p:0,target:{kind:'unit',uid:e.uid}});
+  assert.equal(g.onField(e),false);
  });
  return {count:tests.length,passed:tests.filter(t=>t.status==='PASS').length,failed:tests.filter(t=>t.status==='FAIL').length,tests};
 };
