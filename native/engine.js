@@ -1123,14 +1123,30 @@ function deckRamLimits(legendIds) {
 }
 function validateDeck(deck) {
   const errs = [];
+  if (!deck || !Array.isArray(deck.legends) || !Array.isArray(deck.main)) {
+    return ['Deck invalide : la liste des cartes ou des Légendes est illisible.'];
+  }
   if (deck.legends.length !== 3) errs.push('Il faut exactement 3 Légendes.');
-  const names = deck.legends.map(id => CARDS[id]?.name);
+  const names = deck.legends.map(id => CARDS[id]?.name || String(id));
+  for (const id of deck.legends) {
+    if (!CARDS[id] || CARDS[id].type !== 'Legend') errs.push('Légende inconnue ou invalide : ' + String(id).slice(0, 80));
+  }
   if (new Set(names).size !== names.length) errs.push('Deux Légendes ne peuvent pas porter le même nom.');
   if (deck.main.length < 40 || deck.main.length > 50) errs.push(`Le deck principal doit contenir 40 à 50 cartes (actuellement ${deck.main.length}).`);
-  const cnt = {}; for (const id of deck.main) cnt[id] = (cnt[id] || 0) + 1;
-  for (const [id, n] of Object.entries(cnt)) if (n > 3) errs.push(`Max 3 exemplaires : ${CARDS[id].name}.`);
+  const cnt = {};
+  for (const id of deck.main) cnt[id] = (cnt[id] || 0) + 1;
+  for (const [id,n] of Object.entries(cnt)) {
+    if (!CARDS[id] || CARDS[id].type === 'Legend') {
+      errs.push('Carte inconnue ou invalide dans le deck : ' + String(id).slice(0, 80));
+      continue;
+    }
+    if (n > 3) errs.push(`Max 3 exemplaires : ${CARDS[id].name}.`);
+  }
   const lim = deckRamLimits(deck.legends);
-  for (const id of Object.keys(cnt)) { const d = CARDS[id]; if ((d.ram || 0) > lim[d.color]) errs.push(`RAM insuffisante pour ${d.name}${d.sub ? ' — ' + d.sub : ''} (${COLOR_FR[d.color]} ${d.ram} > ${lim[d.color]}).`); }
+  for (const id of Object.keys(cnt)) {
+    const d = CARDS[id];
+    if (d && (d.ram || 0) > lim[d.color]) errs.push(`RAM insuffisante pour ${d.name}${d.sub ? ' — ' + d.sub : ''} (${COLOR_FR[d.color]} ${d.ram} > ${lim[d.color]}).`);
+  }
   return errs;
 }
 const COLOR_FR = { Red: 'Rouge', Yellow: 'Jaune', Green: 'Vert', Blue: 'Bleu' };
