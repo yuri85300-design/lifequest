@@ -5,6 +5,7 @@ on:
     paths:
       - 'native/prime_v254_runtime.html'
       - 'native/PrimeUpdater254Activity.java'
+      - 'native/audit_254.cjs'
       - '.github/workflows/build-prime254.yml'
   workflow_dispatch:
 permissions:
