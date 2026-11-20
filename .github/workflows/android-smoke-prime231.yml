@@ -1,0 +1,79 @@
+name: 7 Gigs PRIME 2.3.1 - Android 15 VF hors connexion
+on:
+  workflow_run:
+    workflows: ["7 Gigs PRIME 2.3.1 - APK VF intégral hors ligne"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  android-offline:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Recuperer le veritable APK compile du workflow precedent
+        uses: actions/download-artifact@v4
+        with:
+          name: 7Gigs-PRIME-231-APK
+          path: /tmp/prime231-apk
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id || 44712230985 }}
+      - name: Verifier les 150 fichiers VF dans le paquet signe
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s /tmp/prime231-apk/7Gigs-PRIME-2.3.1.apk
+          python3 - <<'PY'
+          import zipfile,hashlib
+          p='/tmp/prime231-apk/7Gigs-PRIME-2.3.1.apk'
+          with zipfile.ZipFile(p) as a:
+              names=[n for n in a.namelist() if n.startswith('assets/www/images_vf/')]
+              assert len(names)==150
+              assert a.testzip() is None
+              for name in names:
+                  data=a.read(name)
+                  assert data.startswith(b'RIFF') and data[8:12]==b'WEBP',name
+          print('APK ART VF 150/150 VALID')
+          PY
+          mkdir -p /tmp/prime231-proof
+          sha256sum /tmp/prime231-apk/7Gigs-PRIME-2.3.1.apk | tee /tmp/prime231-proof/sha256.txt
+      - name: Autoriser accelerateur Android
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Installer et verifier 150 illustrations sans connexion sur Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            set -euo pipefail
+            adb install -r /tmp/prime231-apk/7Gigs-PRIME-2.3.1.apk
+            adb shell svc wifi disable
+            adb shell svc data disable
+            adb logcat -c
+            adb shell am start -W -n dev.septgigs.neonarena.prime231/dev.septgigs.neonarena.prime.Prime231Activity --ez offlineQa true | tee /tmp/prime231-proof/start.txt
+            sleep 30
+            adb shell dumpsys activity activities > /tmp/prime231-proof/activity.txt
+            adb logcat -d > /tmp/prime231-proof/logcat.txt
+            adb shell screencap -p /sdcard/prime231-offline.png
+            adb pull /sdcard/prime231-offline.png /tmp/prime231-proof/offline.png
+            grep -q 'dev.septgigs.neonarena.prime231' /tmp/prime231-proof/activity.txt
+            grep -q 'OFFLINE_FR_QA_PASS:150/150:' /tmp/prime231-proof/logcat.txt
+            ! grep -q 'OFFLINE_FR_QA_FAIL:' /tmp/prime231-proof/logcat.txt
+            ! grep -q 'FATAL EXCEPTION' /tmp/prime231-proof/logcat.txt
+            ! grep -E '7Gigs-PRIME.*JS.*(Uncaught|SyntaxError|ReferenceError)' /tmp/prime231-proof/logcat.txt
+      - name: Conserver les preuves du test hors connexion
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PRIME231-ANDROID15-OFFLINE-150VF-QA
+          path: /tmp/prime231-proof/
+          if-no-files-found: warn
