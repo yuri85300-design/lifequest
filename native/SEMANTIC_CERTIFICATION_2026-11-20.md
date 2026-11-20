@@ -168,3 +168,22 @@ Références :
 https://cyberpunktcg.com/cards
 https://cyberpunktcg.com/errata
 https://cyberpunktcg.com/comprehensive-rules
+
+## Matrice de revue des 240 segments non rapprochés
+
+Le générateur `native/semantic_gap_matrix.cjs` a été ajouté au workflow
+`.github/workflows/official-cards.yml`. Il exige 150 fiches officielles,
+compare les empreintes des textes, vérifie la cohérence des identifiants de
+segments et le nombre de rapprochements avec le registre existant, puis
+produit `audit-results/semantic-gap-matrix.json` et
+`audit-results/semantic-gap-matrix.md` comme artefacts de CI.
+
+La matrice sépare explicitement les segments avec preuve partielle des
+segments sans oracle lié. Pour chaque fragment non lié, elle propose les
+branches positives/négatives, seuils, choix, expirations et interactions à
+examiner selon les signaux détectés. Cette liste est un **plan de revue** :
+les obligations automatiques ne remplacent pas le découpage humain des clauses
+et ne permettent aucune certification automatique. Les résultats du nouveau
+workflow doivent être consultés avant de confirmer ses nombres ou sa réussite.
+
+**Aucun des 240 segments n'est déclaré nouvellement certifié par ce changement.**
