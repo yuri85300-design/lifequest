@@ -83,18 +83,30 @@ jobs:
             grep -q 'ACTIVE_PRIME_CONTENT=27000' /tmp/prime270-proof/logcat-offline.txt
             grep -q 'OFFLINE_FR_QA_PASS:150/150:' /tmp/prime270-proof/logcat-offline.txt
             ! grep -q 'FATAL EXCEPTION' /tmp/prime270-proof/logcat-offline.txt
-            # Android 15 displays its own first-launch immersive instruction
-            # above the game. Dismiss it before actual gameplay screenshots.
+            # Dismiss Android's first-use immersive hint (it is not part of PRIME).
             adb shell input tap 915 657
             sleep 3
-            adb shell screencap -p /sdcard/prime254-ota.png
-            adb pull /sdcard/prime254-ota.png /tmp/prime270-proof/after-update-offline.png
-            adb shell uiautomator dump /sdcard/prime270-ui.xml || true
-            adb pull /sdcard/prime270-ui.xml /tmp/prime270-proof/ui-accessibility.xml || true
-            # Inspect the Decks screen and confirm that the old yellow updater
-            # is absent outside Menu, without changing or deleting any saves.
+            adb shell uiautomator dump /sdcard/pre-visual.xml
+            adb pull /sdcard/pre-visual.xml /tmp/prime270-proof/pre-visual.xml
+            # Emulator system launcher occasionally ANRs independently of PRIME.
+            # Do not call a screenshot successful while that modal covers the app.
+            if grep -q "Pixel Launcher isn" /tmp/prime270-proof/pre-visual.xml; then
+              adb shell input tap 450 1200
+              sleep 4
+            fi
+            adb shell uiautomator dump /sdcard/prime270-ui.xml
+            adb pull /sdcard/prime270-ui.xml /tmp/prime270-proof/ui-accessibility.xml
+            ! grep -qi "isn.*responding" /tmp/prime270-proof/ui-accessibility.xml
+            adb shell screencap -p /sdcard/prime270-home.png
+            adb pull /sdcard/prime270-home.png /tmp/prime270-proof/after-update-offline.png
+            # Navigate to actual Decks view, not just take a second home capture.
             adb shell input tap 220 2040
-            sleep 3
+            sleep 4
+            adb shell uiautomator dump /sdcard/prime270-decks.xml
+            adb pull /sdcard/prime270-decks.xml /tmp/prime270-proof/decks-accessibility.xml
+            grep -q 'Nouveau deck' /tmp/prime270-proof/decks-accessibility.xml
+            ! grep -qi "isn.*responding" /tmp/prime270-proof/decks-accessibility.xml
+            ! grep -q 'Vérifier les mises à jour' /tmp/prime270-proof/decks-accessibility.xml
             adb shell screencap -p /sdcard/prime270-decks.png
             adb pull /sdcard/prime270-decks.png /tmp/prime270-proof/decks-screen.png
             echo 'PRIME OTA 2.5.4 -> 2.7.0 PASSED WITHOUT APK REINSTALL'
