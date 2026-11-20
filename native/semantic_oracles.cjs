@@ -240,5 +240,63 @@ module.exports=async function runSemanticOracles(api,assert){
   assert.equal(g.onField(l),false);
   assert.equal(p.removed.includes(l),true);
  });
+ await check('octant','gig-value-eight-or-more-discount-with-minimum-one',()=>{
+  const g=make(),p=g.P(0),u=g.newInst('octant',0);
+  p.gigs=[];assert.equal(g.costOf(u,0),7);
+  p.gigs=[gig(80211,8,8),gig(80212,9,10),gig(80213,10,12)];
+  assert.equal(g.costOf(u,0),4);
+  p.gigs=Array.from({length:8},(_,n)=>gig(80220+n,8,8));
+  assert.equal(g.costOf(u,0),1);
+ });
+ await check('ruthless-lowlife','cannot-attack-gigs-even-when-rival-has-gigs',()=>{
+  const g=make(),u=put(g,'ruthless-lowlife'),e=put(g,'animals-wrecker',1);
+  u.lag=false;e.ready=false;g.P(1).gigs=[gig(80231,3)];
+  assert.equal(g.attackTargets(u).some(t=>t.kind==='gigs'),false);
+  assert.equal(g.attackTargets(u).some(t=>t.kind==='unit'&&t.uid===e.uid),true);
+ });
+ await check('field-operator','even-street-cred-draws-odd-does-not',async()=>{
+  const g=make(),p=g.P(0),c=g.newInst('field-operator',0);
+  p.gigs=[gig(80241,2)];const n=p.hand.length;
+  await CARDS[c.id].onPlay(g,c,0);assert.equal(p.hand.length,n+1);
+  p.gigs=[gig(80242,3)];const m=p.hand.length;
+  await CARDS[c.id].onPlay(g,c,0);assert.equal(p.hand.length,m);
+ });
+ await check('swordwise-huscle','attack-power-five-draw-threshold',async()=>{
+  const g=make(),p=g.P(0),u=put(g,'swordwise-huscle');
+  const n=p.hand.length;await CARDS[u.id].onAttack(g,u,0);
+  assert.equal(p.hand.length,n);
+  g.buff(u,2,'turn',0);
+  await CARDS[u.id].onAttack(g,u,0);
+  assert.equal(p.hand.length,n+1);
+ });
+ await check('trauma-team-operatives','discount-by-unit-in-trash-floor-one',()=>{
+  const g=make(),p=g.P(0),u=g.newInst('trauma-team-operatives',0);
+  const baseline=g.costOf(u,0);
+  p.trash.push(g.newInst('animals-wrecker',0),g.newInst('corpo-security',0));
+  assert.equal(g.costOf(u,0),Math.max(1,baseline-2));
+  p.trash.push(...Array.from({length:12},()=>g.newInst('riding-nomad',0)));
+  assert.equal(g.costOf(u,0),1);
+ });
+ await check('maxtac-heavy','discount-by-rival-units-minimum-one',()=>{
+  const g=make(),u=g.newInst('maxtac-heavy',0),p=g.P(1);
+  p.field=[];const baseline=g.costOf(u,0);
+  p.field.push(g.newInst('animals-wrecker',1),g.newInst('corpo-security',1));
+  assert.equal(g.costOf(u,0),Math.max(1,baseline-2));
+  p.field.push(...Array.from({length:10},()=>g.newInst('riding-nomad',1)));
+  assert.equal(g.costOf(u,0),1);
+ });
+ await check('6th-street-recruits','d6-steal-triggers-gig-increase',async()=>{
+  const g=make(),u=put(g,'6th-street-recruits'),p=g.P(0);
+  p.gigs=[gig(80311,1,10)];const enemyDie=gig(80312,3,6);
+  g.P(1).gigs=[enemyDie];const previous=p.gigs.map(d=>d.value);
+  await g.stealGig(0,enemyDie,u);
+  assert.equal(p.gigs.length,2);
+  assert.equal(p.gigs.some((d,i)=>d.value>(previous[i]??3)),true);
+ });
+ await check('maelstrom-zealots','losing-fight-defeats-opposing-unit',async()=>{
+  const g=make(),u=put(g,'maelstrom-zealots'),e=put(g,'animals-wrecker',1);
+  await g.fight({attacker:u.uid,p:0,target:{kind:'unit',uid:e.uid}});
+  assert.equal(g.onField(e),false);
+ });
  return {count:tests.length,passed:tests.filter(t=>t.status==='PASS').length,failed:tests.filter(t=>t.status==='FAIL').length,tests};
 };
