@@ -884,6 +884,20 @@ html,body{background:#030813}
 .prime-stats-grid small{display:block;color:#b8cedd;margin-top:4px}
 .prime-mission p{font-size:13px;line-height:1.5}.prime-mission .btn{display:block;margin-top:9px;min-height:44px;width:100%}.prime-mission.cleared{border-color:#267b70}
 .prime-history{border-bottom:1px solid #53748955;padding:8px 0;font-size:12px}
+
+/* Collection and owned-card advisor */
+.sim-collection{display:flex;flex-direction:column;gap:16px;max-width:1150px;margin:0 auto;width:100%;box-sizing:border-box;padding-bottom:100px}
+.collection-intro,.collection-panel{border:1px solid rgba(165,201,230,.18);background:rgba(9,24,40,.78);border-radius:17px;padding:17px}
+.collection-intro h3,.collection-panel h3{margin:0 0 12px;font-size:19px}
+.collection-panel h4{margin:7px 0;color:#ffd99d;font-size:18px}
+.collection-intro p,.collection-panel p{line-height:1.55}
+.collection-count{padding:10px 0;color:#ffdba8;font-size:15px}
+.collection-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:8px;max-height:360px;overflow:auto;padding:4px}
+.collection-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border:1px solid rgba(164,190,215,.15);border-radius:10px;background:rgba(16,35,55,.7)}
+.collection-cardname{min-width:0;flex:1;font-size:13px}.collection-cardname b{display:block;overflow-wrap:anywhere}.collection-cardname small{display:block;color:#a7b9cc;margin-top:3px}
+.collection-entry .sim-qty{flex-shrink:0}.collection-missing{max-height:270px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:5px;padding:12px 0}.collection-missing>div{padding:6px 0;color:#e2ebf1}
+.collection-valid{color:#a7e6b8}.collection-notready{color:#ffd2a2}.collection-panel details summary{cursor:pointer;font-weight:700;color:#e6c38f}
+@media(max-width:550px){.collection-grid{grid-template-columns:1fr;max-height:380px}.collection-panel,.collection-intro{padding:12px}.collection-entry{padding:8px}.sim-collection{gap:10px}}
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -4643,7 +4657,7 @@ function showCombatPreview(id, inst, actions = [], run = () => {}) {
 function mount(html) { closeSheet(); app.querySelectorAll('.choice-peek-shield').forEach(el=>el.remove()); app.innerHTML = html; }
 function topbar(title, back = 'home') { return `<div class="topbar"><button class="iconbtn" data-nav="${back}" aria-label="Retour">${ICON.back}</button><h2>${esc(title)}</h2></div>`; }
 app.addEventListener('click', e => { const n = e.target.closest('[data-nav]'); if (n) { e.preventDefault(); go(n.dataset.nav); } });
-function go(screen, arg) { ({ home: homeScreen, setup: setupScreen, decks: decksScreen, cards: cardsScreen, rules: rulesScreen, builder: builderScreen, lab: labScreen, campaign: campaignScreen, stats: statsScreen, challenge: challengeScreen }[screen] || homeScreen)(arg); }
+function go(screen, arg) { ({ home: homeScreen, setup: setupScreen, decks: decksScreen, cards: cardsScreen, rules: rulesScreen, builder: builderScreen, collection: collectionScreen, lab: labScreen, campaign: campaignScreen, stats: statsScreen, challenge: challengeScreen }[screen] || homeScreen)(arg); }
 
 function railHTML(myGigs, rvGigs, opts = {}) {
   const cells = [];
@@ -4666,6 +4680,7 @@ function homeMenu() {
     <div class="acts prime-home-menu">
       <button class="btn primary" data-start>Lancer un duel</button>
       <button class="btn" data-decks>Mes decks</button>
+      <button class="btn" data-collection>Ma collection · Conseiller de deck</button>
       <button class="btn" data-tutorial>Apprendre à jouer</button>
       <button class="btn" data-cards>Bibliothèque des 150 cartes</button>
       <button class="btn" data-lab>Laboratoire NIGHTMARE</button>
@@ -4677,7 +4692,7 @@ function homeMenu() {
       <button class="btn ghost" data-close>Fermer le menu</button>
     </div>`);
   const nav=(selector,route)=>{sc.querySelector(selector).onclick=()=>{closeSheet();go(route);};};
-  nav('[data-start]','setup');nav('[data-decks]','decks');nav('[data-cards]','cards');
+  nav('[data-start]','setup');nav('[data-decks]','decks');nav('[data-cards]','cards');nav('[data-collection]','collection');
   nav('[data-lab]','lab');nav('[data-rules]','rules');
   nav('[data-campaign]','campaign');nav('[data-stats]','stats');nav('[data-challenge]','challenge');
   sc.querySelector('[data-tutorial]').onclick=()=>{closeSheet();tutorialScreen();};
@@ -5470,11 +5485,116 @@ async function startGame() {
   if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
 
+
+// ====================================================== MA COLLECTION =====
+function collectionScreen(){
+  let owned=CollectionAdvisor.clean(store.get('collectionV1',{}),CARDS);
+  const F={q:'',type:'',color:''};
+  const displayCard=id=>cardName(CARDS[id])+(CARDS[id].nameEn?' · '+CARDS[id].nameEn:'');
+  const analyze=()=>CollectionAdvisor.suggest(owned,CARDS,PRESETS,validateDeck,deckRamLimits);
+  const persist=()=>{if(!store.set('collectionV1',owned))toast('Stockage indisponible : collection non enregistrée',4000);};
+  const missingText=(r)=>{
+    const list=r.missingLegends.map(id=>({id,count:1})).concat(r.missingMain);
+    return list.sort((a,b)=>b.count-a.count||a.id.localeCompare(b.id));
+  };
+  function draw(){
+    const result=analyze();
+    let pool=Object.values(CARDS).filter(d=>(!F.type||d.type===F.type)&&(!F.color||d.color===F.color)&&(!F.q||searchable(d).includes(F.q)));
+    pool.sort((a,b)=>(owned[b.id]||0)-(owned[a.id]||0)||a.name.localeCompare(b.name));
+    const best=result.closest;
+    const mine=result.ownedBest;
+    const rows=best?missingText(best):[];
+    mount(`<div class="screen">${topbar('Ma collection & synergies','decks')}<div class="scroll pad sim-collection">
+      <div class="collection-intro"><h3>Construis ton deck avec tes vraies cartes</h3>
+        <p>Indique le nombre d'exemplaires possédés. Le conseiller compare tes cartes aux archétypes et cherche un deck légal avec ta collection, sans inventer de cartes.</p>
+        <div class="collection-count"><strong>${result.totalCopies}</strong> exemplaires · <strong>${result.unique}</strong> cartes différentes</div></div>
+      <div class="collection-panel"><div class="sim-headrow"><h3>1 · Mes cartes</h3><button class="btn small ghost" id="collectionImport">Importer une liste</button></div>
+        <div class="sim-lib-filters"><input class="search" id="collectionSearch" placeholder="Nom français, anglais ou effet…" value="${esc(F.q)}" aria-label="Rechercher dans le catalogue">
+          <select class="sim-select" id="collectionType"><option value="">Tous types</option>${TYPES.map(t=>`<option value="${t}" ${F.type===t?'selected':''}>${TYPE_FR[t]}</option>`).join('')}</select>
+          <select class="sim-select" id="collectionColor"><option value="">Toutes couleurs</option>${COLORS.map(t=>`<option value="${t}" ${F.color===t?'selected':''}>${COLOR_FR[t]}</option>`).join('')}</select></div>
+        <p class="sub">${pool.length} cartes affichées. Utilise + et − pour ajuster la quantité possédée.</p>
+        <div class="collection-grid">${pool.map(d=>`<div class="collection-entry">
+          <div class="collection-cardname"><b>${esc(displayCard(d.id))}</b><small>${TYPE_FR[d.type]} · ${COLOR_FR[d.color]} ${d.type==='Legend'?'':('· Coût '+(d.cost??0))}</small></div>
+          <div class="sim-qty"><button data-own-minus="${d.id}" aria-label="Retirer ${esc(d.name)}" ${!owned[d.id]?'disabled':''}>−</button><strong data-own-count="${d.id}">${owned[d.id]||0}</strong><button data-own-plus="${d.id}" aria-label="Ajouter ${esc(d.name)}" ${owned[d.id]>=99?'disabled':''}>+</button></div>
+        </div>`).join('')}</div>
+      </div>
+      <div class="collection-panel"><h3>2 · Deck le plus proche</h3>
+        ${best?`<h4>${esc(best.name)}</h4><p><b>${best.coverage}%</b> des cartes déjà possédées (copies comprises) · <b>${best.missingCopies}</b> exemplaires manquants, dont ${best.missingLegends.length} Légende(s).</p>
+          <p class="sub">La cible est un deck légal existant. Les cartes manquantes sont une liste à rechercher, jamais considérées comme possédées.</p>
+          <details ${rows.length?'open':''}><summary>Cartes à obtenir (${rows.reduce((n,r)=>n+r.count,0)})</summary>
+            <div class="collection-missing">${rows.length?rows.map(r=>`<div><b>${r.count}×</b> ${esc(displayCard(r.id))}</div>`).join(''):'<p>Tu possèdes toutes les cartes de cet archétype.</p>'}</div></details>
+          <div class="acts"><button class="btn small" id="collectionTargetEditor">Voir le deck cible</button></div>`:'<p>Il n’existe pas encore d’archétype légal à comparer.</p>'}
+      </div>
+      <div class="collection-panel"><h3>3 · Deck avec uniquement mes cartes</h3>
+        ${mine?`<p><b>${mine.deck.main.length}/40</b> cartes principales disponibles · ${mine.missingLegends.length} Légende(s) manquante(s) · basé sur ${esc(mine.basedOn)}</p>
+          <p class="${mine.playable?'collection-valid':'collection-notready'}">${mine.playable?'✓ Deck légal et entièrement possédé. Prêt à être enregistré.':'⚠ Pas encore de deck légal avec cette collection. Il manque '+mine.needMain+' carte(s) principale(s) compatibles ou une combinaison légale de Légendes.'}</p>
+          <p class="sub">Plan de jeu proposé : ${esc(mine.basedOn)}. Les couleurs et la RAM des Légendes limitent les cartes disponibles ; les cartes vendables et une courbe de coût raisonnable sont favorisées.</p>
+          <div class="acts"><button class="btn primary" id="collectionSave" ${mine.playable?'':'disabled'}>Enregistrer ce deck</button><button class="btn" id="collectionEdit">Voir la composition</button></div>`:'<p>Ajoute au moins trois Légendes de noms différents pour calculer une composition à partir de tes cartes.</p>'}
+      </div>
+      <p class="sub">Les synergies sont des recommandations heuristiques basées sur les archétypes, les mots-clés et les contraintes de construction. Elles ne garantissent pas la victoire ni la certification de tous les effets.</p>
+      <div class="acts"><button class="btn ghost" id="collectionReset">Effacer ma collection</button></div>
+      <div style="height:100px"></div></div>
+      <div class="actionbar"><button class="btn ghost" data-nav="decks">Mes decks</button><button class="btn primary" data-nav="home">Accueil</button></div></div>`);
+    const apply=(id,diff)=>{
+      const next=Math.max(0,Math.min(99,(owned[id]||0)+diff));
+      if(next)owned[id]=next;else delete owned[id];
+      persist();const y=app.querySelector('.scroll')?.scrollTop||0;
+      draw();if(app.querySelector('.scroll'))app.querySelector('.scroll').scrollTop=y;
+    };
+    app.querySelectorAll('[data-own-plus]').forEach(b=>b.onclick=()=>apply(b.dataset.ownPlus,1));
+    app.querySelectorAll('[data-own-minus]').forEach(b=>b.onclick=()=>apply(b.dataset.ownMinus,-1));
+    const search=app.querySelector('#collectionSearch');
+    search.oninput=()=>{F.q=search.value.toLowerCase();clearTimeout(F.tm);F.tm=setTimeout(()=>{
+      const y=app.querySelector('.scroll')?.scrollTop||0;draw();
+      const n=app.querySelector('#collectionSearch');n.focus();n.setSelectionRange(n.value.length,n.value.length);
+      app.querySelector('.scroll').scrollTop=y;
+    },180);};
+    app.querySelector('#collectionType').onchange=e=>{F.type=e.target.value;draw();};
+    app.querySelector('#collectionColor').onchange=e=>{F.color=e.target.value;draw();};
+    if(best)app.querySelector('#collectionTargetEditor').onclick=()=>builderScreen({
+      name:best.name+' · Objectif',legends:best.deck.legends.slice(),main:best.deck.main.slice()
+    });
+    if(mine){
+      const d=mine.deck;
+      const open=()=>builderScreen({name:d.name,legends:d.legends.slice(),main:d.main.slice()});
+      app.querySelector('#collectionEdit').onclick=open;
+      if(mine.playable)app.querySelector('#collectionSave').onclick=()=>{
+        const errors=validateDeck(d);
+        const ownedUsed=CollectionAdvisor.clean(owned,CARDS);
+        if(errors.length||d.legends.some(id=>!ownedUsed[id])||Object.entries(d.main.reduce((a,id)=>(a[id]=(a[id]||0)+1,a),{})).some(([id,n])=>n>(ownedUsed[id]||0)))
+          return toast('Le deck ne correspond plus à la collection ou aux règles.',4200);
+        const key='collection-'+Date.now().toString(36);
+        S.custom[key]={name:d.name,desc:'Deck assemblé à partir de votre collection',legends:d.legends.slice(),main:d.main.slice()};
+        store.set('decks',S.custom);S.myDeck=key;store.set('myDeck',key);
+        toast('Deck légal enregistré et sélectionné');decksScreen();
+      };
+    }
+    app.querySelector('#collectionImport').onclick=()=>{
+      const sc=openSheet(`<h4>Importer les cartes possédées</h4>
+        <p class="sub">Une carte par ligne : « 2x Mantis Blades » ou « 3x corpo-security ». La quantité est ajoutée à la collection actuelle ; les noms inconnus sont signalés.</p>
+        <textarea id="ownedPaste" class="sim-import" rows="9" placeholder="2x Mantis Blades&#10;3x Corpo Security"></textarea>
+        <div class="acts"><button id="ownedApply" class="btn primary">Ajouter à ma collection</button><button class="btn ghost" data-close>Annuler</button></div>`);
+      sc.querySelector('[data-close]').onclick=closeSheet;
+      sc.querySelector('#ownedApply').onclick=()=>{
+        const r=CollectionAdvisor.importText(sc.querySelector('#ownedPaste').value,CARDS,owned);
+        if(!r.parsed&&!r.errors.length)return toast('Saisis au moins une carte');
+        owned=r.owned;persist();closeSheet();draw();
+        toast(r.parsed+' exemplaire(s) ajoutés'+(r.errors.length?' · '+r.errors.length+' ligne(s) inconnue(s): '+r.errors.slice(0,2).join('; '):''),5000);
+      };
+    };
+    app.querySelector('#collectionReset').onclick=()=>{
+      if(!confirm('Effacer toutes les quantités de ta collection locale ?'))return;
+      owned={};persist();draw();
+    };
+  }
+  draw();
+}
+
 // ============================================================ DECKS =======
 function decksScreen() {
   const D=allDecks();
   mount(`<div class="screen">${topbar('Mes decks')}<div class="scroll pad sim-deck-library">
-    <div class="sim-headrow"><h3>Vos decks et archétypes</h3><button class="btn small primary" id="newDeck">+ Nouveau deck</button></div>
+    <div class="sim-headrow"><h3>Vos decks et archétypes</h3><div class="acts"><button class="btn small" id="openCollection">Ma collection & synergies</button><button class="btn small primary" id="newDeck">+ Nouveau deck</button></div></div>
     <p class="sim-deck-rule">3 Légendes différentes · 40 à 50 cartes · 3 exemplaires maximum · limites RAM respectées.</p>
     <div class="sim-deck-cards">${Object.entries(D).map(([k,dk])=>{
       const errs=validateDeck(dk), own=!!S.custom[k];
@@ -5487,6 +5607,7 @@ function decksScreen() {
           ${own?`<button class="btn small danger" data-remove="${esc(k)}">Supprimer</button>`:''}</div></div>`;
     }).join('')}</div></div>
     <div class="actionbar"><button class="btn ghost" data-nav="home">Accueil</button><button class="btn primary" style="flex:1" data-nav="setup">Jouer avec mon deck</button></div></div>`);
+  app.querySelector('#openCollection').onclick=collectionScreen;
   app.querySelector('#newDeck').onclick=()=>builderScreen({name:'Nouveau deck',legends:[],main:[]});
   app.querySelectorAll('[data-equip]').forEach(b=>b.onclick=()=>{S.myDeck=b.dataset.equip;store.set('myDeck',S.myDeck);decksScreen();});
   app.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
