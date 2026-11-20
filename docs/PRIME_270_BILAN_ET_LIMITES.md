@@ -21,7 +21,7 @@
 - Benchmarks 40 duels, statuts incomplets/erreurs séparés, jamais de victoire issue d’une limite de calcul.
 - Validations du menu, des images, de la saisie, des champs cachés et des scénarios de décision IA.
 - Tests de conflit de version (ancien manifeste, manifest concurrent, incrément).
-- Couche PvP : tests des intentions signées au niveau match/siège/séquence, validation exclusivement contre les coups générés par le moteur, suppression des zones privées dans la projection.
+- Couche PvP : vérification technique des intentions liées à un match et à une séquence, validation exclusivement contre les coups générés par le moteur, suppression des zones privées dans la projection. Aucun mécanisme cryptographique de signature ou d’authentification n’est encore implémenté.
 
 ## Ce qui n’est PAS prêt à annoncer comme certifié
 
