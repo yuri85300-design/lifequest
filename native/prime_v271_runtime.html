@@ -4903,54 +4903,67 @@ const TACTICAL_PUZZLES=Object.freeze([
   {title:'Le septième Gig',objective:'Voler suffisamment de Gigs pour gagner en prolongation.',tip:'Une Unité prête et sans latence peut attaquer les Gigs ennemis.',goal:'gigs'},
   {title:'Déployer une Unité',objective:'Jouer le Destructeur des Animals en payant son coût.',tip:'Vérifiez votre réserve disponible avant toute pose.',goal:'deploy'},
   {title:'Appeler une Légende',objective:'Retourner une de vos Légendes grâce à un Appel légal.',tip:'Les Légendes face cachée ne sont révélées que par un effet légal.',goal:'call'},
-  {title:'Combat ciblé',objective:'Déclarer et résoudre une attaque autorisée sur une Unité adverse.',tip:'La cible doit être légalement attaquable ; les ripostes peuvent encore modifier le résultat.',goal:'unit'}
+  {title:'Combat ciblé',objective:'Déclarer et résoudre une attaque autorisée sur une Unité adverse.',tip:'La cible doit être légalement attaquable ; les ripostes peuvent encore modifier le résultat.',goal:'unit'},
+  {title:'Choisir sa vente',objective:'Vendre les Lames Mantis et conserver l’Unité pour votre prochain tour.',tip:'Ne sacrifiez pas une unité utile si une carte à €$ peut financer votre plan.',goal:'sell'},
+  {title:'Équiper au bon endroit',objective:'Équiper le Destructeur des Animals avec Bras de Gorille.',tip:'L’hôte est une décision tactique ; l’autre unité reste un choix concurrent.',goal:'gear'},
+  {title:'Pression des Gigs',objective:'Réussir le septième Gig dans une situation de prolongation.',tip:'La victoire intervient après résolution des réactions, jamais à la déclaration.',goal:'gigs'},
+  {title:'La bonne pose',objective:'Déployer le Destructeur des Animals malgré les autres cartes en main.',tip:'Comparez coût, présence au combat et plan du prochain tour.',goal:'deploy'},
+  {title:'Appel sous pression',objective:'Appeler légalement une Légende malgré un terrain adverse occupé.',tip:'Vérifiez vos Eddies et les conditions de l’Appel.',goal:'call'},
+  {title:'Priorité des cibles',objective:'Éliminer les Recrues des 6th Street sans se tromper de cible.',tip:'Deux unités adverses sont visibles ; sélectionnez la bonne cible.',goal:'unit'}
 ]);
 function makeTacticalPuzzle(index){
-  const k=Math.max(0,Math.min(TACTICAL_PUZZLES.length-1,index));
+  const k=Math.max(0,Math.min(TACTICAL_PUZZLES.length-1,index)),variant=k%6;
   const g=Game.create([PRESETS['the-heist'],PRESETS['embracing-power']],[FastPolicy,FastPolicy],
     {seed:25500+k*413,hooks:{sim:true}});
   g.s.phase='main';g.s.active=0;g.s.turn=3;
   const p=g.P(0),r=g.P(1);
   p.name='Vous';r.name='Rival';
   p.hand=[];r.hand=[];p.field=[];r.field=[];
-  if(k===0){p.hand.push(g.newInst('mantis-blades',0),g.newInst('animals-wrecker',0));}
-  if(k===1){
+  if(variant===0){p.hand.push(g.newInst('mantis-blades',0),g.newInst('animals-wrecker',0));}
+  if(variant===1){
     p.hand.push(g.newInst('gorilla-arms',0));
     p.field.push(g.newInst('animals-wrecker',0));
     p.eddies.push({uid:g.s.uid++,ready:true,card:g.newInst('mantis-blades',0)});
   }
-  if(k===2){
+  if(variant===2){
     p.field.push(g.newInst('animals-wrecker',0));
     const issue=(holder,sides)=>{holder.gigs.push({uid:g.s.uid++,sides,value:1});holder.fixer=holder.fixer.filter(n=>n!==sides);};
     for(const sides of [4,6,8,10,12,20])issue(p,sides);
     for(const sides of [4,6])issue(r,sides);
     g.s.overtime=true;
   }
-  if(k===3){
+  if(variant===3){
     p.hand.push(g.newInst('animals-wrecker',0));
     for(let j=0;j<6;j++)p.eddies.push({uid:g.s.uid++,ready:true,card:g.newInst('mantis-blades',0)});
   }
-  if(k===4){
+  if(variant===4){
     // Original legends are hidden until a legal Call resolves.
     p.legends.forEach(l=>{l.faceUp=false;});
     p.eddies.push({uid:g.s.uid++,ready:true,card:g.newInst('mantis-blades',0)});
   }
-  if(k===5){
+  if(variant===5){
     p.field.push(g.newInst('animals-wrecker',0));
     const enemy=g.newInst('6th-street-recruits',1);
     enemy.ready=false;
     r.field.push(enemy);
   }
+  // Advanced missions reuse a verified rules state but add competing choices.
+  // They remain distinct tasks without fabricating cards or skipping the engine.
+  if(k===6)p.hand.push(g.newInst('6th-street-recruits',0));
+  if(k===7)p.field.push(g.newInst('6th-street-recruits',0));
+  if(k===9)p.hand.push(g.newInst('6th-street-recruits',0));
+  if(k===10)r.field.push(g.newInst('corpo-security',1));
+  if(k===11){const distractor=g.newInst('corpo-security',1);distractor.ready=false;r.field.push(distractor);}
   return g;
 }
 function puzzlePassed(g,index,win){
-  const p=g.P(0);
-  if(index===0)return p.eddies.length>0 && p.soldThisTurn;
-  if(index===1)return p.field.some(u=>u.gear.some(x=>x.id==='gorilla-arms'));
-  if(index===2)return p.gigs.length>=7 && (win===0 || g.s.overtime);
-  if(index===3)return p.field.some(u=>u.id==='animals-wrecker');
-  if(index===4)return p.legends.some(l=>l.faceUp);
-  if(index===5)return !g.P(1).field.some(u=>u.id==='6th-street-recruits');
+  const p=g.P(0),variant=index%6;
+  if(variant===0)return p.eddies.length>0 && p.soldThisTurn;
+  if(variant===1)return p.field.some(u=>u.gear.some(x=>x.id==='gorilla-arms'));
+  if(variant===2)return p.gigs.length>=7 && (win===0 || g.s.overtime);
+  if(variant===3)return p.field.some(u=>u.id==='animals-wrecker');
+  if(variant===4)return p.legends.some(l=>l.faceUp);
+  if(variant===5)return !g.P(1).field.some(u=>u.id==='6th-street-recruits');
   return false;
 }
 function tacticalPuzzlesScreen(index=0){
@@ -5968,12 +5981,13 @@ function rivalDeckText(){const d=allDecks()[S.myDeck],m=window.RivalLearning.sum
 
 function probeExpected(k,action,g){
   if(!action||!g)return false;
-  if(k===0)return action.type==='sell'&&g.byUid(action.uid)?.id==='mantis-blades';
-  if(k===1)return action.type==='play'&&g.byUid(action.uid)?.id==='gorilla-arms';
-  if(k===2)return action.type==='attack'&&action.target?.kind==='gigs';
-  if(k===3)return action.type==='play'&&g.byUid(action.uid)?.id==='animals-wrecker';
-  if(k===4)return action.type==='call';
-  if(k===5)return action.type==='attack'&&action.target?.kind==='unit'&&g.byUid(action.target.uid)?.id==='6th-street-recruits';
+  const variant=k%6;
+  if(variant===0)return action.type==='sell'&&g.byUid(action.uid)?.id==='mantis-blades';
+  if(variant===1)return action.type==='play'&&g.byUid(action.uid)?.id==='gorilla-arms';
+  if(variant===2)return action.type==='attack'&&action.target?.kind==='gigs';
+  if(variant===3)return action.type==='play'&&g.byUid(action.uid)?.id==='animals-wrecker';
+  if(variant===4)return action.type==='call';
+  if(variant===5)return action.type==='attack'&&action.target?.kind==='unit'&&g.byUid(action.target.uid)?.id==='6th-street-recruits';
   return false;
 }
 /* This is a bounded diagnostic, not retraining. Policies, seeds and cards remain unchanged. */
@@ -5998,7 +6012,7 @@ async function probeNightmare(button,report){
         counts.legal++;
         if(probeExpected(k,chosen,g))counts.goal++;
       }else counts.fail++;
-      report.textContent=`Position ${k+1}/6 · ${counts.legal} décisions légales · ${counts.goal} objectifs choisis · ${counts.fallback} replis · ${counts.fail} anomalies.`;
+      report.textContent=`Position ${k+1}/${TACTICAL_PUZZLES.length} · ${counts.legal} décisions légales · ${counts.goal} objectifs choisis · ${counts.fallback} replis · ${counts.fail} anomalies.`;
       await sleep(0);
     }
     report.textContent+=
@@ -6020,8 +6034,8 @@ function labScreen(){
      <div class="lab-actions"><button class="btn primary" id="labTrain" disabled>Entraînement bloqué · audit incomplet</button><button class="btn ghost" id="labStop" disabled>Interrompre</button></div>
      <div class="lab-hero" style="margin-top:14px;border-color:#5f829a">
        <small>DIAGNOSTIC DE ROBUSTESSE · PAS D’ENTRAÎNEMENT</small>
-       <p class="lab-foot">NIGHTMARE est confronté à six situations tactiques jouables. Le contrôle vérifie la légalité de sa décision et si elle correspond à l'objectif attendu. Un score élevé n'est pas une certification.</p>
-       <button type="button" class="btn ghost" id="labProbe">Examiner 6 décisions tactiques</button>
+       <p class="lab-foot">NIGHTMARE est confronté à douze situations tactiques jouables. Le contrôle vérifie la légalité de sa décision et si elle correspond à l'objectif attendu. Un score élevé n'est pas une certification.</p>
+       <button type="button" class="btn ghost" id="labProbe">Examiner 12 décisions tactiques</button>
        <div class="lab-status" id="labProbeResult" role="status" aria-live="polite">Prêt pour un test local borné.</div>
      </div>
      <div class="lab-hero" style="margin-top:20px;border-color:rgba(57,210,188,.4)">
