@@ -21,7 +21,15 @@ const specs=[
  ['take-control-reduces-steal',"g.flag(u, 'stealMinus1', 'turn', i);","g.flag(u, 'otherFlag', 'turn', i);",'semantic_oracles_quick_contracts.cjs','take-control'],
  ['take-control-drone-and-vehicle-draw',"['AI', 'DRONE', 'VEHICLE']","['AI']",'semantic_oracles_quick_contracts.cjs','take-control'],
  ['reboot-optics-enabled',"g.P(i).tf.rebootOptics = true;","g.P(i).tf.rebootOptics = false;",'semantic_oracles_quick_contracts.cjs','reboot-optics'],
- ['reboot-optics-prevention',"const protectT = pU !== pT && !!this.P(pT).tf.rebootOptics;","const protectT = false;",'semantic_oracles_quick_contracts.cjs','reboot-optics']
+ ['reboot-optics-prevention',"const protectT = pU !== pT && !!this.P(pT).tf.rebootOptics;","const protectT = false;",'semantic_oracles_quick_contracts.cjs','reboot-optics'],
+ ['octant-high-gig-discount',"Math.min(gigs8(g, i), 6)","0",'semantic_oracles.cjs','octant'],
+ ['ruthless-gig-attack-forbidden',"cantAttackGigs: () => true","cantAttackGigs: () => false",'semantic_oracles.cjs','ruthless-lowlife'],
+ ['swordwise-power-five-threshold',"if (g.eff(u) >= 5) await g.draw(i, 1);","if (g.eff(u) > 5) await g.draw(i, 1);",'semantic_oracles.cjs','swordwise-huscle'],
+ ['trauma-trash-discount',"Math.min(5, g.P(i).trash.filter(x => g.def(x).type === 'Unit').length)","0",'semantic_oracles.cjs','trauma-team-operatives'],
+ ['maxtac-opponent-discount',"Math.min(6, rU(g, i).length)","0",'semantic_oracles.cjs','maxtac-heavy'],
+ ['adrenaline-two-gigs-threshold',"g.gigCount(g.opp(g.controllerOf(host))) >= g.gigCount(g.controllerOf(host)) + 2","g.gigCount(g.opp(g.controllerOf(host))) >= g.gigCount(g.controllerOf(host)) + 3",'semantic_oracles.cjs','adrenaline-converter'],
+ ['corporate-surveillance-legal-target',"rU(g, i).some(u => u.ready && (g.def(u).cost ?? 9) <= 4)","rU(g, i).some(u => false)",'semantic_oracles.cjs','corporate-surveillance'],
+ ['zetatech-faceup-discount',"Math.min(5, faceUpCount(g, i))","0",'semantic_oracles.cjs','zetatech-berserk']
 ];
 function engineApi(script) {
  const box={console,performance,Date,Math,setTimeout,clearTimeout,structuredClone};
