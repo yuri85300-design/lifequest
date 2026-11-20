@@ -3,7 +3,7 @@
  * Audit metadata against current public official Cyberpunk TCG card pages.
  * Collects official text fingerprints; never labels French text semantically certified.
  * Run on GitHub Actions and inspect produced JSON before claiming certification.\n * Run: node native/official_card_audit.cjs
- * Requires: npm install --no-save playwright
+ * Browser CI pinned to Ubuntu 24.04.\n * Requires: npm install --no-save playwright
  */
 const {chromium}=require('playwright');
 const fs=require('node:fs'),crypto=require('node:crypto'),path=require('node:path');
