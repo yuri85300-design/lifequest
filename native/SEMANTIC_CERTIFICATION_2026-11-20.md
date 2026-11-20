@@ -10,8 +10,8 @@ officiel soient respectées dans tous les états.
 
 ## Résultats supplémentaires mesurés
 
-- **38 / 38** oracles comportementaux indépendants réussis, couvrant
-  **29 / 150** cartes distinctes sur des branches positives et négatives ciblées.
+- **40 / 40** oracles comportementaux indépendants réussis, couvrant
+  **31 / 150** cartes distinctes sur des branches positives et négatives ciblées.
 - Cartes soumises à des oracles : Johnny Silverhand: Never Stop Fighting,
   Corpo Security, Kiroshi Optics, Zetatech Berserk, Viktor Vektor:
   Drop Your Illusions, Riot Shield, Adrenaline Converter, Towerfall,
@@ -30,7 +30,7 @@ officiel soient respectées dans tous les états.
 
 La batterie `native/card_lifecycle_oracles.cjs` a validé **150/150 scénarios** en CI : entrée de chaque carte, destination, zone, hôte d'équipement, identité et propriété des objets. Ce contrôle n'est pas une preuve complète des effets.
 
-Huit autres oracles ont été ajoutés pour Octant, Ruthless Lowlife, Field Operator, Swordwise Huscle, Trauma Team Operatives, MaxTac Heavy, 6th Street Recruits et Maelstrom Zealots : réductions conditionnelles, interdiction d'attaque, pioche, seuils de puissance et combats.
+Dix autres oracles ont été ajoutés pour Octant, Ruthless Lowlife, Field Operator, Swordwise Huscle, Trauma Team Operatives, MaxTac Heavy, 6th Street Recruits, Maelstrom Zealots, River Ward: Detective on the Hunt et Goro Takemura: Vengeful Bodyguard : réductions conditionnelles, interdiction d'attaque, pioche, seuils de puissance et combats.
 
 ## État des 150 cartes
 
@@ -44,7 +44,7 @@ Le registre `native/semantic_register.cjs` produit un fichier
 - `semanticCertified: false` pour toute carte tant que sa revue clause
   par clause n'est pas complète.
 
-Les **121 cartes sans oracle sémantique individualisé** demeurent prioritaires. Les
+Les **119 cartes sans oracle sémantique individualisé** demeurent prioritaires. Les
 12 autres cartes ne sont pas davantage certifiées intégralement : leurs
 tests prouvent seulement les clauses effectivement examinées.
 
