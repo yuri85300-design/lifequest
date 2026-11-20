@@ -232,3 +232,20 @@ performances stratégiques réelles ni la fidélité des 280 fragments officiels
 de certification clause par clause n'a été produite. Seul le mode
 expérimental est activé (`NIGHTMARE_TRAINING_EXPERIMENTAL = true`). Une
 campagne compétitive certifiée ne doit pas être affirmée sans ses résultats.
+
+## Résultats CI vérifiés — matrice officielle et laboratoire (20 novembre 2026)
+
+Exécution GitHub Actions **44789497136** : `official-catalogue` **success**.
+La matrice de cohérence, le test Chromium du laboratoire expérimental,
+l'audit des textes anglais officiels, les oracles indépendants, les cycles
+de vie et la génération de `semantic-gap-matrix.json` ont tous réussi.
+Journal : **218/218 oracles PASS (0 FAIL)**, **150 cartes**, **280 fragments
+candidats**, **40 rapprochements partiels**, **240 sans oracle associé**,
+**0 carte intégralement certifiée**. Il s'agit de l'état de l'exécution
+sur le commit `8a9ba2f47e6c2be07ba6e52005e032981d111c36`, et non d'une
+certification du dépôt actuel.
+
+Audit : https://github.com/yuri85300-design/lifequest/actions/runs/44789497136
+
+L'écart bloquant est maintenant mesuré par un artefact effectivement généré.
+Aucune déclaration de 100 % de conformité ne doit être tirée de ce workflow.
