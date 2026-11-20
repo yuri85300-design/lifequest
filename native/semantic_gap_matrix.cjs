@@ -66,9 +66,26 @@ for(const card of cards){
 assert.equal(total,ledger.officialCandidateSegments,'Ledger candidate segment total mismatch');
 assert.equal(linked,ledger.independentlyClauseMappedSegments,'Ledger linked segment count mismatch');
 const pending=rows.filter(x=>!x.linkedToPassingOracle).sort((a,b)=>b.risk-a.risk||a.id.localeCompare(b.id));
+const cardsForBranchReview=[...new Set(rows.map(r=>r.cardId))].map(cardId=>{
+ const mine=rows.filter(r=>r.cardId===cardId);
+ const linkedMine=mine.filter(r=>r.linkedToPassingOracle);
+ return {cardId,segments:mine.length,partialWitnesses:linkedMine.length,
+  unlinkedSegments:mine.length-linkedMine.length,
+  openBranchObligations:mine.reduce((n,r)=>n+r.branchReviewRequired.length,0),
+  openInteractionObligations:mine.reduce((n,r)=>n+r.interactionReviewRequired.length,0),
+  readyForFullReview:mine.length>0&&linkedMine.length===mine.length,
+  semanticCertified:false};
+}).sort((a,b)=>a.unlinkedSegments-b.unlinkedSegments||
+ a.openBranchObligations-b.openBranchObligations||a.cardId.localeCompare(b.cardId));
+const cardsWithAllCandidateSegmentsLinked=cardsForBranchReview.filter(x=>x.readyForFullReview);
+assert.equal(cardsForBranchReview.length,150,'Every runtime card must appear in review readiness');
+
 const output={generatedAt:new Date().toISOString(),officialSource:official.source,officialGeneratedAt:official.generatedAt,
  officialCards:cards.length,candidateSegments:total,partiallyWitnessedSegments:linked,
  unlinkedSegments:pending.length,fullyCertifiedSegments:0,
+ cardsWithAllCandidateSegmentsPartiallyWitnessed:cardsWithAllCandidateSegmentsLinked.length,
+ cardsForExhaustiveBranchReview:cardsWithAllCandidateSegmentsLinked,
+ cardsRequiringFirstSegmentWitness:cardsForBranchReview.filter(x=>x.unlinkedSegments>0),
  note:'These are candidate fragments, not reviewed atomic clauses. No branch or interaction is automatically certified.',
  pending,partiallyWitnessed:rows.filter(x=>x.linkedToPassingOracle)};
 fs.writeFileSync(path.join(root,'semantic-gap-matrix.json'),JSON.stringify(output,null,2));
@@ -78,7 +95,17 @@ const md=['# Revue des segments anglais restant sans rapprochement','',
  '- Fragments candidats : '+total,
  '- Fragments avec preuves partielles : '+linked,
  '- **Fragments sans oracle rapproché : '+pending.length+'**',
- '- Segments intégralement certifiés : 0','',
+ '- Segments intégralement certifiés : 0',
+ '- Cartes dont **chaque fragment candidat** possède un témoin partiel : '+cardsWithAllCandidateSegmentsLinked.length+'/150 (non certifiées)',
+ '',
+ '## Cartes à examiner ensuite pour une véritable certification',
+ '',
+ 'Ces cartes ont uniquement tous leurs fragments liés. Les obligations de branches et interactions restent OUVERTES.',
+ '',
+ '| Carte | Segments partiellement liés | Branches à examiner | Interactions à examiner |',
+ '| --- | ---: | ---: | ---: |',
+ ...cardsWithAllCandidateSegmentsLinked.map(r=>'| '+r.cardId+' | '+r.partialWitnesses+'/'+r.segments+' | '+r.openBranchObligations+' | '+r.openInteractionObligations+' |'),
+ '',
  '## File de revue priorisée','',
  '| Carte / segment | Risque indicatif | Branches à démontrer | Interactions à démontrer |',
  '| --- | ---: | --- | --- |',
