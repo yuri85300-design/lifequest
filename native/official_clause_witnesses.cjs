@@ -174,7 +174,7 @@ module.exports={
  'bonnie-and-clyde':{
   sourceHash:'d008fefe1673914cd4d75eff63341a490df5219dc21cc3daac7100bf60a5be6c',segments:[
    {index:1,hash:'c48ab8cff085efdc9aa7846b34737d71a7cba32763943bede9ee2dd94501e107',cases:["bonnie-not-behind-defeats-only-one","bonnie-power-greater-than-four-is-not-legal-target","bonnie-no-rival-four-or-less-cannot-play"],branches:["power-at-most-four","power-above-four","one-target"]},
-   {index:2,hash:'75e8d5823e13c939c5a50193fb02b81f120d1014bf7f665e7ad327a636b470fd',cases:["bonnie-two-gig-deficit-may-defeat-two","bonnie-second-defeat-is-optional","bonnie-not-behind-defeats-only-one"],branches:["gig-count-two-behind","not-behind","second-optional"]}
+   {index:2,hash:'75e8d5823e13c939c5a50193fb02b81f120d1014bf7f665e7ad327a636b470fd',cases:["bonnie-two-gig-deficit-may-defeat-two","bonnie-second-defeat-is-optional","bonnie-not-behind-defeats-only-one","bonnie-vs-deadman-transmitter-replaces-first-defeat","bonnie-two-defeat-attempts-can-hit-protected-then-unprotected-unit"],branches:["gig-count-two-behind","not-behind","second-optional"]}
   ]},
  'mox-inciters':{
   sourceHash:'39a7fb0fc3476f915e7ceba6c90dbd62ad9dc9991ec7b57cbba0a19c828bd275',segments:[
