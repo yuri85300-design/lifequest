@@ -26,5 +26,38 @@ module.exports=async function runChoiceBranches(api,assert){
   assert.equal(p.tf.cyberPlayed,true);
   assert.equal(g.costOf(g.newInst('gorilla-arms',0),0),4);
  });
+ await t('viktor-vektor-drop-your-illusions','free-play-from-trash-also-consumes-cyberware-discount',async()=>{
+  const g=make(),p=g.P(0),v=put(g,'viktor-vektor-drop-your-illusions');
+  p.legends.forEach(l=>l.faceUp=false);
+  const gr=g.newInst('kiroshi-optics',0);
+  p.trash.push(gr);
+  await g.withTimingWindow(()=>g.playCard(0,gr.uid,v.uid,{free:true,from:p.trash}));
+  assert.equal(v.gear.includes(gr),true);
+  assert.equal(p.trash.includes(gr),false);
+  assert.equal(p.tf.cyberPlayed,true);
+  assert.equal(g.costOf(g.newInst('zetatech-berserk',0),0),6);
+ });
+ await t('viktor-vektor-drop-your-illusions','free-non-cyberware-does-not-consume-cyberware-discount',async()=>{
+  const g=make(),p=g.P(0),v=put(g,'viktor-vektor-drop-your-illusions');
+  p.legends.forEach(l=>l.faceUp=false);
+  const gr=g.newInst('riot-shield',0);
+  p.hand.push(gr);
+  await g.withTimingWindow(()=>g.playCard(0,gr.uid,v.uid,{free:true}));
+  assert.equal(v.gear.includes(gr),true);
+  assert.equal(!!p.tf.cyberPlayed,false);
+  assert.equal(g.costOf(g.newInst('gorilla-arms',0),0),1);
+ });
+ await t('viktor-vektor-drop-your-illusions','discount-resets-for-next-turn-after-free-cyberware',async()=>{
+  const g=make(),p=g.P(0),v=put(g,'viktor-vektor-drop-your-illusions');
+  p.legends.forEach(l=>l.faceUp=false);
+  const gr=g.newInst('kiroshi-optics',0);p.hand.push(gr);
+  await g.withTimingWindow(()=>g.playCard(0,gr.uid,v.uid,{free:true}));
+  assert.equal(g.costOf(g.newInst('gorilla-arms',0),0),4);
+  await g.endTurn();
+  assert.equal(!!p.tf.cyberPlayed,false);
+  assert.equal(g.costOf(g.newInst('gorilla-arms',0),0),1);
+ });
  return {count:out.length,passed:out.filter(x=>x.status==='PASS').length,failed:out.filter(x=>x.status==='FAIL').length,tests:out};
 };
+
+// Independent PR regression: verify free-play effect reset at turn boundary.
