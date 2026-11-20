@@ -92,6 +92,25 @@ module.exports=async function highRiskChoices(api,assert){
   await bon(s);
   assert.equal(s.g.onField(a),false);assert.equal(s.g.onField(b),true);
  });
+ await t(B,'bonnie-vs-deadman-transmitter-replaces-first-defeat',async()=>{
+  const s=make(2,1),host=s.g.newInst('corpo-security',1),
+   shield=s.g.newInst('deadman-transmitter',1);
+  host.gear=[shield];s.q.field=[host];s.g.pickUnit=async()=>host;
+  await bon(s);
+  assert.equal(s.g.onField(host),true,'Protected rival stays on battlefield');
+  assert.equal(host.gear.includes(shield),false,'Protection equipment is sacrificed');
+  assert.equal(s.q.trash.includes(shield),true);
+ });
+ await t(B,'bonnie-two-defeat-attempts-can-hit-protected-then-unprotected-unit',async()=>{
+  const s=make(1,3),a=s.g.newInst('corpo-security',1),
+   shield=s.g.newInst('deadman-transmitter',1),b=s.g.newInst('delamain-cab',1);
+  a.gear=[shield];s.q.field=[a,b];let round=0;
+  s.g.pickUnit=async()=>++round===1?a:b;
+  await bon(s);
+  assert.equal(s.g.onField(a),true,'First target defeat replaced');
+  assert.equal(s.q.trash.includes(shield),true);
+  assert.equal(s.g.onField(b),false,'Second defeat resolves separately');
+ });
  await t(B,'bonnie-power-greater-than-four-is-not-legal-target',async()=>{
   const s=make(1,3),a=s.g.newInst('corpo-security',1),b=s.g.newInst('animals-wrecker',1);
   s.q.field=[a,b];s.g.pickUnit=async(i,title,pool)=>{
