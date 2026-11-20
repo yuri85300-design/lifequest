@@ -77,6 +77,20 @@ module.exports={
   ]},
  'octant':{sourceHash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',segments:[{index:1,hash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',cases:['gig-value-eight-or-more-discount-with-minimum-one'],branches:["zero-high-gigs","multiple-high-gigs","floor-one"]}]},
  'ruthless-lowlife':{sourceHash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',segments:[{index:1,hash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',cases:['cannot-attack-gigs-even-when-rival-has-gigs'],branches:["unit-target-allowed","gig-area-target-forbidden"]}]},
+ 'yorinobu-arasaka-steel-dragon':{
+  sourceHash:'6e3bd5529749dffc85a9e9a0093bfbd67a07d0ea3997a54ada1631065ec7221d',
+  segments:[
+   {index:1,hash:'4be8a6a9639355ecf03749976d413fd0487e262be3260bc8b2b0cf6e777f6b3d',
+    cases:['yorinobu-free-play-eligible-cost-three-unit-from-hand-and-rush','yorinobu-free-play-eligible-unit-from-trash','yorinobu-free-play-excludes-cost-above-four','yorinobu-optional-free-play-may-be-declined'],
+    branches:['from-hand','from-trash','cost-three','cost-above-four','optional-decline']},
+   {index:2,hash:'da965fb8eaef054d73468de801ed1a4e0acc0138e1516231ce80f384bce53446',
+    cases:['yorinobu-free-play-eligible-cost-three-unit-from-hand-and-rush','yorinobu-free-play-eligible-unit-from-trash'],
+    branches:['free-play-rush-versus-rival-unit','hand-and-trash']},
+   {index:3,hash:'40b1d212fcc390bcc5496f41a677146a1e4a35fa8072d003d0ca7696a8af3811',
+    cases:['yorinobu-first-friendly-arasaka-defeat-draws-one','yorinobu-second-arasaka-defeat-same-turn-no-second-draw','yorinobu-first-rival-arasaka-defeat-also-draws','yorinobu-own-first-defeat-draws-even-after-leaving-field','yorinobu-arasaka-first-defeat-before-its-entry-consumes-turn-trigger'],
+    branches:['first-friendly','first-rival','only-first-per-global-turn','own-defeat','defeat-before-entry']}
+  ]},
+
  'rita-wheeler-no-stupid-questions':{
   sourceHash:'29f27bb8a79873ca9339f3a6b3cdb22a7a42e290e23a9fbb79d5b36743be7feb',segments:[
    {index:1,hash:'29f27bb8a79873ca9339f3a6b3cdb22a7a42e290e23a9fbb79d5b36743be7feb',cases:["rita-first-spend-draw-then-discard-one","rita-second-spend-same-turn-does-not-trigger","rita-other-unit-spend-does-not-trigger"],branches:["first-spent","repeat-same-turn","other-unit-spent","draw-then-discard"]}
