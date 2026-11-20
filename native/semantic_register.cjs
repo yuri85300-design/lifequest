@@ -9,6 +9,9 @@ const core={console,performance,Date,Math,setTimeout,clearTimeout,structuredClon
 core.window=core;core.globalThis=core;vm.createContext(core);
 vm.runInContext(fs.readFileSync(path.join(dir,'engine.js'),'utf8'),core);
 const cards=Object.values(core.CARDS),ORACLE_FILE=path.join(artifactDir,'semantic-oracles.json');
+const lifecycleFile=path.join(artifactDir,'card-lifecycle.json');
+const lifecycleData=fs.existsSync(lifecycleFile)?JSON.parse(fs.readFileSync(lifecycleFile,'utf8')):{perCard:[]};
+const lifecycleById=new Map((lifecycleData.perCard||[]).map(c=>[c.id,c]));
 const officialFile=path.join(artifactDir,'official-cards.json');
 const oracleData=fs.existsSync(ORACLE_FILE)?JSON.parse(fs.readFileSync(ORACLE_FILE,'utf8')):{tests:[]};
 const officialData=fs.existsSync(officialFile)?JSON.parse(fs.readFileSync(officialFile,'utf8')):{cardEvidence:[]};
@@ -28,11 +31,13 @@ const entries=cards.map(c=>{
   officialEnglishFingerprint:evidence?.officialTextSha256||null,
   officialMetadata:evidence?.status||'NOT_LOADED',
   officialClauseSignals:evidence?.officialClauseSignals||null,
+  officialTriggerEvidence:evidence?.triggerEvidence||[],
   frenchTextFingerprint:hash(c.txt),
   implementationBehaviours:behaviours,
   localClauseCountEstimate:localClauses.length,
   negativeAndPositiveBranchProofs:oracles,
   independentlyPassingOracles:oracles.filter(o=>o.result==='PASS').length,
+  lifecycle: lifecycleById.get(c.id)?{status:lifecycleById.get(c.id).entry,destination:lifecycleById.get(c.id).destination,assertions:lifecycleById.get(c.id).oracles}:null,
   requiredIndependentClauseReview:'PENDING',
   semanticCertified:false
  };
@@ -42,6 +47,9 @@ const result={
  officialSource:officialData.source||'https://cyberpunktcg.com/cards',
  cardCount:entries.length,expectedCardCount:150,
  cardsWithOfficialEnglishText:entries.filter(x=>x.officialEnglishFingerprint).length,
+ officialTriggerContractCount:entries.reduce((n,x)=>n+x.officialTriggerEvidence.length,0),
+ officialTriggerOmissions:entries.reduce((n,x)=>n+x.officialTriggerEvidence.filter(y=>!y.implemented).length,0),
+ cardsWithLifecycleWitness:entries.filter(x=>x.lifecycle?.status==='PASS').length,
  cardsWithIndependentBehaviourOracles:entries.filter(x=>x.independentlyPassingOracles).length,
  testedBehaviourBranches:entries.reduce((n,c)=>n+c.independentlyPassingOracles,0),
  cardsFullySemanticallyCertified:0,
@@ -57,6 +65,8 @@ const result={
 };
 fs.mkdirSync(artifactDir,{recursive:true});
 fs.writeFileSync(path.join(artifactDir,'semantic-register.json'),JSON.stringify(result,null,2));
-console.log(JSON.stringify({cardCount:result.cardCount,cardsWithOfficialEnglishText:result.cardsWithOfficialEnglishText,cardsWithIndependentBehaviourOracles:result.cardsWithIndependentBehaviourOracles,testedBehaviourBranches:result.testedBehaviourBranches,cardsFullySemanticallyCertified:0,semanticCertification:'BLOCKED'},null,2));
+console.log(JSON.stringify({cardCount:result.cardCount,cardsWithOfficialEnglishText:result.cardsWithOfficialEnglishText,cardsWithLifecycleWitness:result.cardsWithLifecycleWitness,cardsWithIndependentBehaviourOracles:result.cardsWithIndependentBehaviourOracles,testedBehaviourBranches:result.testedBehaviourBranches,cardsFullySemanticallyCertified:0,semanticCertification:'BLOCKED'},null,2));
 if(entries.length!==150||(oracleData.tests||[]).some(x=>x.status!=='PASS'))process.exitCode=1;
 if(process.argv.includes('--require-certification')){console.error('FAIL CLOSED: 150-card semantic certification evidence incomplete.');process.exitCode=2;}
+
+// Validation branch consolidated evidence review.
