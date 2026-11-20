@@ -13,6 +13,7 @@ on:
       - 'native/semantic_oracles_last_a.cjs'
       - 'native/semantic_oracles_last_b.cjs'
       - 'native/semantic_oracles_branches.cjs'
+      - 'native/official_independent_oracles.cjs'
       - 'native/card_lifecycle_oracles.cjs'
       - 'native/semantic_oracle_runner.cjs'
       - 'native/semantic_register.cjs'
