@@ -8,6 +8,7 @@ on:
       - 'native/semantic_oracles_extra.cjs'
       - 'native/semantic_oracles_interactions.cjs'
       - 'native/semantic_oracles_programs.cjs'
+      - 'native/semantic_oracles_advanced.cjs'
       - 'native/semantic_oracle_runner.cjs'
       - 'native/card_lifecycle_oracles.cjs'
       - 'native/semantic_register.cjs'
