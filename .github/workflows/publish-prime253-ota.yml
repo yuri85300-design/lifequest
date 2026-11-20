@@ -29,8 +29,9 @@ jobs:
           grep -Fq '"TECHNICAL_PASS_NOT_OFFICIAL_CERTIFIED"' /tmp/prime-ota/audit-regles.json
           PRIME_HTML=native/prime_v253_runtime.html node native/audit_253.cjs | tee /tmp/prime-ota/audit-academie.json
           grep -Fq '"publicReplay": "PASS"' /tmp/prime-ota/audit-academie.json
-          npm install --silent --no-save --prefix /tmp/prime-ota/choice-test linkedom@0.18.12
-          NODE_PATH=/tmp/prime-ota/choice-test/node_modules PRIME_HTML=native/prime_v253_runtime.html node native/audit_253.cjs | tee /tmp/prime-ota/audit-choix.json
+          npm install --no-save --no-package-lock linkedom@0.18.12
+          node -e "console.log('DOM parser:', require.resolve('linkedom'))"
+          PRIME_HTML=native/prime_v253_runtime.html node native/audit_253.cjs | tee /tmp/prime-ota/audit-choix.json
           grep -Fq '"noNestedButtons": "PASS"' /tmp/prime-ota/audit-choix.json
       - name: Publication du contenu uniquement sur GitHub Releases
         uses: softprops/action-gh-release@v2
