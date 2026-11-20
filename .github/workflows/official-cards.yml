@@ -33,6 +33,9 @@ jobs:
       - name: Run independent semantic oracle suite
         if: always()
         run: node native/semantic_oracle_runner.cjs
+      - name: Verify 150 card lifecycle scenarios alongside official texts
+        if: always()
+        run: node native/card_lifecycle_oracles.cjs
       - name: Generate 150-card semantic evidence ledger
         if: always()
         run: node native/semantic_register.cjs
