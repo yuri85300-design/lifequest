@@ -92,6 +92,22 @@ module.exports={
  'zetatech-berserk':{sourceHash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',segments:[{index:1,hash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',cases:["face-up-legend-discount-and-floor"],branches:["zero-face-up","one-face-up","three-face-up"]}]},
  'corporate-surveillance':{sourceHash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',segments:[{index:1,hash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',cases:["only-ready-rival-units-cost-four-or-less","cannot-be-played-without-ready-eligible-target"],branches:["eligible-ready","no-eligible","excludes-cost-over-four"]}]},
  'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]},
+ 'goro-takemura-vengeful-bodyguard':{
+  sourceHash:'532c5af92c7a5471c9f9c94545f774ccd4483eec886cde1624dc135c9b30cddf',
+  segments:[
+   {index:1,hash:'f54b7bd48263c5405fa494a3374cc1195422b0d152c096c44828962095e52a57',
+    cases:['goro-spend-one-eddie-grants-blocker-no-pair-no-bonus','goro-only-cost-five-plus-no-legal-activation'],
+    branches:['cost-one','eligible-friendly-unit','no-eligible-target']},
+   {index:2,hash:'0a896817a53e224d7e5fec3dd419ff2a33507cd2cb7158fa4dd2053984be27a1',
+    cases:['goro-friendly-value-pair-adds-one-power-to-blocker','goro-spend-one-eddie-grants-blocker-no-pair-no-bonus'],
+    branches:['friendly-gig-pair','different-values-no-bonus']},
+   {index:3,hash:'928098b470339db556b07e0992bcba308761780520a0c4ecca9b220ab6bbea86',
+    cases:['goro-friendly-blocker-accept-discard-one-and-draw-one','goro-friendly-blocker-decline-preserves-hand-and-deck'],
+    branches:['friendly-blocker-event','optional-discard-accepted','optional-discard-declined']},
+   {index:4,hash:'28737d4f1a156b6cc70480d9abf960b0aaf8dac49327f563524c670be173b661',
+    cases:['goro-friendly-blocker-accept-discard-one-and-draw-one','goro-friendly-blocker-decline-preserves-hand-and-deck'],
+    branches:['discard-one-draw-one','decline-no-draw']}
+  ]},
  'meredith-stout-stone-cold-corpo':{
   sourceHash:'5c9ec241fc1f2f0bdaa4f7a8d522ce4fd83b270b9092c0acf19e6460e64c569f',
   segments:[

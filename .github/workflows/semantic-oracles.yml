@@ -23,6 +23,7 @@ on:
       - 'native/semantic_oracles_negotiators.cjs'
       - 'native/semantic_oracles_minotaur.cjs'
       - 'native/semantic_oracles_meredith.cjs'
+      - 'native/semantic_oracles_goro.cjs'
       - 'native/official_independent_oracles.cjs'
       - 'native/nocturne_official_oracles.cjs'
       - 'native/official_clause_witnesses.cjs'

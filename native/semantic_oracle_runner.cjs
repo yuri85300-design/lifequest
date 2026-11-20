@@ -28,7 +28,8 @@ vm.runInContext(source+'\nglobalThis.__semanticApi={Game,GameOver,CARDS,presetDe
  const negotiators=await require('./semantic_oracles_negotiators.cjs')(sandbox.__semanticApi,assert);
  const minotaur=await require('./semantic_oracles_minotaur.cjs')(sandbox.__semanticApi,assert);
  const meredith=await require('./semantic_oracles_meredith.cjs')(sandbox.__semanticApi,assert);
- const suites=[primary,secondary,reactive,programs,advanced,advanced2,complexOne,lastA,lastB,choiceBranches,publisherVerified,nocturne,quickContracts,relicContracts,crossCard,radioport,evelyn,jackie,faceplate,negotiators,minotaur,meredith];
+ const goro=await require('./semantic_oracles_goro.cjs')(sandbox.__semanticApi,assert);
+ const suites=[primary,secondary,reactive,programs,advanced,advanced2,complexOne,lastA,lastB,choiceBranches,publisherVerified,nocturne,quickContracts,relicContracts,crossCard,radioport,evelyn,jackie,faceplate,negotiators,minotaur,meredith,goro];
  const result={count:suites.reduce((a,x)=>a+x.count,0),passed:suites.reduce((a,x)=>a+x.passed,0),failed:suites.reduce((a,x)=>a+x.failed,0),tests:suites.flatMap(x=>x.tests)};
  const cardIds=Object.keys(sandbox.__semanticApi.CARDS);
  const evidenced=new Set(result.tests.filter(x=>x.status==='PASS').map(x=>x.id));
