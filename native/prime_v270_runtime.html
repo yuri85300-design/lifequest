@@ -6625,7 +6625,7 @@ function builderScreen(draft) {
         <p class="sell-deck-stat ${sellCount<16?'alert':''}">€$ ${sellCount} cartes vendables sur ${d.main.length} · ${d.main.length?Math.round(sellCount/d.main.length*100):0}% ${sellCount<16?'· Ressources peu nombreuses : risque de main bloquée':''}</p>
         <div class="sim-deck-list">${selected.map(([id,n])=>`<div class="sim-deck-line"><button class="sim-deck-detail" data-inspect="${id}"><b>${n}×</b> ${esc(cardName(CARDS[id]))}</button><button data-minus="${id}" aria-label="Retirer">−</button><button data-plus="${id}" ${n>=3||d.main.length>=50?'disabled':''} aria-label="Ajouter">+</button></div>`).join('')||'<p class="sim-empty">Aucune carte sélectionnée.</p>'}</div>
       </aside></div><div style="height:96px"></div>
-    </div><div class="sim-builder-footer"><button class="btn small ghost" id="importDeck">Importer</button><button class="btn small ghost" id="exportDeck">Exporter</button><button class="btn small ghost" id="fillDeck" ${d.legends.length!==3?'disabled':''}>Compléter</button><button class="btn small primary" id="saveDeck" ${errs.length?'disabled':''}>Enregistrer</button></div></div>`);
+    </div><div class="sim-builder-footer"><button class="btn small ghost" id="importDeck">Importer</button><button class="btn small ghost" id="exportDeck">Exporter</button><button class="btn small ghost" id="fillDeck" ${d.legends.length!==3?'disabled':''}>Compléter</button><button class="btn small ghost" id="suggestDeck" ${d.legends.length!==3?'disabled':''}>Suggestions</button><button class="btn small primary" id="saveDeck" ${errs.length?'disabled':''}>Enregistrer</button></div></div>`);
     app.querySelector('#deckName').onchange=e=>{d.name=e.target.value||'Mon deck';};
     app.querySelector('#tabPool').onclick=()=>{B.tab='pool';draw();};
     app.querySelector('#tabDeck').onclick=()=>{B.tab='deck';draw();};
@@ -6637,6 +6637,30 @@ function builderScreen(draft) {
     app.querySelector('#bc').onchange=e=>{B.color=e.target.value;draw();};
     app.querySelector('#bt').onchange=e=>{B.type=e.target.value;draw();};
     const input=app.querySelector('#bq');input.oninput=()=>{B.q=input.value;clearTimeout(B.tm);B.tm=setTimeout(()=>{draw();const n=app.querySelector('#bq');n.focus();n.setSelectionRange(n.value.length,n.value.length);},230);};
+    app.querySelector('#suggestDeck').onclick=()=>{
+      const draft=B.draft,choices=DeckCoach.suggestions(draft);
+      const sc=openSheet(`<h4>◈ Assistant de construction</h4>
+        <p class="sub">Échanges facultatifs en respectant couleurs et RAM. Ces suggestions ne garantissent pas de meilleures performances.</p>
+        <div class="body">${choices.length?choices.map((x,i)=>`<div class="prime-deck-suggestion">
+          <strong>${esc(x.why)}</strong>
+          <p><span>− ${esc(cardName(CARDS[x.remove]))}</span><span>+ ${esc(cardName(CARDS[x.add]))}</span></p>
+          <button type="button" class="btn ghost" data-swap="${i}">Appliquer cet échange</button></div>`).join(''):
+          '<p>Aucun remplacement proposé : vérifiez la taille du deck, les Légendes ou les couleurs disponibles.</p>'}
+        </div><div class="acts"><button class="btn ghost" data-close>Fermer</button></div>`);
+      sc.querySelector('[data-close]').onclick=closeSheet;
+      sc.querySelectorAll('[data-swap]').forEach(b=>b.onclick=()=>{
+        const choice=choices[+b.dataset.swap];if(!choice)return;
+        const before=validateDeck(draft),index=draft.main.indexOf(choice.remove);
+        if(index<0||draft.main.filter(x=>x===choice.add).length>=3)
+          return toast('Ce remplacement n’est plus possible.',3000);
+        const next={legends:draft.legends.slice(),main:draft.main.slice()};
+        next.main.splice(index,1,choice.add);
+        if(validateDeck(next).length>before.length)
+          return toast('Cet échange introduirait une violation : refusé.',3000);
+        draft.main=next.main;closeSheet();draw();
+        toast('Échange appliqué au brouillon. Enregistrez pour le conserver.',3500);
+      });
+    };
     app.querySelector('#fillDeck').onclick=()=>{
       const usable=allowed(), keep=d.main.filter(id=>usable.some(x=>x.id===id));
       const rest=autoDeck(d.legends,Math.random,Math.max(40,keep.length));
