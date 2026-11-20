@@ -91,7 +91,7 @@ function inspectEnglishTriggerCoverage(english,card) {
  if(hasBeginning('Go Solo'))actual.push({trigger:'Go Solo',handler:'kw:GO_SOLO',implemented:(card.kw||[]).includes('GO_SOLO'),source:'official-current-text'});
  if(hasBeginning('Adrenaline'))actual.push({trigger:'Adrenaline',handler:'kw:ADRENALINE',implemented:(card.kw||[]).includes('ADRENALINE'),source:'official-current-text'});
  if(hasBeginning('Blocker'))actual.push({trigger:'Blocker',handler:'kw:BLOCKER',implemented:(card.kw||[]).includes('BLOCKER'),source:'official-current-text'});
- if(hasBeginning('Quick'))actual.push({trigger:'Quick',handler:'quick',implemented:!!card.quick,source:'official-current-text'});
+ if(hasBeginning('Quick'))actual.push({trigger:'Quick',handler:card.type==='Program'?'quick':'abilities[].quick',implemented:card.type==='Program'?!!card.quick:(card.abilities||[]).some(a=>a.quick===true),source:'official-current-text'});
  return actual;
 }
 async function main(){
@@ -191,8 +191,8 @@ async function main(){
  console.log(md.slice(0,4000));
  // Extra official promo-only cards are reported, not grounds to fail the
  // fixed 150-card base runtime's metadata audit. They remain out of scope.
- if(result.accessible!==cards.length||result.metadataMismatches.length||!result.listingComplete||result.missingFromOfficial.length) process.exitCode=1;
+ if(result.accessible!==cards.length||result.metadataMismatches.length||result.triggerCoverageMismatches.length||!result.listingComplete||result.missingFromOfficial.length) process.exitCode=1;
 }
 main().catch(e=>{console.error(e);process.exitCode=1});
 
-// Validation branch trigger-contract review.
+// CI validation: current English trigger contract structure.
