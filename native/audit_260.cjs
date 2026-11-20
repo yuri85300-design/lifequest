@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const {parseHTML}=require('linkedom');
 const src=fs.readFileSync(process.env.PRIME_HTML||'native/prime_v260_runtime.html','utf8');
 assert(src.includes('function campaignScreen()')&&src.includes('function careerScreen()'));
-assert(src.includes('function deckStatsScreen()')&&src.includes('function benchmarkDeck()'));
+assert(src.includes('function deckStatsScreen()')&&src.includes('async function benchmarkDeck()'));
 assert(src.includes('tcg-deck-arts')&&src.includes('prime-combat-guidance'));
 assert(src.includes('CareerStats.record(res,')&&src.includes('CampaignProgress.finish(S.campaignRun,res)'));
 assert(src.includes('campaignRun:S.campaignRun'),'Campaign must survive checkpoint');
