@@ -83,7 +83,7 @@ test('NIGHTMARE experimental training enabled without claiming certification',as
   await page.locator('[data-lab]').click();
   await expect(page.locator('#labTrain')).toBeEnabled();
   await expect(page.locator('#labTrain')).toContainText('expérimentaux');
-  await expect(page.locator('.lab-status')).toContainText('non encore certifiés');
+  await expect(page.locator('.lab-status')).toContainText('ne sont pas entièrement certifiés');
   await expect(page.locator('.lab-foot').filter({hasText:'Promotion compétitive verrouillée'})).toBeVisible();
   await expect(page.locator('#rivalToggle')).toBeVisible();
 });
