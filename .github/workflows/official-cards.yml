@@ -33,6 +33,9 @@ jobs:
       - name: Run independent semantic oracle suite
         if: always()
         run: node native/semantic_oracle_runner.cjs
+      - name: Verify 150 card lifecycle scenarios alongside official texts
+        if: always()
+        run: node native/card_lifecycle_oracles.cjs
       - name: Generate 150-card semantic evidence ledger
         if: always()
         run: node native/semantic_register.cjs
@@ -48,3 +51,5 @@ jobs:
         run: |
           echo "Official metadata comparison not complete; never certify on incomplete data."
           exit 1
+
+# Consolidated official and lifecycle evidence verification.
