@@ -29,7 +29,8 @@ vm.runInContext(html.slice(a,b)+'\n'+html.slice(c,d)+'\nglobalThis.CHOICE_TEST={
 const {miniHTML,choiceSheet}=ctx.CHOICE_TEST;
 const inst=id=>({id,uid:id==='corpo-security'?201:202,gear:[],lag:false,ready:true});
 const g={onField:()=>true,where:()=>({zone:'field'}),controllerOf:()=>1,
-  eff:c=>CARDS[c.id].power,P:()=>({gigs:[]}),name:c=>titles[c.id]};
+  eff:c=>CARDS[c.id].power,hasKw:()=>false,P:()=>({gigs:[]}),name:c=>titles[c.id]};
+S.game=g;
 async function runChoice(selected,max,min,peek){
   const req={title:'Floor It : -1 à…',min,max,options:[
     {value:201,label:'Sécurité Corpo',card:inst('corpo-security')},
