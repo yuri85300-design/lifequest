@@ -915,6 +915,14 @@ button:focus-visible,[role="button"]:focus-visible, select:focus-visible {outlin
 @media (prefers-reduced-motion:reduce){
  .arena-fx,.fx-core,.fx-spark,.fx-ring,.prime-card{animation:none!important;transition:none!important;}
 }
+
+/* Accessibilité mobile : lisibilité indépendante du zoom, objectifs tactiles ≥48 CSS px. */
+html.prime-readable .btn,html.prime-readable .iconbtn,html.prime-readable button[data-nav],
+html.prime-readable .prime-puzzle-actions button{min-height:48px!important;font-size:1rem!important;line-height:1.35!important;}
+html.prime-readable .sim-hint,html.prime-readable .prime-explain,html.prime-readable .logline{font-size:1.02rem!important;line-height:1.6!important;letter-spacing:.01em;}
+html.prime-readable .sheet{background:#101c2a!important;border:2px solid #f5cb72!important;}
+html.prime-readable :focus-visible{outline:3px solid #f4d580!important;outline-offset:3px;}
+@media (prefers-reduced-motion: reduce){.prime-puzzle-actions button{transition:none!important;}}
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -4074,6 +4082,15 @@ const GameArchive = {
       eddies:state.players.map(p=>p.eddies.filter(x=>x.ready).length),
       field:state.players.map(p=>p.field.map(c=>c.id)),
       hands:state.players.map(p=>p.hand.length),
+      // Replay records ONLY publicly observable board information.
+      publicUnits:state.players.map(p=>p.field.map(c=>({
+        id:c.faceDown?null:c.id,hidden:!!c.faceDown,
+        ready:!!c.ready,gear:(c.gear||[]).map(g=>g.id)
+      }))),
+      publicLegends:state.players.map(p=>p.legends.map(c=>({
+        id:c.faceUp?c.id:null,faceUp:!!c.faceUp,ready:!!c.ready
+      }))),
+      publicGigs:state.players.map(p=>p.gigs.map(d=>({sides:d.sides,value:d.value}))),
       note:state.log.length?String(state.log[state.log.length-1].msg).slice(0,220):'Tour en cours'
     };
   },
@@ -4116,7 +4133,7 @@ function timelineScreen(){
   mount(`<div class="screen">${topbar('Journal de la dernière partie')}<div class="scroll pad">
   <h3>${r.winner===0?'Victoire':r.winner===1?'Défaite':'Fin de partie'}</h3>
   <p>${esc(r.reason||'')} · ${points.length} étapes enregistrées</p>
-  <p>Relecture visuelle des points de contrôle. Il ne s’agit pas d’une réexécution complète du moteur ni d’une possibilité d’annuler un coup résolu.</p>
+  <p>Relecture des <b>états publics</b> : Unités, équipements, Gigs, ressources, Légendes révélées. Les mains et Légendes cachées ne sont pas dévoilées. Un instantané n'est pas une réexécution déterministe du moteur.</p>
   <small>${(r.events||[]).length} événements de partie archivés (cartes visibles, actions, graines). Les mains privées ne sont jamais dévoilées.</small>
   <label for="logStep">Étape</label><input type="range" id="logStep" min="0" max="${Math.max(0,points.length-1)}" value="${Math.max(0,points.length-1)}" style="width:100%">
   <div class="row2"><button class="btn ghost" id="replayPrev">◀ Précédent</button><button class="btn ghost" id="replayNext">Suivant ▶</button></div>
@@ -4128,7 +4145,12 @@ function timelineScreen(){
   const renderPoint=()=>{
     const i=+inp.value,p=points[i];detail.textContent=p?`Étape ${i+1}/${points.length} · Tour ${p.turn} · Joueur ${p.active+1} · Gigs ${p.gigs[0]} / ${p.gigs[1]} · Cartes en main ${p.hands[0]} / ${p.hands[1]} · ${p.note}`:'Journal vide';
     const target=app.querySelector('#replayBoard');if(!target)return;
-    target.innerHTML=p? p.field.map((cards,k)=>`<section><strong>${k===0?'Votre camp':'Camp adverse'} · ${p.gigs[k]} Gigs</strong><div class="prime-replay-cards">${cards.length?cards.map(id=>miniHTML(id)).join(''):'<small>Aucune unité</small>'}</div><small>Main : ${p.hands[k]} carte(s)</small></section>`).join('') : '';
+    target.innerHTML=p? p.field.map((cards,k)=>`<section><strong>${k===0?'Votre camp':'Camp adverse'} · ${p.gigs[k]} Gigs</strong>
+      <p><small>Gigs : ${Array.isArray(p.publicGigs?.[k])?p.publicGigs[k].map(d=>'d'+Number(d.sides)+'='+Number(d.value)).join(' · '):p.gigs[k]+' dé(s)'} · Ressources prêtes : ${p.eddies?.[k]??'–'}</small></p>
+      <div class="prime-replay-cards">${cards.length?cards.map((id,j)=>id && !(p.publicUnits?.[k]?.[j]?.hidden)?miniHTML(id):'<small>Carte cachée</small>').join(''):'<small>Aucune unité</small>'}</div>
+      <small>${p.publicUnits?.[k]?p.publicUnits[k].map(u=>u.hidden?'Carte non révélée':`${u.ready?'Prête':'Engagée'} · ${u.gear.length} équipement(s)`).join(' · ')+' · ':''}Main : ${p.hands[k]} carte(s) (contenu privé)</small>
+      ${Array.isArray(p.publicLegends?.[k])?`<p><small>Légendes : ${p.publicLegends[k].map(l=>l.faceUp?esc(CARDS[l.id]?.name||'Légende révélée'):'Face cachée').join(' · ')}</small></p>`:''}
+    </section>`).join('') : '';
     target.querySelectorAll('[data-fr-card]').forEach(c=>c.onclick=()=>showCard(c.dataset.frCard));
   };
   inp.oninput=renderPoint;renderPoint();
@@ -4316,6 +4338,13 @@ function tutorialScreen(step=0){
 }
 
 // Native/WebView: choose actions in a dedicated worker; keep the UI fully interactive.
+const Readability = {
+  active:store.get('readableMode',false),
+  apply(){document.documentElement.classList.toggle('prime-readable',this.active);},
+  toggle(){this.active=!this.active;store.set('readableMode',this.active);this.apply();}
+};
+Readability.apply();
+
 const Perf = {
   mode: store.get('perfMode', /Android/i.test(navigator.userAgent)?'fluide':'detail'),
   apply(){document.documentElement.classList.toggle('perf-fluid',this.mode==='fluide');},
@@ -5427,6 +5456,7 @@ function gameMenu() {
   const sc = openSheet(`<h4>Centre de commandement</h4><p class="sub">Touchez une carte pour jouer. Maintenez pour examiner son effet.</p><div class="acts">
     <button class="btn" data-perf>Qualité graphique : ${Perf.mode==='fluide'?'Fluidité maximum':'Effets complets'}</button>
     <button class="btn" data-combat>Affichage combat : ${S.combatArtOnly ? 'images seules' : 'cartes tactiques'}</button>
+    <button class="btn" data-readable aria-pressed="${Readability.active}">Lisibilité renforcée : ${Readability.active?'activée':'désactivée'}</button>
     <button class="btn" data-sp>Animations : ${S.speed < .2 ? 'Instantané' : S.speed < .9 ? 'Normal' : 'Immersif'}</button>
     <button class="btn" data-audio>Son d’arène : ${S.audio ? 'activé' : 'désactivé'}</button>
     <div class="sim-hint">IA : ${esc(S.aiStats.last)} · Recherche ${S.aiStats.searched} · Replis ${S.aiStats.fallback} · Dépassements ${S.aiStats.timeout}</div>
@@ -5434,6 +5464,7 @@ function gameMenu() {
   sc.querySelector('[data-close]').onclick = closeSheet;
   sc.querySelector('[data-audio]').onclick=()=>{S.audio=!S.audio;store.set('audio',S.audio);closeSheet();};
   sc.querySelector('[data-perf]').onclick=()=>{Perf.toggle();closeSheet();toast(Perf.mode==='fluide'?'Mode fluidité activé':'Effets complets activés',1600);};
+  sc.querySelector('[data-readable]').onclick=()=>{Readability.toggle();closeSheet();toast(Readability.active?'Lisibilité renforcée activée':'Affichage standard activé',2200);};
   sc.querySelector('[data-combat]').onclick=()=>{S.combatArtOnly=!S.combatArtOnly;store.set('combatArtOnly',S.combatArtOnly);render();closeSheet();toast(S.combatArtOnly?'Combat : images seules':'Combat : cartes tactiques',1600);};
   sc.querySelector('[data-sp]').onclick = () => { S.speed = S.speed < .2 ? .35 : S.speed < .9 ? 1 : .05; store.set('speed', S.speed); closeSheet(); toast('Vitesse : '+(S.speed<.2?'Instantané':S.speed<.9?'Normal':'Immersif')); };
   sc.querySelector('[data-rules]').onclick = () => { const r = openSheet(`<div class="body rules" style="padding:0">${RULES_HTML}</div><div class="acts"><button class="btn ghost" data-close>Fermer</button></div>`); r.querySelector('[data-close]').onclick = closeSheet; };
