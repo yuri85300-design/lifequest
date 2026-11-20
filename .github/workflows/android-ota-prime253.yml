@@ -1,0 +1,90 @@
+name: PRIME 2.5.3 - Mise a jour interne et offline QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-ota-prime253.yml'
+  workflow_run:
+    workflows: ["7 Gigs PRIME 2.5.0 - OTA Bootstrap APK"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  emulator:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Download official signed bootstrapping APK from matching build
+        uses: actions/download-artifact@v4
+        with:
+          name: 7Gigs-PRIME-250-APK
+          path: /tmp/prime250-apk
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id || 44725939824 }}
+      - name: Check APK includes 150 French card image assets and correct package name
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/prime253-proof
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          p='/tmp/prime250-apk/7Gigs-PRIME-2.5.0.apk'
+          with ZipFile(p) as z:
+              art=[x for x in z.namelist() if x.startswith('assets/www/images_vf/')]
+              assert len(art)==150,len(art)
+              assert z.testzip() is None
+              assert 'classes.dex' in z.namelist()
+              print('APK OFFLINE ASSETS PASS 150/150')
+          PY
+          sha256sum /tmp/prime250-apk/7Gigs-PRIME-2.5.0.apk | tee /tmp/prime253-proof/apk-sha256.txt
+      - name: Enable Android emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android 15 test of version upgrade without reinstalling APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            set -e
+            adb install -r /tmp/prime250-apk/7Gigs-PRIME-2.5.0.apk
+            adb shell svc wifi enable
+            adb shell svc data enable
+            sleep 22
+            adb logcat -c
+            adb shell am start -W -n dev.septgigs.neonarena.prime/dev.septgigs.neonarena.prime.PrimeUpdaterActivity --ez otaQa true | tee /tmp/prime253-proof/launch.txt
+            sh -c 'n=0; while [ "$n" -lt 24 ]; do adb logcat -d > /tmp/prime253-proof/logcat-ota.txt; if grep -q PRIME_OTA_QA_FAIL /tmp/prime253-proof/logcat-ota.txt; then exit 1; fi; if grep -q PRIME_OTA_QA_PASS:25003 /tmp/prime253-proof/logcat-ota.txt; then exit 0; fi; n=$((n+1)); sleep 5; done; exit 2'
+            grep -q 'PRIME_OTA_QA_PASS:25003' /tmp/prime253-proof/logcat-ota.txt
+            sleep 10
+            adb logcat -d > /tmp/prime253-proof/logcat-after-upgrade.txt
+            grep -q 'OTA_LOCAL_SAVE_QA_PASS' /tmp/prime253-proof/logcat-after-upgrade.txt
+            grep -q 'OFFLINE_FR_QA_PASS:150/150:' /tmp/prime253-proof/logcat-after-upgrade.txt
+            adb shell svc wifi disable
+            adb shell svc data disable
+            adb shell am force-stop dev.septgigs.neonarena.prime
+            adb logcat -c
+            adb shell am start -W -n dev.septgigs.neonarena.prime/dev.septgigs.neonarena.prime.PrimeUpdaterActivity --ez offlineQa true | tee /tmp/prime253-proof/offline-start.txt
+            sleep 12
+            adb logcat -d > /tmp/prime253-proof/logcat-offline.txt
+            grep -q 'ACTIVE_PRIME_CONTENT=25003' /tmp/prime253-proof/logcat-offline.txt
+            grep -q 'OFFLINE_FR_QA_PASS:150/150:' /tmp/prime253-proof/logcat-offline.txt
+            ! grep -q 'FATAL EXCEPTION' /tmp/prime253-proof/logcat-offline.txt
+            adb shell screencap -p /sdcard/prime250-ota.png
+            adb pull /sdcard/prime250-ota.png /tmp/prime253-proof/after-update-offline.png
+            echo 'PRIME OTA 2.5.0 -> 2.5.3 PASSED WITHOUT APK REINSTALL'
+      - name: Upload reproducible QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prime253-ota-and-offline-qa
+          path: /tmp/prime253-proof/
+          if-no-files-found: warn
