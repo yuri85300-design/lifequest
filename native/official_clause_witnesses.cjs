@@ -92,6 +92,21 @@ module.exports={
  'zetatech-berserk':{sourceHash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',segments:[{index:1,hash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',cases:["face-up-legend-discount-and-floor"],branches:["zero-face-up","one-face-up","three-face-up"]}]},
  'corporate-surveillance':{sourceHash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',segments:[{index:1,hash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',cases:["only-ready-rival-units-cost-four-or-less","cannot-be-played-without-ready-eligible-target"],branches:["eligible-ready","no-eligible","excludes-cost-over-four"]}]},
  'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]},
+ 'jackie-welles-pour-one-out-for-me':{
+  sourceHash:'52491792e8ef072d1e248d518b87b562c63ee0cf4a531f24d7563750b31b255e',
+  segments:[
+   {index:1,hash:'2f27e761bb2a43b27f882086eeb2448f7e52775e3b46914e1c69aa69ea8af91d',
+    cases:['jackie-first-blue-unit-decrease-two-and-draw-if-min',
+      'jackie-first-blue-gear-is-eligible',
+      'jackie-optional-refusal-does-not-adjust-or-draw',
+      'jackie-first-blue-play-consumes-once-per-turn-even-on-refusal',
+      'jackie-non-blue-unit-does-not-consume-trigger'],
+    branches:['blue-unit','blue-gear','optional-refusal','once-per-turn','non-blue-no-trigger']},
+   {index:2,hash:'949b967a311f0f6f67614b54e66720168d3c97066c37ea55d2d4700f531514d8',
+    cases:['jackie-first-blue-unit-decrease-two-and-draw-if-min',
+      'jackie-optional-refusal-does-not-adjust-or-draw'],
+    branches:['min-gig-draw','declined-no-draw']}
+  ]},
  'evelyn-parker-beautiful-enigma':{
   sourceHash:'f7c789c1782bec9b5825693f3a99845eaa50f36f1ab946cd378e66cd8f383900',
   segments:[{
