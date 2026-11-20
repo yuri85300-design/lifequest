@@ -864,6 +864,18 @@ html,body{background:#030813}
 @media(max-width:500px){.combat-preview-modal .sheet{padding:6px 9px 9px}.combat-preview-image{height:min(51svh,495px);max-height:51svh}.combat-preview-actions{max-height:29svh}.actionbar .gigs-quick{font-size:11px;padding:0 8px;max-width:27vw}}
 @media(max-height:660px){.combat-preview-image{height:42svh;max-height:42svh}.combat-preview-actions{max-height:32svh}}
 
+/* PRIME UX — mobile-first command center, legibility and accessible targets */
+.sim-home{height:100%;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain}
+.sim-home-main{padding-bottom:18px!important}
+.sim-home-foot{flex-shrink:0;padding-bottom:max(22px,env(safe-area-inset-bottom))!important}
+.prime-home-menu-trigger{appearance:none;position:relative;z-index:20;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;min-width:94px;border:1px solid #78d2ff88;border-radius:10px;background:#081a32e8;color:#e7f9ff;font:800 13px system-ui;letter-spacing:.07em;cursor:pointer}
+.prime-home-menu-trigger:focus-visible,.sim-main-nav .btn:focus-visible,.prime-home-menu .btn:focus-visible{outline:3px solid #ffe082;outline-offset:3px}
+.prime-home-menu .btn{min-height:48px;width:100%;white-space:normal;text-align:left}
+.prime-tutorial-progress{display:flex;gap:7px;justify-content:center;padding:18px 0}
+.prime-tutorial-progress i{height:5px;width:44px;border-radius:5px;background:#5b7182}
+.prime-tutorial-progress i.on{background:#ffc06b}
+.prime-deck-validation{display:block;padding:6px 0;line-height:1.4;color:#b7d9e5}
+@media(max-width:560px){.sim-home{padding-bottom:env(safe-area-inset-bottom)!important}.sim-main-nav .btn{min-height:48px}.sim-home .prime-live-label{align-items:center;gap:8px}.prime-home-menu-trigger{min-width:76px;font-size:12px}.prime-fan{pointer-events:none}}
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -4612,12 +4624,50 @@ function railHTML(myGigs, rvGigs, opts = {}) {
 function persistenceAvailable() {
   try {const key='septgigs.__storageTest';localStorage.setItem(key,'1');const ok=localStorage.getItem(key)==='1';localStorage.removeItem(key);return ok;}catch(_){return false;}
 }
+function homeMenu() {
+  const nativeUpdates=!!(window.Native7Gigs && typeof window.Native7Gigs.openUpdates==='function');
+  const sc=openSheet(`<h4>☰ Centre de commandement</h4>
+    <p class="sub">Toutes les options et les mises à jour sont réunies ici.</p>
+    <div class="acts prime-home-menu">
+      <button class="btn primary" data-start>Lancer un duel</button>
+      <button class="btn" data-decks>Mes decks</button>
+      <button class="btn" data-tutorial>Apprendre à jouer</button>
+      <button class="btn" data-cards>Bibliothèque des 150 cartes</button>
+      <button class="btn" data-lab>Laboratoire NIGHTMARE</button>
+      <button class="btn" data-rules>Règles et aide</button>
+      <button class="btn" data-updates ${nativeUpdates?'':'disabled'}>Mises à jour ${nativeUpdates?'':'— application Android requise'}</button>
+      <button class="btn ghost" data-close>Fermer le menu</button>
+    </div>`);
+  const nav=(selector,route)=>{sc.querySelector(selector).onclick=()=>{closeSheet();go(route);};};
+  nav('[data-start]','setup');nav('[data-decks]','decks');nav('[data-cards]','cards');
+  nav('[data-lab]','lab');nav('[data-rules]','rules');
+  sc.querySelector('[data-tutorial]').onclick=()=>{closeSheet();tutorialScreen();};
+  if(nativeUpdates)sc.querySelector('[data-updates]').onclick=()=>{closeSheet();window.Native7Gigs.openUpdates();};
+  sc.querySelector('[data-close]').onclick=closeSheet;
+}
+function tutorialScreen(){
+  const steps=[
+    ['1 / 4 — Votre objectif','Vous gagnez lorsque vous contrôlez 7 Gigs. Surveillez aussi les Gigs adverses : chaque vol peut retourner la partie.'],
+    ['2 / 4 — Jouer vos cartes','Préparez votre deck avec exactement 3 Légendes et 40 à 50 cartes. Pendant votre tour, choisissez uniquement les actions autorisées par le moteur.'],
+    ['3 / 4 — Le combat','Sélectionnez une carte pour voir son illustration. Consultez son effet et les actions disponibles avant de confirmer une attaque ou un vol de Gig.'],
+    ['4 / 4 — Apprendre et progresser','Commencez contre Initiation, puis passez à Tactique+ et NIGHTMARE. Les fonctions compétitives non certifiées restent verrouillées.']
+  ];let idx=0;
+  const draw=()=>{
+    const [heading,body]=steps[idx];
+    const sc=openSheet(`<h4>${heading}</h4><p class="sub" style="line-height:1.65">${body}</p>
+      <div class="prime-tutorial-progress" aria-label="Étape ${idx+1} sur 4">${steps.map((_,i)=>`<i class="${i<=idx?'on':''}"></i>`).join('')}</div>
+      <div class="acts"><button class="btn ghost" data-prev>${idx?'Précédent':'Fermer'}</button>
+      <button class="btn primary" data-next>${idx===steps.length-1?'Choisir mon deck':'Suivant'}</button></div>`);
+    sc.querySelector('[data-prev]').onclick=()=>{if(idx){idx--;draw();}else closeSheet();};
+    sc.querySelector('[data-next]').onclick=()=>{if(idx===steps.length-1){closeSheet();go('decks');}else{idx++;draw();}};
+  };draw();
+}
 function homeScreen() {
   const D=allDecks(), dk=D[S.myDeck];
   const fan = ['adam-smasher-ender-of-legends','johnny-silverhand-rocking-renegade','panam-palmer-nomad-cavalry']
     .map((id,i)=>`<div class="prime-card"><i>${i===1?'7':'✦'}</i>${cardArt(id)?`<img src="${esc(cardArt(id))}" alt="" loading="lazy" onerror="this.remove()">`:''}</div>`).join('');
   mount(`<div class="screen home sim-home"><div class="sim-home-main">
-    <div class="prime-live-label"><span><i class="prime-led"></i>SIMULATION ACTIVE</span><span class="prime-build">NEON ARENA / PRIME 2.1.2 — AUDIT EN COURS</span></div>
+    <div class="prime-live-label"><span><i class="prime-led"></i>SIMULATION ACTIVE</span><button class="prime-home-menu-trigger" id="homeMenuBtn" type="button" aria-label="Ouvrir le menu principal">☰ <span>MENU</span></button></div>
     <div class="sim-eyebrow">CYBERPUNK TCG · DUELS TACTIQUES</div>
     <div class="prime-fan" aria-hidden="true">${fan}<span class="prime-label">NIGHT CITY // 2077</span></div>
     <h1 class="wordmark"><span class="seven">7</span><span>Gigs</span></h1>
@@ -4626,14 +4676,17 @@ function homeScreen() {
     ${!persistenceAvailable() ? `<p class="storage-warning">⚠ Sauvegarde locale indisponible dans ce lecteur de fichier. Exporte régulièrement ta mémoire IA et tes decks depuis le laboratoire et l'éditeur.</p>` : ''}
     <p class="sim-lead" style="color:var(--sodium);font-size:.88rem">${S.learningEnabled ? `◈ NIGHTMARE apprend de vos duels · ${S.rivalMemory.total} partie(s) analysée(s)` : '◈ Apprentissage contre vous désactivé'}</p>
     <div class="prime-metrics"><div><b>150</b><small>CARTES</small></div><div><b>7</b><small>GIGS POUR GAGNER</small></div><div><b>IA</b><small>ADAPTATIVE</small></div></div>
-    <div class="sim-selected"><span>DECK ACTIF</span><b>${esc(dk?.name || 'Le Casse')}</b><small>${dk?.main.length || 40} cartes · 3 Légendes</small></div>
+    <div class="sim-selected"><span>DECK ACTIF</span><b>${esc(dk?.name || 'Le Casse')}</b><small>${dk?.main.length || 0} cartes · ${dk?.legends.length || 0} Légendes · ${dk && !validateDeck(dk).length?'Prêt pour le duel':'Deck à vérifier'}</small></div>
     <nav class="sim-main-nav">
       <button class="btn primary" data-nav="setup">Lancer une partie <span aria-hidden="true">›</span></button>
       <button class="btn" data-nav="decks">Construire / gérer mes decks</button>
       <button class="btn ghost" data-nav="cards">Bibliothèque des cartes</button>
+      <button class="btn ghost prime-tutorial-cta" data-tutorial-home>▶ Tutoriel interactif</button>
     </nav></div>
-    <div class="sim-home-foot"><div><button data-nav="lab">◈ Laboratoire IA · ${Math.max(300,S.brain.matches||0)} duels</button><button data-nav="rules" style="margin-left:12px">Règles &amp; aide</button>${window.Native7Gigs?`<button type="button" onclick="Native7Gigs.openUpdates()" style="margin-left:12px">Mises à jour</button>`:''}</div><span>Simulateur de fan non officiel · visuels sous droits de leurs auteurs.</span></div>
+    <div class="sim-home-foot"><div><button data-nav="lab">◈ Laboratoire IA · ${S.brain.matches||0} duels enregistrés</button><button data-nav="rules" style="margin-left:12px">Règles &amp; aide</button></div><span>Simulateur de fan non officiel · visuels sous droits de leurs auteurs.</span></div>
   </div>`);
+  app.querySelector('#homeMenuBtn').onclick=homeMenu;
+  app.querySelector('[data-tutorial-home]').onclick=tutorialScreen;
 }
 
 // ====================================== NIGHTMARE LAB // 300 vrais duels
@@ -5176,6 +5229,7 @@ function decksScreen() {
       return `<div class="sim-deck-card ${S.myDeck===k?'chosen':''}" data-dk="${esc(k)}">
         <div><b>${esc(dk.name)}</b><small>${own?'Personnel':dk.official?'Starter officiel':'Archétype'} · ${dk.main.length} cartes ${errs.length?'· À corriger':''}</small></div>
         <div class="dots">${deckDots(dk)}</div>
+        <small class="prime-deck-validation" aria-live="polite">${errs.length?'⚠ '+esc(errs.slice(0,2).join(' · '))+(errs.length>2?' · +'+(errs.length-2)+' autre(s)':''):'✓ Deck conforme aux contraintes de construction'}</small>
         <div class="sim-deck-buttons"><button class="btn small ${S.myDeck===k?'primary':'ghost'}" data-equip="${esc(k)}">${S.myDeck===k?'Actif':'Utiliser'}</button>
           <button class="btn small" data-edit="${esc(k)}">${own?'Éditer':'Copier / éditer'}</button>
           ${own?`<button class="btn small danger" data-remove="${esc(k)}">Supprimer</button>`:''}</div></div>`;
