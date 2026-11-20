@@ -2,6 +2,7 @@
 // Targeted independent behavioural oracles grounded in current English card pages.
 // These tests deliberately do not claim exhaustive coverage of any card.
 // Exported as a function so CI and in-memory V8 runners use the SAME assertions.
+// Independent CI proof: positive and negative branch coverage.
 module.exports=async function runSemanticOracles(api,assert){
  const {Game,GameOver,CARDS,presetDecks,FastPolicy}=api;
  const decks=presetDecks(),tests=[];
