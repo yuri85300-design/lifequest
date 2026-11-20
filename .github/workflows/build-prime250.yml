@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'native/prime_v250_runtime.html'
+      - 'native/PrimeUpdaterActivity.java'
       - '.github/workflows/build-prime250.yml'
   workflow_dispatch:
 permissions:
