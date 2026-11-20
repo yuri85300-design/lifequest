@@ -1,0 +1,17 @@
+name: PRIME 2.4.0 Mobile First Build
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/prime_v240_runtime.html'
+      - '.github/workflows/build-prime240.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify application source
+        run: test -s native/prime_v240_runtime.html
