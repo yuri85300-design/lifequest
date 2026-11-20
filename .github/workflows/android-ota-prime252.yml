@@ -57,6 +57,9 @@ jobs:
           script: |
             set -e
             adb install -r /tmp/prime250-apk/7Gigs-PRIME-2.5.0.apk
+            adb shell svc wifi enable
+            adb shell svc data enable
+            sleep 22
             adb logcat -c
             adb shell am start -W -n dev.septgigs.neonarena.prime/dev.septgigs.neonarena.prime.PrimeUpdaterActivity --ez otaQa true | tee /tmp/prime252-proof/launch.txt
             sh -c 'n=0; while [ "$n" -lt 24 ]; do adb logcat -d > /tmp/prime252-proof/logcat-ota.txt; if grep -q PRIME_OTA_QA_FAIL /tmp/prime252-proof/logcat-ota.txt; then exit 1; fi; if grep -q PRIME_OTA_QA_PASS:25002 /tmp/prime252-proof/logcat-ota.txt; then exit 0; fi; n=$((n+1)); sleep 5; done; exit 2'
