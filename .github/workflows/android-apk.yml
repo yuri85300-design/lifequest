@@ -26,6 +26,7 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets
           cp native/prime_v220_runtime.html android/app/src/main/assets/prime_v220_runtime.html
+          cp native/engine.js native/ai-worker.js android/app/src/main/assets/
       - name: Compile and sign debug APK
         working-directory: android
         run: gradle :app:assembleDebug --no-daemon
