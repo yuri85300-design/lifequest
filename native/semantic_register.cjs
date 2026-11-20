@@ -27,6 +27,7 @@ const entries=cards.map(c=>{
   officialUrl:evidence?.officialUrl||'https://cyberpunktcg.com/cards/'+c.id,
   officialEnglishFingerprint:evidence?.officialTextSha256||null,
   officialMetadata:evidence?.status||'NOT_LOADED',
+  officialClauseSignals:evidence?.officialClauseSignals||null,
   frenchTextFingerprint:hash(c.txt),
   implementationBehaviours:behaviours,
   localClauseCountEstimate:localClauses.length,
