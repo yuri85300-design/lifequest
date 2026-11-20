@@ -52,3 +52,14 @@ test('local challenge persists first leg without masquerading as PvP',async ({pa
   await page.locator('[data-nav="challenge"]').first().click();
   await expect(page.getByText('Au tour de Alpha')).toBeVisible();
 });
+
+test('starting a real solo duel shows a playable hand',async ({page})=>{
+  await page.locator('[data-nav="setup"]').first().click();
+  await page.locator('#start').click();
+  await expect(page.getByText('Votre main de départ')).toBeVisible({timeout:20000});
+  await page.locator('[data-m="0"]').click();
+  await expect(page.locator('.board .hand')).toBeVisible({timeout:20000});
+  await expect(page.locator('.board .midrail')).toBeVisible();
+  // The test verifies that engine setup reaches the board; a full interactive
+  // human match still requires additional end-to-end gameplay tests.
+});
