@@ -74,5 +74,29 @@ module.exports=async function runNocturne(api,assert){
   p.fixer=[];p.tf.progDiscount=3;
   assert.equal(g.costOf(n,0),1);
  });
+ await check('immobilize-can-target-friendly-unit-and-expires-on-controller-next-turn',async()=>{
+  const g=make(),friend=g.newInst('animals-wrecker',0);g.P(0).field.push(friend);
+  const original=g.pickOne.bind(g);
+  g.pickOne=async(i,title,opts,o)=>title==='Nocturne : choisissez'?1:title==='Unité immobilisée'?friend.uid:original(i,title,opts,o);
+  assert.equal(g.canAttackNow(friend),true);
+  await CARDS['nocturne-op55-n1'].onPlay(g,g.newInst('nocturne-op55-n1',0),0);
+  assert.equal(g.hasFlag(friend,'cantAttack'),true);
+  assert.equal(g.canAttackNow(friend),false);
+  await g.endTurn();await g.startTurn();
+  assert.equal(g.hasFlag(friend,'cantAttack'),true);
+  await g.endTurn();await g.startTurn();
+  assert.equal(g.hasFlag(friend,'cantAttack'),false);
+ });
+ await check('immobilize-rival-unit-stops-rival-attack',async()=>{
+  const g=make(),enemy=g.newInst('animals-wrecker',1);
+  g.P(1).field.push(enemy);g.s.active=0;
+  const original=g.pickOne.bind(g);
+  g.pickOne=async(i,title,opts,o)=>title==='Nocturne : choisissez'?1:title==='Unité immobilisée'?enemy.uid:original(i,title,opts,o);
+  await CARDS['nocturne-op55-n1'].onPlay(g,g.newInst('nocturne-op55-n1',0),0);
+  assert.equal(g.hasFlag(enemy,'cantAttack'),true);
+  assert.equal(g.canAttackNow(enemy),false);
+ });
  return {count:tests.length,passed:tests.filter(x=>x.status==='PASS').length,failed:tests.filter(x=>x.status==='FAIL').length,tests};
 };
+
+// CI review of updated semantic branches.
