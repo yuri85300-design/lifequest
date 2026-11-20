@@ -118,3 +118,5 @@ fs.writeFileSync(path.join(artifactDir,'semantic-gaps.md'),gapMd);
 console.log(JSON.stringify({cardCount:result.cardCount,cardsWithOfficialEnglishText:result.cardsWithOfficialEnglishText,cardsWithLifecycleWitness:result.cardsWithLifecycleWitness,cardsWithIndependentBehaviourOracles:result.cardsWithIndependentBehaviourOracles,testedBehaviourBranches:result.testedBehaviourBranches,officialCandidateSegments:result.officialCandidateSegments,cardsFullySemanticallyCertified:0,semanticCertification:'BLOCKED'},null,2));
 if(entries.length!==150||(oracleData.tests||[]).some(x=>x.status!=='PASS'))process.exitCode=1;
 if(process.argv.includes('--require-certification')){console.error('FAIL CLOSED: 150-card semantic certification evidence incomplete.');process.exitCode=2;}
+
+// Independent review branch: verify candidate official clause inventory.
