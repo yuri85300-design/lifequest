@@ -78,11 +78,13 @@ test('150-card library, filters and card details',async ({page})=>{
   await expect(page.getByRole('dialog')).toBeVisible();
 });
 
-test('NIGHTMARE laboratory remains certification-locked',async ({page})=>{
+test('NIGHTMARE experimental training enabled without claiming certification',async ({page})=>{
   await page.locator('#homeMenuBtn').click();
   await page.locator('[data-lab]').click();
-  await expect(page.locator('#labTrain')).toBeDisabled();
-  await expect(page.locator('.lab-status')).toContainText('certifiés');
+  await expect(page.locator('#labTrain')).toBeEnabled();
+  await expect(page.locator('#labTrain')).toContainText('expérimentaux');
+  await expect(page.locator('.lab-status')).toContainText('non encore certifiés');
+  await expect(page.locator('.lab-foot').filter({hasText:'Promotion compétitive verrouillée'})).toBeVisible();
   await expect(page.locator('#rivalToggle')).toBeVisible();
 });
 
