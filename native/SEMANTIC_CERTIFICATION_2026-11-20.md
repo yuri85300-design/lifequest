@@ -332,3 +332,30 @@ Le contrôle ne remplace pas un essai sur les téléphones physiques concernés.
 **NIGHTMARE expérimental : actif. Certification compétitive : toujours
 `false`, tant que toutes les clauses et interactions officielles ne sont pas
 indépendamment démontrées.**
+
+## Reprise de la certification — nouvelles clauses vérifiées (20 novembre 2026, soirée)
+
+Le registre a été étendu avec des oracles de branches indépendants pour
+Jackie Welles (Pour One Out For Me), Zetatech Faceplate,
+Augmented Negotiators, Minotaur, Meredith Stout (Stone Cold Corpo),
+Goro Takemura (Vengeful Bodyguard) et Valentino Street Racer.
+Les contrôles couvrent des déclenchements, options acceptées/refusées,
+seuils, types de cible, coûts et durées. Ils constituent des preuves
+**partielles** sur des scénarios précis et non des certifications intégrales.
+
+- Audit officiel **Goro** : [44808216653](https://github.com/yuri85300-design/lifequest/actions/runs/44808216653),
+  **success**, 254/254 oracles PASS, 55/280 fragments avec témoins
+  partiels, 225 fragments sans rapprochement, **0/150 carte pleinement certifiée**.
+- Nouvelle batterie **Valentino** : [44808572549](https://github.com/yuri85300-design/lifequest/actions/runs/44808572549),
+  **success**, 258/258 oracles PASS, sans échec.
+- L'association officielle des fragments de Valentino exige la
+  réussite séparée du workflow complet déclenché par le commit
+  `a9f11d660c1fe03e626a6204c462d5392ee80a8b`.
+- Le test initial Jackie avait par erreur employé Kiroshi Optics (jaune)
+  comme équipement bleu : l'oracle a été rectifié avec
+  Tetratronic Rippler, réellement bleu, puis passé en CI.
+
+Aucune de ces améliorations ne modifie
+`NIGHTMARE_TRAINING_CERTIFIED = false`. L'entraînement expérimental
+reste disponible. La certification réclame la qualification humaine
+de chaque clause atomique et les interactions opposées pertinentes.
