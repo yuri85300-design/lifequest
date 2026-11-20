@@ -4617,14 +4617,22 @@ function deckStatsScreen(){
     if(d.sell)sell.n++;colors[d.color]=(colors[d.color]||0)+1;
   }
   const errors=validateDeck(chosen),max=Math.max(1,...costs);
+  const tips=[];
+  if(errors.length)tips.push('Corriger la légalité du deck avant tout test.');
+  if((byType.Unit||0)<12)tips.push('Peu d’Unités : vérifiez votre capacité à occuper le plateau.');
+  if((byType.Gear||0)>(byType.Unit||0))tips.push('Plus de Gear que d’Unités : risque de manquer de porteurs.');
+  if(costs.slice(5).reduce((a,b)=>a+b,0)>chosen.main.length*.40)tips.push('Beaucoup de cartes de coût 5+ : surveillez les premiers tours.');
+  if(sell.n===0)tips.push('Aucune carte vendable : surveillez votre production d’Eddies.');
+  if(!tips.length)tips.push('Répartition initiale cohérente. Comparez plusieurs adversaires pour repérer les faiblesses.');
   mount(`<div class="screen">${topbar('Analyse de deck','decks')}<div class="scroll pad">
   <h3>${esc(chosen.name)}</h3><p>${chosen.main.length} cartes · ${chosen.legends.length} Légendes · coût moyen ${(total/Math.max(1,chosen.main.length)).toFixed(2)} €$ · vendables ${sell.n}</p>
   <div class="sim-hint">Unités : ${byType.Unit||0} · Équipements : ${byType.Gear||0} · Programmes : ${byType.Program||0}</div>
   <h4>Courbe des coûts</h4><div style="display:flex;align-items:end;gap:8px;height:132px;max-width:440px">${costs.map((n,i)=>`<div style="flex:1;text-align:center"><div style="min-height:2px;height:${Math.max(2,Math.round(n/max*95))}px;background:var(--sodium);border-radius:3px 3px 0 0"></div><small>${i===7?'7+':i}<br>${n}</small></div>`).join('')}</div>
   <p>Couleurs : rouge ${colors.Red}, jaune ${colors.Yellow}, vert ${colors.Green}, bleu ${colors.Blue}.</p>
+  <div class="prime-advisor"><h4>Conseiller de construction</h4>${tips.map(t=>`<p>◈ ${esc(t)}</p>`).join('')}<small>Indications heuristiques, non preuve de performance.</small></div>
   <h4>Vérification de légalité</h4><p>${errors.length?esc(errors.join(' · ')):'✓ Aucune violation détectée par le validateur interne. Non-certification externe.'}</p>
-  <button class="btn prime-sim-run" id="deckBenchmark">Tester 24 duels IA rapides (sièges alternés)</button>
-  <p class="sim-hint" id="deckBenchmarkResult">La simulation n’utilise pas la recherche NIGHTMARE complète ; les parties non terminées ne sont pas comptées comme victoires.</p>
+  <button class="btn prime-sim-run" id="deckBenchmark">Tester 40 duels IA · 5 archétypes</button>
+  <p class="sim-hint prime-benchmark-report" id="deckBenchmarkResult">Comparaison contre cinq archétypes avec inversion des sièges. Les parties incomplètes et erreurs sont exclues des résultats.</p>
   <button class="btn ghost" data-nav="decks">Mes decks</button></div></div>`);
   app.querySelector('#deckBenchmark').onclick=benchmarkDeck;
 }
@@ -4742,27 +4750,50 @@ function academyScreen(index=0, correctCount=0){
 }
 
 async function benchmarkDeck(){
- const D=allDecks(),mine=D[S.myDeck]||Object.values(D)[0],enemy=D[S.aiDeck]||PRESETS['embracing-power'];
+ const D=allDecks(),mine=D[S.myDeck]||Object.values(D)[0];
  const output=app.querySelector('#deckBenchmarkResult'),button=app.querySelector('#deckBenchmark');
- if(!output||!button)return;button.disabled=true;
- if(validateDeck(mine).length||validateDeck(enemy).length){output.textContent='Déck invalide : corrigez-le avant le test.';button.disabled=false;return;}
- const tally={won:0,lost:0,ties:0,incomplete:0,errors:0};
- for(let match=0;match<24;match++){
-  // Paires avec graines égales et inversion des sièges : politiques rapides, non NIGHTMARE complet.
-  const flip=match%2===1,seed=70771+Math.floor(match/2)*1789;
-  try{
-    const g=Game.create(flip?[enemy,mine]:[mine,enemy],[FastPolicy,FastPolicy],{seed,hooks:{sim:true}});
-    const result=await g.run(85);
-    if(result?.status==='incomplete')tally.incomplete++;
-    else if(result?.winner===(flip?1:0))tally.won++;
-    else if(result?.winner===-1)tally.ties++;
-    else tally.lost++;
-  }catch(e){tally.errors++;}
-  if(match%3===2){output.textContent=`Simulations ${match+1}/24 · victoire ${tally.won} · incomplètes ${tally.incomplete} · erreurs ${tally.errors}`;await sleep(0);}
+ if(!output||!button)return;
+ if(validateDeck(mine).length){output.textContent='Deck invalide : corrigez-le avant le test.';return;}
+ button.disabled=true;
+ const rivalKeys=['embracing-power','the-heist','maelstrom','voodoo','netrunners'];
+ const totals={won:0,lost:0,draws:0,incomplete:0,errors:0};
+ const perRival=[];
+ try{
+ for(let r=0;r<rivalKeys.length;r++){
+   const key=rivalKeys[r],enemy=PRESETS[key];
+   if(!enemy||validateDeck(enemy).length){totals.errors+=8;continue;}
+   const stat={name:enemy.name,won:0,lost:0,draws:0,incomplete:0,errors:0};
+   for(let m=0;m<8;m++){
+     const flip=m%2===1,seed=70771+r*2729+Math.floor(m/2)*1789;
+     try{
+       const g=Game.create(flip?[enemy,mine]:[mine,enemy],[FastPolicy,FastPolicy],{seed,hooks:{sim:true}});
+       const result=await g.run(85);
+       if(result?.status==='incomplete'){stat.incomplete++;totals.incomplete++;}
+       else if(result?.winner===(flip?1:0)){stat.won++;totals.won++;}
+       else if(result?.winner===-1){stat.draws++;totals.draws++;}
+       else if(result?.winner===(flip?0:1)){stat.lost++;totals.lost++;}
+       else {stat.errors++;totals.errors++;}
+     }catch(_){stat.errors++;totals.errors++;}
+     if(m%4===3){
+       if(!output.isConnected)return;
+       output.textContent=`Évaluation ${r*8+m+1}/40 · ${totals.won} victoires · ${totals.incomplete} incomplètes · ${totals.errors} erreurs`;
+       await sleep(0);
+     }
+   }
+   perRival.push(stat);
  }
- const finished=tally.won+tally.lost+tally.ties;
- output.textContent=`Résultat : ${tally.won} V / ${tally.lost} D / ${tally.ties} N · ${tally.incomplete} incomplètes · ${tally.errors} erreurs. Taux ${finished?Math.round(tally.won/finished*100):0}% sur ${finished} duels conclus. Test de politiques rapides, non preuve de supériorité NIGHTMARE.`;
- button.disabled=false;
+ const completed=totals.won+totals.lost+totals.draws;
+ const p=completed?(totals.won+totals.draws*.5)/completed:0;
+ // Wilson interval is an indicative score interval, NOT an official ranking.
+ const z=1.96,z2=z*z,den=1+z2/Math.max(1,completed);
+ const center=(p+z2/(2*Math.max(1,completed)))/den;
+ const radius=z*Math.sqrt(p*(1-p)/Math.max(1,completed)+z2/(4*Math.max(1,completed)**2))/den;
+ const ci=completed?`${Math.round(100*Math.max(0,center-radius))}–${Math.round(100*Math.min(1,center+radius))}%`:'indéterminé';
+ output.textContent=`40 essais · ${completed} conclus · ${totals.won} V / ${totals.lost} D / ${totals.draws} N · ${totals.incomplete} incomplètes · ${totals.errors} erreurs.
+ Score ${Math.round(p*100)}% ; intervalle indicatif ~95% : ${ci}.
+ ${perRival.map(x=>x.name+': '+x.won+' V / '+x.lost+' D / '+x.draws+' N · '+x.incomplete+' incomplètes').join('\n')}
+ Politique rapide, faible échantillon non indépendant entre matchs appariés. Pas de classement certifié ni de preuve NIGHTMARE.`;
+ }finally{if(button.isConnected)button.disabled=false;}
 }
 
 const TUTORIAL_STEPS=[
@@ -5413,7 +5444,18 @@ function showCombatPreview(id, inst, actions = [], run = () => {}) {
   const available = actions.slice().sort((a,b)=>priority(a)-priority(b));
   const art = cardArt(id);
   const portrait = art ? esc(art) : '';
+  const game=S.game;
+  const resource=game?game.avail(HUMAN):0;
+  const myTurn=!!S.resolveMain;
+  const why=available.length?'Les options affichées sont autorisées par le moteur ; confirmez la cible et les réactions avant de jouer.':
+    !myTurn?'Ce n’est pas votre phase principale ou la partie attend une réaction.':inst&&!inst.ready?
+      'Cette carte est engagée ou une condition de son action n’est pas remplie.':
+      'Aucune action n’est actuellement autorisée pour cette carte. Consultez son effet et le journal ; aucune action ne sera inventée.';
   const sc = openSheet(`<div class="combat-preview-root">
+    <div class="prime-combat-summary" aria-label="Informations de la carte">
+      <span>${esc(cardName(d))}</span><span>Type : ${esc(TYPE_FR[d.type]||d.type)}</span>
+      <span>Coût imprimé : ${d.cost??'–'} €$</span><span>Vos ressources : ${resource} €$</span>
+    </div>
     <div class="combat-preview-image" data-fr-card="${id}" aria-label="Illustration de ${esc(cardName(d))}">
       <img class="combat-preview-portrait" ${art ? `src="${portrait}"` : ''}
         alt="${esc(cardName(d))}" decoding="async"
@@ -5423,7 +5465,7 @@ function showCombatPreview(id, inst, actions = [], run = () => {}) {
     </div>
     ${available.length ? `<div class="combat-preview-actions">${actsButtons(S.game,available)}</div>`
       : '<div class="combat-preview-empty">Aucune action disponible avec cette carte pour le moment.</div>'}
-    <p class="prime-tip">${available.length ? 'Actions autorisées par le moteur : choisissez une action ci-dessous. Les cibles adverses valides sont surlignées sur le plateau.' : 'Carte en consultation : aucune action disponible dans cet état.'}</p>
+    <p class="prime-combat-guidance" role="status"><strong>Conseil contextuel : </strong>${esc(why)}</p>
     <div class="combat-preview-toolbar">
       <button type="button" data-preview-zoom>Agrandir</button>
       <button type="button" data-preview-details>Lire l’effet</button>
@@ -6177,19 +6219,55 @@ async function startGame(resume=false) {
 function decksScreen() {
   const D=allDecks();
   mount(`<div class="screen">${topbar('Mes decks')}<div class="scroll pad sim-deck-library">
-    <div class="sim-headrow"><h3>Vos decks et archétypes</h3><button class="btn small primary" id="newDeck">+ Nouveau deck</button></div>
-    <p class="sim-deck-rule">3 Légendes différentes · 40 à 50 cartes · 3 exemplaires maximum · limites RAM respectées.</p>
-    <button class="btn ghost" data-nav="analyse">Analyser le deck actif</button>
+    <div class="sim-headrow"><h3>Mes decks · ${Object.keys(D).length}</h3><button class="btn small primary" id="newDeck">+ Nouveau deck</button></div>
+    <p class="sim-deck-rule">3 Légendes distinctes · 40–50 cartes · 3 exemplaires maximum · RAM contrôlée.</p>
+    <div class="tcg-deck-toolbar">
+      <input type="search" class="tcg-deck-search" id="deckSearch" placeholder="Rechercher un deck ou un archétype…" aria-label="Filtrer mes decks">
+      <button class="btn ghost" data-nav="analyse">Analyser le deck actif</button>
+    </div>
     <div class="sim-deck-cards">${Object.entries(D).map(([k,dk])=>{
-      const errs=validateDeck(dk), own=!!S.custom[k];
-      return `<div class="sim-deck-card ${S.myDeck===k?'chosen':''}" data-dk="${esc(k)}">
-        <div><b>${esc(dk.name)}</b><small>${own?'Personnel':dk.official?'Starter officiel':'Archétype'} · ${dk.main.length} cartes ${errs.length?'· À corriger':''}</small></div>
+      const errs=validateDeck(dk),own=!!S.custom[k],active=S.myDeck===k;
+      const legends=(dk.legends||[]).slice(0,3);
+      const cost=dk.main.reduce((n,id)=>n+(Number.isFinite(CARDS[id]?.cost)?CARDS[id].cost:0),0);
+      const avg=(cost/Math.max(1,dk.main.length)).toFixed(1);
+      return `<article class="sim-deck-card tcg-deck-card ${active?'chosen':''}" data-dk="${esc(k)}">
+        <div class="tcg-deck-top">
+          <div><b>${esc(dk.name)}</b><small>${own?'Personnel':dk.official?'Starter officiel':'Archétype'} · ${esc(dk.desc||'Deck tactique')}</small></div>
+          <span class="tcg-deck-badge">${active?'★ ACTIF':errs.length?'À CORRIGER':'DISPONIBLE'}</span>
+        </div>
+        <div class="tcg-deck-arts" aria-label="Légendes de ce deck">${legends.map((id,i)=>{
+          const art=cardArt(id);
+          return `<div class="tcg-legend" title="${esc(CARDS[id]?.name||'Légende')}">
+            <span class="tcg-legend-fallback" aria-hidden="true">${i+1}</span>
+            ${art?`<img src="${esc(art)}" alt="${esc(CARDS[id]?.name||'Légende')}" loading="lazy" onerror="this.remove()">`:''}
+          </div>`;
+        }).join('')}</div>
+        <div class="tcg-deck-meta"><span>${dk.main.length} cartes · ${legends.length} Légendes</span><span>Coût moyen : ${avg} €$</span></div>
         <div class="dots">${deckDots(dk)}</div>
-        <div class="sim-deck-buttons"><button class="btn small ${S.myDeck===k?'primary':'ghost'}" data-equip="${esc(k)}">${S.myDeck===k?'Actif':'Utiliser'}</button>
+        ${errs.length?`<div class="tcg-deck-invalid">⚠ ${esc(errs[0])}</div>`:'<small class="tcg-deck-insight">✓ Deck valide selon le vérificateur interne (non certifié officiellement)</small>'}
+        <div class="sim-deck-buttons">
+          <button class="btn small ${active?'primary':'ghost'}" data-equip="${esc(k)}">${active?'Actif':'Utiliser'}</button>
           <button class="btn small" data-edit="${esc(k)}">${own?'Éditer':'Copier / éditer'}</button>
-          ${own?`<button class="btn small danger" data-remove="${esc(k)}">Supprimer</button>`:''}</div></div>`;
-    }).join('')}</div></div>
-    <div class="actionbar"><button class="btn ghost" data-nav="home">Accueil</button><button class="btn primary" style="flex:1" data-nav="setup">Jouer avec mon deck</button></div></div>`);
+          ${own?`<button class="btn small danger" data-remove="${esc(k)}">Supprimer</button>`:''}
+        </div>
+      </article>`;
+    }).join('')}</div>
+    <div id="deckEmpty" class="tcg-deck-empty">Aucun deck ne correspond à cette recherche.</div>
+    </div>
+    <div class="actionbar"><button class="btn ghost" data-nav="home">Accueil</button><button class="btn primary" style="flex:1" data-nav="setup">Jouer avec mon deck</button></div>
+  </div>`);
+  const search=app.querySelector('#deckSearch');
+  if(search)search.oninput=()=>{
+    const q=search.value.trim().toLocaleLowerCase('fr');
+    let shown=0;
+    app.querySelectorAll('.tcg-deck-card').forEach(card=>{
+      const hay=(card.querySelector('.tcg-deck-top')?.textContent||'').toLocaleLowerCase('fr');
+      const visible=hay.includes(q);
+      card.hidden=!visible;
+      if(visible)shown++;
+    });
+    const empty=app.querySelector('#deckEmpty');if(empty)empty.style.display=shown?'none':'block';
+  };
   app.querySelector('#newDeck').onclick=()=>builderScreen({name:'Nouveau deck',legends:[],main:[]});
   app.querySelectorAll('[data-equip]').forEach(b=>b.onclick=()=>{S.myDeck=b.dataset.equip;store.set('myDeck',S.myDeck);decksScreen();});
   app.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
