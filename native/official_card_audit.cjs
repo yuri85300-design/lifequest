@@ -29,7 +29,7 @@ const officialSlugs={
 const officialSlug=id=>officialSlugs[id]||id;
 const result={generatedAt:new Date().toISOString(),source:base+'/cards',officialRules:base+'/comprehensive-rules',
   officialErrata:base+'/errata',runtimeCards:cards.length,officialCatalogueCount:null,
-  inspected:0,accessible:0,metadataExact:0,metadataMismatches:[],keywordMismatches:[],fetchErrors:[],
+  inspected:0,accessible:0,metadataExact:0,metadataMismatches:[],keywordMismatches:[],triggerCoverageMismatches:[],fetchErrors:[],
   missingFromOfficial:[],officialOnly:[],cardEvidence:[],semanticCertified:false};
 const textNorm=x=>(x||'').replace(/\s+/g,' ').trim();
 function parse(text) {
@@ -71,6 +71,28 @@ function officialClauseSignals(text){
    quantifierMentions:hit(/\b(?:each|all|up to|one or more)\b/gi),
    requiresManualReview:true
  };
+}
+function inspectEnglishTriggerCoverage(english,card) {
+ // Checks the printed trigger against the presence of an executable runtime
+ // handler. This is structural evidence only: a handler can still be wrong.
+ const standards=[
+  ['Play',card.type==='Gear'?'onPlay':'onPlay'],
+  ['Attack',card.type==='Gear'?'onHostAttack':'onAttack'],
+  ['Call','onCall'],
+  ['Defeated',card.type==='Gear'?'onHostDefeated':'onDefeated']
+ ];
+ const actual=[];
+ for(const [token,field] of standards){
+  if(new RegExp('\\\\{'+token+'\\\\}','i').test(english)){
+   actual.push({trigger:token,handler:field,implemented:typeof card[field]==='function',source:'official-current-text'});
+  }
+ }
+ const hasBeginning=(token)=>new RegExp('^\\\\s*\\\\{'+token+'\\\\}','i').test(english);
+ if(hasBeginning('Go Solo'))actual.push({trigger:'Go Solo',handler:'kw:GO_SOLO',implemented:(card.kw||[]).includes('GO_SOLO'),source:'official-current-text'});
+ if(hasBeginning('Adrenaline'))actual.push({trigger:'Adrenaline',handler:'kw:ADRENALINE',implemented:(card.kw||[]).includes('ADRENALINE'),source:'official-current-text'});
+ if(hasBeginning('Blocker'))actual.push({trigger:'Blocker',handler:'kw:BLOCKER',implemented:(card.kw||[]).includes('BLOCKER'),source:'official-current-text'});
+ if(hasBeginning('Quick'))actual.push({trigger:'Quick',handler:'quick',implemented:!!card.quick,source:'official-current-text'});
+ return actual;
 }
 async function main(){
  const browser=await chromium.launch({headless:true,args:['--disable-dev-shm-usage']});
@@ -127,6 +149,9 @@ async function main(){
      result.accessible++;
      datum.officialTextSha256=sha(textNorm(official.text));
      datum.officialTextLength=official.text.length;
+     datum.triggerEvidence=inspectEnglishTriggerCoverage(official.text,c);
+     for(const rule of datum.triggerEvidence)if(!rule.implemented)result.triggerCoverageMismatches.push({id:c.id,...rule});
+
      datum.officialClauseSignals=officialClauseSignals(official.text);
      datum.keywordAlignment=keywordAlignment(official.text,c.txt);
      if(datum.keywordAlignment.length)result.keywordMismatches.push({id:c.id,keywords:datum.keywordAlignment});
@@ -157,7 +182,9 @@ async function main(){
  md+='Listing pages: '+JSON.stringify(result.listingPages)+'; unique listings: '+result.listingItemsFound+'; complete: '+result.listingComplete+'\n\n';
  md+='Official-only slugs: '+(result.officialOnly.join(', ')||'none detected')+'\n\n';
  md+='Runtime slugs not on current listing: '+(result.missingFromOfficial.join(', ')||'none detected')+'\n\n';
+ md+='Trigger contract omissions: '+result.triggerCoverageMismatches.length+'\\n\\n';
  md+='## Discrepancies\n\n';
+ for(const t of result.triggerCoverageMismatches)md+='- TRIGGER '+t.id+': '+t.trigger+' missing '+t.handler+'\\n';
  for(const v of result.metadataMismatches)md+='- '+v.id+': '+JSON.stringify(v.diffs)+'\n';
  for(const v of result.fetchErrors)md+='- UNAVAILABLE '+v.id+': '+v.error+'\n';
  fs.writeFileSync(path.join(root,'official-summary.md'),md);
