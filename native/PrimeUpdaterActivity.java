@@ -63,6 +63,8 @@ public class PrimeUpdaterActivity extends Activity {
   private volatile File currentContent;
   private volatile boolean updateCheckRunning = false;
   private SharedPreferences updatePrefs;
+  private boolean otaQaRequested=false;
+  private boolean otaQaStarted=false;
 
 
   @Override public void onCreate(Bundle state) {
@@ -99,6 +101,7 @@ public class PrimeUpdaterActivity extends Activity {
     st.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
     web.addJavascriptInterface(new Bridge(),"Native7Gigs");
     updatePrefs = getSharedPreferences("prime_content_updates", MODE_PRIVATE);
+    otaQaRequested = getIntent()!=null && getIntent().getBooleanExtra("otaQa",false);
     activatePendingOnStartup();
     web.setWebViewClient(new WebViewClient() {
       @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
@@ -129,6 +132,20 @@ public class PrimeUpdaterActivity extends Activity {
           return new WebResourceResponse(mime,asset.endsWith(".html")?"UTF-8":null,stream);
         } catch(Exception ex) {
           return new WebResourceResponse("text/plain","UTF-8",new ByteArrayInputStream("Asset introuvable".getBytes(StandardCharsets.UTF_8)));
+        }
+      }
+      @Override public void onPageFinished(WebView view,String url) {
+        super.onPageFinished(view,url);
+        if(!otaQaRequested)return;
+        if(!otaQaStarted){
+          otaQaStarted=true;
+          view.evaluateJavascript("localStorage.setItem('septgigs.otaQaCanary','persisted')",value->runOtaQa());
+        }else if(currentContent!=null){
+          view.evaluateJavascript("localStorage.getItem('septgigs.otaQaCanary')",value->{
+            if("\"persisted\"".equals(value))
+              Log.i("7Gigs-PRIME","OTA_LOCAL_SAVE_QA_PASS");
+            else Log.e("7Gigs-PRIME","OTA_LOCAL_SAVE_QA_FAIL:"+value);
+          });
         }
       }
       @Override public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError error) {
@@ -366,6 +383,28 @@ public class PrimeUpdaterActivity extends Activity {
     currentContent=null;
     web.loadUrl(URL);
     Toast.makeText(this,"Version de secours rétablie, sauvegardes conservées.",Toast.LENGTH_LONG).show();
+  }
+
+
+  // The test run supplies otaQa=true via adb; never uses arbitrary remote URLs.
+  // This validates the same staging path as the user-initiated updater.
+  private void runOtaQa(){
+    updates.execute(()->{
+      try{
+        JSONObject m=new JSONObject(new String(readLimited(UPDATE_MANIFEST+"?qa="+System.currentTimeMillis(),65536),StandardCharsets.UTF_8));
+        int code=m.getInt("version_code");
+        String version=m.getString("version");
+        String expectedUrl=RELEASE_BASE+"prime-content-v"+version+"/prime-content-v"+version+".zip";
+        if(code<=BASE_CONTENT_CODE || m.optInt("min_shell",BASE_CONTENT_CODE)>BASE_CONTENT_CODE
+          || !expectedUrl.equals(m.getString("url")))throw new SecurityException("OTA test manifest invalid");
+        byte[] zip=readLimited(expectedUrl,MAX_BUNDLE_BYTES);
+        if(!sha256(zip).equals(m.getString("sha256")))throw new SecurityException("OTA SHA mismatch");
+        installBundle(zip,code);
+        activatePendingOnStartup();
+        Log.i("7Gigs-PRIME","PRIME_OTA_QA_PASS:"+code);
+        runOnUiThread(()->web.loadUrl(URL+"?offlineQa=1"));
+      }catch(Exception e){Log.e("7Gigs-PRIME","PRIME_OTA_QA_FAIL",e);}
+    });
   }
 
   private void applyImmersiveMode() {
