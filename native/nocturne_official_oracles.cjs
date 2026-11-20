@@ -1,5 +1,6 @@
 'use strict';
 // Official Nocturne OP55 N1 (2026 English text and FAQ) contract branches.
+// Independent review branch: synchronized PC and Android runtime evidence.
 module.exports=async function runNocturne(api,assert){
  const {Game,CARDS,presetDecks,FastPolicy}=api,ds=presetDecks(),tests=[];
  const make=()=>{
