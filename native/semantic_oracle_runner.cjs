@@ -6,7 +6,9 @@ const sandbox={console,performance,Date,Math,setTimeout,clearTimeout,structuredC
 sandbox.window=sandbox;sandbox.globalThis=sandbox;vm.createContext(sandbox);
 vm.runInContext(source+'\nglobalThis.__semanticApi={Game,GameOver,CARDS,presetDecks,FastPolicy};',sandbox,{filename:'engine.js'});
 (async()=>{
- const result=await require('./semantic_oracles.cjs')(sandbox.__semanticApi,assert);
+ const primary=await require('./semantic_oracles.cjs')(sandbox.__semanticApi,assert);
+ const secondary=await require('./semantic_oracles_extra.cjs')(sandbox.__semanticApi,assert);
+ const result={count:primary.count+secondary.count,passed:primary.passed+secondary.passed,failed:primary.failed+secondary.failed,tests:[...primary.tests,...secondary.tests]};
  const output=path.join(__dirname,'..','audit-results');fs.mkdirSync(output,{recursive:true});
  const payload={date:new Date().toISOString(),source:'current engine.js',certification:'NOT_CERTIFIED',
   independentOracles:result.count,passed:result.passed,failed:result.failed,tests:result.tests};
