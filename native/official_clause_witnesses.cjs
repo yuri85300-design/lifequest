@@ -77,6 +77,24 @@ module.exports={
   ]},
  'octant':{sourceHash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',segments:[{index:1,hash:'c7890883bf3cd8e7196f3eaba745f563e50e46966b6947c3a14188c858ac2d49',cases:['gig-value-eight-or-more-discount-with-minimum-one'],branches:["zero-high-gigs","multiple-high-gigs","floor-one"]}]},
  'ruthless-lowlife':{sourceHash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',segments:[{index:1,hash:'a3136cae1d1ff75b673ed7d8a4841181fa6ed3c25af1a8b18ddf31edd6103946',cases:['cannot-attack-gigs-even-when-rival-has-gigs'],branches:["unit-target-allowed","gig-area-target-forbidden"]}]},
+ 'evelyn-parker-scheming-siren':{
+  sourceHash:'cb2d451a585d953eb1f3215c62809d866fe7fe2ef75eae5d8dcc3fbbc12d2441',segments:[
+   {index:1,hash:'915accf2c1fdbd880a2e47936e2f9c3c465f1410ddc46f1c1e5b1e4340be57f6',cases:["scheming-siren-attack-draws-one-when-behind","scheming-siren-attack-ahead-draw-then-discard-one","scheming-siren-equal-cred-does-not-discard"],branches:["attack-draw-one","always-draw"]},
+   {index:2,hash:'4d09ceb1c6f69aeea59ecf5ef6dc30a953f59aa257d86d06727a0fcfec1c95e6',cases:["scheming-siren-attack-ahead-draw-then-discard-one","scheming-siren-equal-cred-does-not-discard","scheming-siren-attack-draws-one-when-behind"],branches:["ahead-discard","equal-no-discard","behind-no-discard"]}
+  ]},
+ 'jacked-in-voodoo-boy':{
+  sourceHash:'de6c67bd8fe173820090e27fe1d207fb5619e0690750350d25e105bbab2e9bbd',segments:[
+   {index:1,hash:'de6c67bd8fe173820090e27fe1d207fb5619e0690750350d25e105bbab2e9bbd',cases:["jacked-in-no-program-this-turn-cannot-attack","jacked-in-program-played-allows-attack-condition","jacked-in-other-player-program-does-not-allow-attack"],branches:["program-this-turn","no-program","rival-program-only"]}
+  ]},
+ 'maelstrom-goons':{
+  sourceHash:'413adcbd7d1d3d6e450f8d6522559ce78b22ea7c508f485f7d033014eef9e47a',segments:[
+   {index:1,hash:'413adcbd7d1d3d6e450f8d6522559ce78b22ea7c508f485f7d033014eef9e47a',cases:["maelstrom-unequipped-steal-does-not-discard","maelstrom-equipped-one-gig-steal-discards-one","maelstrom-equipped-multiple-stolen-gigs-discard-per-gig"],branches:["unequipped-no-discard","equipped-one-steal","equipped-multiple-stolen-gigs"]}
+  ]},
+ 'chrome-reverie':{
+  sourceHash:'dbfc8f7baaa5537860e702f9bd09cd798b18fdddea7bef9bb36e42679bd9acaf',segments:[
+   {index:1,hash:'269a5572872bb86b80f865f54b77b1e28b5f9a153cfeaa722571bbb9fbbeea59',cases:["chrome-reverie-immobilizes-rival-unit-even-with-no-min-gig"],branches:["rival-unit-immobilized"]},
+   {index:2,hash:'21c1e6c6fa77df1638e50231a8c7f09f4e10c47bf7990d28092b75f62648b9aa',cases:["chrome-reverie-no-minimum-gig-no-free-call","chrome-reverie-minimum-gig-offers-optional-free-call","chrome-reverie-earlier-call-blocks-another"],branches:["min-gig-true","min-gig-false","earlier-call"]}
+  ]},
  'field-operator':{sourceHash:'4f5ce9ecce2c41d7ade1adb8949c8544bdfee9f1b468ff6b66943736dcbd8285',segments:[{index:1,hash:'4f5ce9ecce2c41d7ade1adb8949c8544bdfee9f1b468ff6b66943736dcbd8285',cases:['even-street-cred-draws-odd-does-not'],branches:["even-cred-draw","odd-cred-no-draw"]}]},
  'swordwise-huscle':{sourceHash:'404e0a72d9485b20cd5a9f10a4b110558973d898967c721c71673d1a137fef29',segments:[{index:1,hash:'404e0a72d9485b20cd5a9f10a4b110558973d898967c721c71673d1a137fef29',cases:['attack-power-five-draw-threshold'],branches:["power-below-five","power-at-five"]}]},
  'trauma-team-operatives':{sourceHash:'1bc188452cb9f0e70fcefcfee41af033ac937034c2ac5fc62e8766156a29ee85',segments:[{index:1,hash:'1bc188452cb9f0e70fcefcfee41af033ac937034c2ac5fc62e8766156a29ee85',cases:['discount-by-unit-in-trash-floor-one'],branches:["two-eligible-trash-units","floor-one"]}]},
