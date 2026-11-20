@@ -1,0 +1,118 @@
+name: PRIME OTA 2.7.0 - Mise a jour sans APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/prime_v270_runtime.html'
+      - 'native/audit_260.cjs'
+      - 'native/audit_261.cjs'
+      - 'native/audit_262.cjs'
+      - 'native/audit_263.cjs'
+      - 'native/audit_270.cjs'
+      - 'native/audit_270_ai.cjs'
+      - 'native/audit_270_puzzles.cjs'
+      - 'native/ota_manifest_guard.py'
+      - 'native/audit_ota_guard.py'
+      - 'multiplayer/protocol.mjs'
+      - 'multiplayer/protocol.test.mjs'
+      - 'native/audit_257.cjs'
+      - 'native/build_ota_content.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construire un paquet du jeu sans APK ni illustrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 native/build_ota_content.py --source native/prime_v270_runtime.html --version 2.7.0 --version-code 27000 --out /tmp/prime-ota
+      - name: Compatibilite avec la coque Android 2.5.4 et suivantes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          path=Path('/tmp/prime-ota/latest.json')
+          manifest=json.loads(path.read_text(encoding='utf-8'))
+          manifest['min_shell']=25004
+          manifest['notes']='Strategie et coaching : 6 missions, 17 questions, probabilites, assistant de decks, diagnostic NIGHTMARE, confort visuel, controle des versions. Sauvegardes conservees.'
+          path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('MANIFEST_270',manifest['version_code'],manifest['min_shell'])
+          PY
+      - name: Valider les regles et les duels AVANT publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRIME_ENGINE_PATH=/tmp/prime-ota/engine.js node --max-old-space-size=512 native/audit_230.cjs > /tmp/prime-ota/audit-resume.json
+          PRIME_ENGINE_PATH=/tmp/prime-ota/engine.js node --max-old-space-size=512 native/audit_220.cjs > /tmp/prime-ota/audit-regles.json
+          grep -Fq '"TECHNICAL_PASS_NOT_OFFICIAL_CERTIFIED"' /tmp/prime-ota/audit-regles.json
+          PRIME_HTML=native/prime_v263_runtime.html node native/audit_252.cjs | tee /tmp/prime-ota/audit-academie.json
+          grep -Fq '"publicReplay": "PASS"' /tmp/prime-ota/audit-academie.json
+          npm install --no-save --no-package-lock linkedom@0.18.12
+          node -e "console.log('DOM parser:', require.resolve('linkedom'))"
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_253.cjs | tee /tmp/prime-ota/audit-choix.json
+          grep -Fq '"noNestedButtons": "PASS"' /tmp/prime-ota/audit-choix.json
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_257.cjs | tee /tmp/prime-ota/audit-menu257.json
+          grep -Fq '"menuOnlyUpdates": "PASS"' /tmp/prime-ota/audit-menu257.json
+          node --check native/audit_260.cjs
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_260.cjs | tee /tmp/prime-ota/audit-menu.json
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_261.cjs | tee /tmp/prime-ota/audit-guide.json
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_262.cjs | tee /tmp/prime-ota/audit-decks.json
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_263.cjs | tee /tmp/prime-ota/audit-actor.json
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_270_puzzles.cjs | tee /tmp/prime-ota/audit-puzzles270.json
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_270.cjs | tee /tmp/prime-ota/audit-strategy.json
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_270_ai.cjs | tee /tmp/prime-ota/audit-ai.json
+          python3 native/audit_ota_guard.py | tee /tmp/prime-ota/audit-manifest-guard.json
+          node multiplayer/protocol.test.mjs | tee /tmp/prime-ota/audit-pvp-foundation.json
+          grep -Fq '"opponentCannotUnlockGuide": "PASS"' /tmp/prime-ota/audit-actor.json
+          grep -Fq '"deckProbabilities": "PASS"' /tmp/prime-ota/audit-strategy.json
+          grep -Fq '"nightmareDiagnostic": "PASS"' /tmp/prime-ota/audit-ai.json
+          grep -Fq '"manifestNoDowngrade": "PASS"' /tmp/prime-ota/audit-manifest-guard.json
+          grep -Fq '"serverLegalActions":"PASS"' /tmp/prime-ota/audit-pvp-foundation.json
+          grep -Fq '"hideFilteredDecks": "PASS"' /tmp/prime-ota/audit-decks.json
+          grep -Fq '"guideLive": "PASS"' /tmp/prime-ota/audit-guide.json
+          grep -Fq '"campaignUnlock": "PASS"' /tmp/prime-ota/audit-menu.json
+          grep -Fq '"humanResultsOnly": "PASS"' /tmp/prime-ota/audit-menu.json
+      - name: Publication du contenu uniquement sur GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: prime-content-v2.7.0
+          name: PRIME - mise a jour sans APK - v2.7.0
+          prerelease: false
+          make_latest: false
+          body: "Mise a jour HTML+IA pour l'application Android PRIME 2.5.4. Les 150 illustrations françaises restent dans l'APK et les sauvegardes sont conservees."
+          files: /tmp/prime-ota/prime-content-v2.7.0.zip
+          fail_on_unmatched_files: true
+      - name: Actualiser le manifeste uniquement si sa version augmente
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 native/ota_manifest_guard.py --manifest /tmp/prime-ota/latest.json
+      - name: Conserver les preuves de la publication
+        uses: actions/upload-artifact@v4
+        with:
+          name: prime270-ota-validation
+          path: |
+            /tmp/prime-ota/latest.json
+            /tmp/prime-ota/audit-regles.json
+            /tmp/prime-ota/audit-resume.json
+            /tmp/prime-ota/audit-academie.json
+            /tmp/prime-ota/audit-choix.json
+            /tmp/prime-ota/audit-menu.json
+            /tmp/prime-ota/audit-menu257.json
+            /tmp/prime-ota/audit-guide.json
+            /tmp/prime-ota/audit-decks.json
+            /tmp/prime-ota/audit-actor.json
+            /tmp/prime-ota/audit-puzzles270.json
+            /tmp/prime-ota/audit-strategy.json
+            /tmp/prime-ota/audit-ai.json
+            /tmp/prime-ota/audit-manifest-guard.json
+            /tmp/prime-ota/audit-pvp-foundation.json
+          if-no-files-found: error
