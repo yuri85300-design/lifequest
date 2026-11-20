@@ -62,10 +62,7 @@ jobs:
             adb pull /sdcard/nightmare.png /tmp/nightmare-android15/screenshot.png
             adb shell pidof com.sevengigs.prime > /tmp/nightmare-android15/pid.txt
             grep -q 'com.sevengigs.prime' /tmp/nightmare-android15/activity.txt
-            if grep -q 'FATAL EXCEPTION' /tmp/nightmare-android15/logcat.txt; then
-              echo 'Android fatal exception detected'
-              exit 1
-            fi
+            ! grep -q 'FATAL EXCEPTION' /tmp/nightmare-android15/logcat.txt
       - name: Publish APK and launch diagnostics
         if: always()
         uses: actions/upload-artifact@v4
