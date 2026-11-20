@@ -4,6 +4,11 @@ on:
     paths:
       - 'native/engine.js'
       - 'native/official_card_audit.cjs'
+      - 'native/semantic_oracles.cjs'
+      - 'native/semantic_oracles_extra.cjs'
+      - 'native/semantic_oracle_runner.cjs'
+      - 'native/card_lifecycle_oracles.cjs'
+      - 'native/semantic_register.cjs'
       - '.github/workflows/official-cards.yml'
   pull_request:
     paths:
