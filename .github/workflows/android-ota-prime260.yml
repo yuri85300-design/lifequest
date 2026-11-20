@@ -83,10 +83,20 @@ jobs:
             grep -q 'ACTIVE_PRIME_CONTENT=26000' /tmp/prime260-proof/logcat-offline.txt
             grep -q 'OFFLINE_FR_QA_PASS:150/150:' /tmp/prime260-proof/logcat-offline.txt
             ! grep -q 'FATAL EXCEPTION' /tmp/prime260-proof/logcat-offline.txt
+            # Android 15 displays its own first-launch immersive instruction
+            # above the game. Dismiss it before actual gameplay screenshots.
+            adb shell input tap 915 657
+            sleep 3
             adb shell screencap -p /sdcard/prime254-ota.png
             adb pull /sdcard/prime254-ota.png /tmp/prime260-proof/after-update-offline.png
             adb shell uiautomator dump /sdcard/prime260-ui.xml || true
             adb pull /sdcard/prime260-ui.xml /tmp/prime260-proof/ui-accessibility.xml || true
+            # Inspect the Decks screen and confirm that the old yellow updater
+            # is absent outside Menu, without changing or deleting any saves.
+            adb shell input tap 220 2040
+            sleep 3
+            adb shell screencap -p /sdcard/prime260-decks.png
+            adb pull /sdcard/prime260-decks.png /tmp/prime260-proof/decks-screen.png
             echo 'PRIME OTA 2.5.4 -> 2.6.0 PASSED WITHOUT APK REINSTALL'
       - name: Upload reproducible QA evidence
         if: always()
