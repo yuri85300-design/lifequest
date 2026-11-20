@@ -249,3 +249,25 @@ Audit : https://github.com/yuri85300-design/lifequest/actions/runs/44789497136
 
 L'écart bloquant est maintenant mesuré par un artefact effectivement généré.
 Aucune déclaration de 100 % de conformité ne doit être tirée de ce workflow.
+
+## Régressions de livraison corrigées et validées
+
+Le workflow PC Chromium auparavant rouge a été adapté au mode expérimental
+NIGHTMARE : le bouton `labTrain` doit être actif, tout en affichant que
+les effets ne sont pas intégralement certifiés. Exécution
+[44791319227](https://github.com/yuri85300-design/lifequest/actions/runs/44791319227)
+: **16/16 tests PASS** (PC et mobile Chromium).
+
+L'échec d'installation SDK du workflow Android debug (`sdkmanager tools` :
+paquet obsolète) a été corrigé en demandant explicitement `platform-tools`,
+`platforms;android-35` et `build-tools;35.0.0`. Exécution
+[44791005469](https://github.com/yuri85300-design/lifequest/actions/runs/44791005469)
+: **success**, artefact APK debug publié. Cela prouve une compilation
+Android, sans constituer une installation réelle sur tous les appareils.
+
+La matrice officielle sur
+[44789497136](https://github.com/yuri85300-design/lifequest/actions/runs/44789497136)
+a réussi : **218/218 oracles, 40/280 segments avec témoins partiels,
+240 sans rapprochement, 0/150 carte intégralement certifiée**.
+Le laboratoire expérimental fonctionne dans les scénarios prouvés,
+mais `NIGHTMARE_TRAINING_CERTIFIED` reste `false` faute de preuve exhaustive.
