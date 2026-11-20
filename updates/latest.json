@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 27001,
-  "version": "2.7.1",
+  "version_code": 27002,
+  "version": "2.7.2",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.1/prime-content-v2.7.1.zip",
-  "sha256": "e6c67d712f4378546e902cff6c740651bb633603ec0d0122aabad88a332ed528",
-  "notes": "Campagne 12 contrats, Academie 12 missions, diagnostic IA 12 situations, essais de deck reversibles, Android QA corrigee. Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.2/prime-content-v2.7.2.zip",
+  "sha256": "8c9d4d82e254ca8a083da19ad61f6e6082350e2ddb68693ba10e3baea3d8b8ec",
+  "notes": "Campagne 12 contrats et 12 missions, deck coach reversible, bilan tactique post-duel en informations publiques, sauvegardes conservees."
 }
