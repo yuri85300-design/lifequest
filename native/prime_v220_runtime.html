@@ -4800,7 +4800,7 @@ function homeScreen() {
   app.querySelector('[data-tutorial-home]').onclick=tutorialScreen;
 }
 
-// ====================================== NIGHTMARE LAB // 300 vrais duels
+// ====================================== NIGHTMARE LAB // validation compétitive suspendue
 function rivalText(){ const m=window.RivalLearning.summary(S.rivalMemory);return `${m.total} duel(s) terminés · ${m.profiles} style(s) de deck retenu(s)`; }
 function rivalDeckText(){const d=allDecks()[S.myDeck],m=window.RivalLearning.summary(S.rivalMemory,d),p=m.deck;
   if(!p)return 'Votre deck actif n’a pas encore de duel enregistré.';
@@ -4809,13 +4809,13 @@ function rivalDeckText(){const d=allDecks()[S.myDeck],m=window.RivalLearning.sum
   return `Contre votre deck : ${p.games} duels · IA ${p.wins} victoire(s), ${p.losses} défaite(s), ${p.draws} nul(s) · dernier plan : ${window.RivalLearning.STRATEGIES[style]?.name||'Équilibré'}${favorites?' · cartes observées : '+favorites:''}`;
 }
 function labScreen(){
-  const n=Math.max(PRETRAINED_BRAIN.trainingMatches,S.brain.matches||0);
+  const n=Math.max(0,Number(S.brain.matches)||0);
   const v=S.brain.validation;
   mount(`<div class="screen lab-screen">${topbar('Laboratoire IA')}<div class="scroll"><div class="lab-main">
      <div class="lab-kicker">SIMULATEUR · NIGHT CITY · APPRENTISSAGE PAR ÉVOLUTION</div>
      <h1 class="lab-title">L’IA AFFRONTE<br>SA PROPRE IA.</h1>
-     <div class="lab-hero"><small>CHAMPION ACTUEL</small><b>NIGHTMARE // ${n.toLocaleString('fr-FR')} DUELS</b>
-       <small>Politique de décision validée avec la vente €$ corrigée. 150 cartes · 10 decks de test · plans aggro, équipement, contrôle, midrange. Moteur non officiel.</small></div>
+     <div class="lab-hero"><small>POLITIQUE HISTORIQUE · NON CERTIFIÉE</small><b>NIGHTMARE // ${n.toLocaleString('fr-FR')} DUELS ENREGISTRÉS</b>
+       <small>Politique de référence disponible, certification sémantique officielle en attente. 150 cartes · 10 decks prédéfinis · moteur non officiel.</small></div>
      <div class="lab-line"><span>Entraînement autonome</span><b id="labCount">0 / 300</b></div>
      <div class="lab-meter"><i id="labBar"></i></div>
      <div class="lab-status" id="labStatus">Entraînement suspendu : 150 effets officiels non encore certifiés. Les anciens poids restent disponibles comme référence.</div>
@@ -4834,7 +4834,7 @@ function labScreen(){
      </div>
      <p class="lab-foot">Sauvegarde dans le navigateur : elle peut disparaître en changeant de fichier, de navigateur ou d’appareil. Exportez régulièrement votre mémoire en JSON, puis importez-la dans la nouvelle version du jeu.</p>
      <p class="lab-foot">Entraînement du champion temporairement suspendu. Seule la validation complète des branches d’effets autorisera une nouvelle campagne et un éventuel remplacement statistique. Aucun agent ne peut garantir 100 % de victoires.</p>
-     <p class="lab-foot">PRIME 2.1.2 : six effets réparés et 59 oracles sémantiques indépendants validés. Les 150 effets ne sont pas encore certifiés ; aucun nouvel entraînement du champion ne peut être lancé. Historique de l’IA conservé séparément.</p>
+     <p class="lab-foot">PRIME : les tests techniques ne remplacent pas la comparaison exhaustive avec les 150 textes anglais officiels et leurs errata. Réentraînement verrouillé jusqu’à certification sémantique. Historique de l’IA conservé.</p>
    </div></div></div>`);
   const updateRivalUI=()=>{
     const v=app.querySelector('#rivalSummary'),d=app.querySelector('#rivalDeckSummary'),t=app.querySelector('#rivalToggle');
@@ -4895,7 +4895,7 @@ function setupScreen() {
     <label for="enemyDeck">Deck adverse</label><select id="enemyDeck" class="sim-select"><option value="random" ${S.aiDeck==='random'?'selected':''}>Deck tactique aléatoire</option>${opts(S.aiDeck)}</select>
     <div class="sim-setup-split"><div><label for="pseudo">Votre nom</label><input class="search sim-pseudo" id="pseudo" maxlength="16" value="${esc(S.pseudo)}"></div>
     <div><label for="lvl">Intelligence de l'adversaire</label><select class="sim-select" id="lvl">${Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${S.level===k?'selected':''}>${v[0]} · ${v[1]}</option>`).join('')}</select></div></div>
-    <div class="sim-hint"><b>NIGHTMARE</b> évalue plusieurs coups et les ripostes possibles avec le champion issu de ${Math.max(300,S.brain.matches||0)} auto-duels. Certaines décisions peuvent prendre plus de temps.</div>
+    <div class="sim-hint"><b>NIGHTMARE</b> utilise une recherche tactique et des poids historiques non certifiés sur cette version. ${Number(S.brain.matches)||0} auto-duel(s) enregistré(s) dans le champion local ; réentraînement compétitif suspendu.</div>
     <div class="sim-hint" style="border-left:3px solid var(--sodium)">${S.learningEnabled ? '◈ Apprentissage activé : l’IA mémorise vos duels et adapte ses stratégies en Tactique+ et NIGHTMARE (Initiation sert à collecter les observations). '+(window.RivalLearning.summary(S.rivalMemory, D[S.myDeck]).deck?.games || 0)+' duel(s) enregistrés contre ce deck.' : 'Apprentissage désactivé : le duel ne sera pas mémorisé.'}</div>
     <button class="btn ghost" data-nav="decks" style="width:100%;margin-top:12px">Créer ou modifier un deck</button>
   </div><div class="actionbar"><button class="btn primary" style="flex:1" id="start">Commencer le duel</button></div></div>`);
