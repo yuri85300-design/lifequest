@@ -1674,8 +1674,10 @@ class Game {
     if (!opt.free) {
       const cost = this.costOf(c, i, 'play');
       if (!(await this.pay(i, cost))) return;
-      if (d.type === 'Program' && p.tf.progDiscount) p.tf.progDiscount = 0;
     }
+    // "Next Program" is consumed by the next Program actually played even
+    // when its payment is waived by another effect (Alt Cunningham).
+    if (d.type === 'Program' && p.tf.progDiscount) p.tf.progDiscount = 0;
     // A free play is still a play: once-per-turn "first Gear played" effects
     // must be consumed even if the card's payment was waived (Viktor Vektor).
     for (const src of this.sources(i)) { const sd = this.def(src.inst); if (sd.afterPay) sd.afterPay(this, src.inst, c, i); }
