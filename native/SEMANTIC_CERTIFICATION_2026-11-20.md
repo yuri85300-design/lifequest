@@ -4,7 +4,7 @@ Mise à jour : 20 novembre 2026
 ## Verdict et périmètre
 
 **150/150 cartes disposent d'au moins un oracle comportemental individualisé.
-199/199 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
+201/201 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
 
 Ces deux chiffres ne sont pas contradictoires : un test dédié vérifie une ou
 plusieurs propriétés concrètes mais ne démontre pas toutes les phrases,
@@ -23,7 +23,7 @@ technique, du nombre d'oracles ou des empreintes officielles.
 | Empreintes officielles en anglais | 150/150 | Fiches enregistrées et versionnées |
 | Gestionnaires de déclencheurs imprimés | 0 manquant détecté | Existence du gestionnaire, pas exactitude |
 | Scénarios individuels cycle de vie | 150/150 | Entrée en jeu, destination, UID, propriétaire |
-| Oracles comportementaux dédiés | **199/199 PASS** | **150 cartes distinctes** |
+| Oracles comportementaux dédiés | **201/201 PASS** | **150 cartes distinctes** |
 | Interactions paires techniques | 22 500/22 500 | Invariants d'état |
 | Parties IA/IA | 1 000/1 000 | Terminaison, légalité des coups |
 | Écran PC / mobile émulé Chromium | 16/16 | Parcours de l'interface |
@@ -67,7 +67,7 @@ Source canonique : textes anglais officiels des deux cartes sur
 https://cyberpunktcg.com/cards . Le moteur `native/engine.js` et la
 version jouable `native/prime_v220_runtime.html` ont été corrigés ensemble.
 
-Les **199 oracles** ont réussi dans GitHub Actions, dont 12 nouveaux contrôles de clauses officielles. Le statut de
+Les **201 oracles** ont réussi dans GitHub Actions, dont 12 nouveaux contrôles de clauses officielles. Le statut de
 l'exécution indépendante GitHub doit être vérifié séparément ; ne jamais
 inférer qu'un commit rend les workflows verts.
 
@@ -85,7 +85,7 @@ Le registre `native/official_clause_witnesses.cjs` associe **13 segments officie
 du texte publié. Cette traçabilité reste une **preuve partielle** : elle ne
 certifie ni toutes les branches possibles ni toutes les interactions.
 
-Résultats : [199/199 oracles dans GitHub Actions](https://github.com/yuri85300-design/lifequest/actions/runs/44775805966).
+Résultats : [201/201 oracles dans GitHub Actions](https://github.com/yuri85300-design/lifequest/actions/runs/44775805966).
 Le passage complet officiel et la confrontation des empreintes sont vérifiés
 séparément sur GitHub.
 
@@ -98,15 +98,31 @@ sans changement fonctionnel arbitraire. Les tests ont été relancés sur
 cette version synchronisée.
 
 Le texte anglais officiel de Nocturne OP55N1 a été consulté directement.
-La batterie dédiée compte désormais **10 oracles** couvrant le prix fixe
+La batterie dédiée compte désormais **12 oracles** couvrant le prix fixe
 quand la zone Fixer est vide, les trois effets au choix, les paiements
 EN SOLO, la consommation/expiration de la remise, le minimum de 1 €$
 et la surtaxe de Riot Shield. Les **trois fragments candidats anglais**
 de Nocturne ont été liés aux empreintes officielles et aux tests.
 
-Cela porte le total à **199 oracles PASS**, sur **150 cartes distinctes**.
+Cela porte le total à **201 oracles PASS**, sur **150 cartes distinctes**.
 Ces vérifications sont réelles, mais elles ne couvrent pas encore chaque
 condition et interaction du référentiel officiel.
+
+## Test de résistance des oracles par mutations
+
+La batterie `native/semantic_mutation_audit.cjs` injecte **9 erreurs
+sémantiques distinctes**, une à la fois, dans des copies isolées du moteur
+(prix fixe et remise de Nocturne, limites Royce, pioche Shattered Memories/Kerry,
+consommation Gorilla Arms/Viktor, excavation All is Lost).
+
+**Résultat GitHub Actions : 9/9 mutations détectées, 0 erreur survivante.**
+Les oracles sont donc capables de refuser ces comportements manifestement
+erronés, et ne se limitent pas tous à tester l'absence de plantage.
+
+Workflow : https://github.com/yuri85300-design/lifequest/actions/runs/44778053249
+
+Ce taux vaut seulement pour ces neuf mutations ciblées ; il ne représente
+ni un taux d'exhaustivité global ni un certificat des 280 segments officiels.
 
 ## Verrous restant à lever pour une certification effective
 
