@@ -4,7 +4,7 @@ Mise à jour : 20 novembre 2026
 ## Verdict et périmètre
 
 **150/150 cartes disposent d'au moins un oracle comportemental individualisé.
-201/201 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
+217/217 oracles réussis en CI. Certification sémantique intégrale : NON ACQUISE.**
 
 Ces deux chiffres ne sont pas contradictoires : un test dédié vérifie une ou
 plusieurs propriétés concrètes mais ne démontre pas toutes les phrases,
@@ -23,7 +23,7 @@ technique, du nombre d'oracles ou des empreintes officielles.
 | Empreintes officielles en anglais | 150/150 | Fiches enregistrées et versionnées |
 | Gestionnaires de déclencheurs imprimés | 0 manquant détecté | Existence du gestionnaire, pas exactitude |
 | Scénarios individuels cycle de vie | 150/150 | Entrée en jeu, destination, UID, propriétaire |
-| Oracles comportementaux dédiés | **201/201 PASS** | **150 cartes distinctes** |
+| Oracles comportementaux dédiés | **217/217 PASS** | **150 cartes distinctes** |
 | Interactions paires techniques | 22 500/22 500 | Invariants d'état |
 | Parties IA/IA | 1 000/1 000 | Terminaison, légalité des coups |
 | Écran PC / mobile émulé Chromium | 16/16 | Parcours de l'interface |
@@ -40,7 +40,7 @@ texte officiel.
 
 ## Infrastructure de validation
 
-- `native/semantic_oracle_runner.cjs` regroupe **12 suites** ;
+- `native/semantic_oracle_runner.cjs` regroupe **14 suites** ;
   il échoue si une carte n'a aucun oracle dédié, si une attente échoue, ou
   si l'inventaire diverge de 150.
 - `native/card_lifecycle_oracles.cjs` vérifie le cycle de vie séparément.
@@ -85,7 +85,7 @@ Le registre `native/official_clause_witnesses.cjs` associe **13 segments officie
 du texte publié. Cette traçabilité reste une **preuve partielle** : elle ne
 certifie ni toutes les branches possibles ni toutes les interactions.
 
-Résultats : [201/201 oracles dans GitHub Actions](https://github.com/yuri85300-design/lifequest/actions/runs/44775805966).
+Résultats : [217/217 oracles dans GitHub Actions](https://github.com/yuri85300-design/lifequest/actions/runs/44775805966).
 Le passage complet officiel et la confrontation des empreintes sont vérifiés
 séparément sur GitHub.
 
@@ -104,16 +104,14 @@ EN SOLO, la consommation/expiration de la remise, le minimum de 1 €$
 et la surtaxe de Riot Shield. Les **trois fragments candidats anglais**
 de Nocturne ont été liés aux empreintes officielles et aux tests.
 
-Cela porte le total à **201 oracles PASS**, sur **150 cartes distinctes**.
+Cela porte le total à **217 oracles PASS**, sur **150 cartes distinctes**.
 Ces vérifications sont réelles, mais elles ne couvrent pas encore chaque
 condition et interaction du référentiel officiel.
 
 ## Test de résistance des oracles par mutations
 
-La batterie `native/semantic_mutation_audit.cjs` injecte **9 erreurs
-sémantiques distinctes**, une à la fois, dans des copies isolées du moteur
-(prix fixe et remise de Nocturne, limites Royce, pioche Shattered Memories/Kerry,
-consommation Gorilla Arms/Viktor, excavation All is Lost).
+La batterie `native/semantic_mutation_audit.cjs` injecte **23 erreurs
+sémantiques distinctes**, une à la fois, dans des copies isolées du moteur, sur les coûts, les choix, les protections, les effets Quick, les attaques et les Gigs.
 
 **Résultat GitHub Actions : 9/9 mutations détectées, 0 erreur survivante.**
 Les oracles sont donc capables de refuser ces comportements manifestement
@@ -121,8 +119,32 @@ erronés, et ne se limitent pas tous à tester l'absence de plantage.
 
 Workflow : https://github.com/yuri85300-design/lifequest/actions/runs/44778053249
 
-Ce taux vaut seulement pour ces neuf mutations ciblées ; il ne représente
+Ce taux vaut seulement pour ces 23 mutations ciblées ; il ne représente
 ni un taux d'exhaustivité global ni un certificat des 280 segments officiels.
+
+## Progrès des clauses officielles et tests de qualité
+
+- **40 / 280** fragments candidats des textes anglais ont maintenant des preuves
+  d'oracles individualisés et une empreinte SHA-256 vérifiée par le service
+  officiel, contre 13 auparavant. **240 / 280** n'ont pas cette association.
+- **217 / 217** oracles ont réussi dans GitHub Actions pour les 150 cartes.
+- **23 / 23** mutations volontairement erronées ont été rejetées par les
+  oracles (ne prouve pas la qualité des branches non mutées).
+- Les preuves supplémentaires couvrent notamment Cyberpsychosis (bonus selon
+  équipement, victoire ou vol entraînant une défaite retardée), Take Control
+  (réduction des vols, pioche conditionnelle pour AI/DRONE/VEHICLE), Reboot
+  Optics (protection d'un seul combat, expiration) et The Relic
+  (résurrection, coût nul, mouvement vers le fond du deck).
+- Les autres rapprochements concernent les contraintes de coût, d'attaque,
+  de pioche, de BLOQUEUR et plusieurs effets conditionnels.
+
+Audits indépendants :
+https://github.com/yuri85300-design/lifequest/actions/runs/44785343165
+et https://github.com/yuri85300-design/lifequest/actions/runs/44785592350 .
+
+Ces 40 segments sont **liés à des preuves partielles**, non déclarés certifiés
+dans toutes leurs interactions. La révision exhaustive des 280 fragments
+et de leurs branches officielles reste ouverte.
 
 ## Verrous restant à lever pour une certification effective
 
