@@ -1,5 +1,9 @@
 name: 7 Gigs PRIME 2.3.1 - Android 15 VF hors connexion
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-smoke-prime231.yml'
   workflow_run:
     workflows: ["7 Gigs PRIME 2.3.1 - APK VF intégral hors ligne"]
     types: [completed]
@@ -9,7 +13,7 @@ permissions:
   actions: read
 jobs:
   android-offline:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
