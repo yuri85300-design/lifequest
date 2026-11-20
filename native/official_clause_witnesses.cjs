@@ -93,3 +93,5 @@ module.exports={
  'corporate-surveillance':{sourceHash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',segments:[{index:1,hash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',cases:["only-ready-rival-units-cost-four-or-less","cannot-be-played-without-ready-eligible-target"],branches:["eligible-ready","no-eligible","excludes-cost-over-four"]}]},
  'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]}
 };
+
+// Independent review branch: linked-source fingerprints must validate against publisher.
