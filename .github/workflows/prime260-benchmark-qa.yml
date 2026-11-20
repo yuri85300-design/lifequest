@@ -1,0 +1,35 @@
+name: PRIME 2.6.0 - Simulation reelle 40 duels de benchmark
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/audit_260_benchmark.cjs'
+      - '.github/workflows/prime260-benchmark-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Valider la syntaxe
+        shell: bash
+        run: |
+          node --check native/audit_260_benchmark.cjs
+      - name: Evaluer 40 duels avec le vrai moteur
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRIME_HTML=native/prime_v260_runtime.html node native/audit_260_benchmark.cjs | tee audit-260-benchmark.json
+          grep -Fq '"realBenchmark": "PASS"' audit-260-benchmark.json
+          grep -Fq '"noFakeWins": "PASS"' audit-260-benchmark.json
+          grep -Fq '"memoryNotMutated": "PASS"' audit-260-benchmark.json
+      - name: Publier le rapport de calcul
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prime260-40-real-benchmark-report
+          path: audit-260-benchmark.json
+          if-no-files-found: warn
