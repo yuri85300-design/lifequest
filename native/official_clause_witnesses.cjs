@@ -169,7 +169,7 @@ module.exports={
   sourceHash:'25e435f029a05688c41f385581b79723e7493e2c521ed21dec1fb48bc21b6125',segments:[
    {index:1,hash:'7ac7e25f6edbdf320e928ceac6bedd9f1b49fa54349f962d52e18c830f887b6c',cases:["gunpoint-not-behind-gains-both-effects","gunpoint-no-friendly-unit-cannot-play"],branches:["target-friendly-unit","no-target"]},
    {index:2,hash:'b365eac73a511779afbbe314f3903a557d041c3d6e5f90b9cb31a19c46cd0824',cases:["gunpoint-behind-rival-chooses-ready-attack-only","gunpoint-behind-rival-chooses-power-only","gunpoint-not-behind-gains-both-effects"],branches:["behind-rival-selects","not-behind-both","choice-one","choice-two"]},
-   {index:3,hash:'fd83bda5a2bafac6e87a5569c3a72b30a293e0c6beafea6599523bd649736302',cases:["gunpoint-power-bonus-expires-after-turn","gunpoint-not-behind-gains-both-effects"],branches:["next-attack-ready-target","power-three-this-turn","turn-expiry"]}
+   {index:3,hash:'fd83bda5a2bafac6e87a5569c3a72b30a293e0c6beafea6599523bd649736302',cases:["gunpoint-power-bonus-expires-after-turn","gunpoint-not-behind-gains-both-effects","gunpoint-attack-ready-privilege-is-consumed-by-next-attack"],branches:["next-attack-ready-target","power-three-this-turn","turn-expiry"]}
   ]},
  'bonnie-and-clyde':{
   sourceHash:'d008fefe1673914cd4d75eff63341a490df5219dc21cc3daac7100bf60a5be6c',segments:[
