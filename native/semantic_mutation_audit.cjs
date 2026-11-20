@@ -2,7 +2,7 @@
 /**
  * Targeted semantic mutation score: if a known wrong implementation survives
  * the independent tests, the proof is too weak. This is a quality check, NOT
- * a measure of full rule completeness.
+ * a measure of full rule completeness.\n * Independent CI review of all nine deliberate semantic errors.
  */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync(path.join(__dirname,'engine.js'),'utf8');
