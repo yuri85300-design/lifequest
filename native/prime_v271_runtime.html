@@ -1363,6 +1363,12 @@ html.prime-readable :focus-visible{outline:3px solid #f4d580!important;outline-o
 .prime-campaign-milestones span{display:inline-flex;align-items:center;justify-content:center;border:1px solid #537690;
   border-radius:100px;background:#112537;color:#aac3d5;font-size:12px;font-weight:800;padding:8px 12px}
 .prime-campaign-milestones span.done{border-color:#48bea0;color:#a9f6d1;background:#153e3c}
+
+/* PRIME 2.7.1: reversible deck-coach proposals; nothing auto-saved */
+.prime-coach-swap{border-bottom:1px solid #46627a57;padding:9px 0;display:flex;gap:9px;
+ justify-content:space-between;align-items:center;flex-wrap:wrap}
+.prime-coach-swap p{flex:1 1 200px}
+.prime-coach-swap .btn{font-size:12px;min-height:44px}
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -4862,7 +4868,7 @@ function deckStatsScreen(){
     <small>Calcul combinatoire exact sans remise, avant mulligan et effets de pioche. Ce n’est pas un taux de victoire.</small>
   </section>
   <section class="prime-advisor" aria-label="Suggestions de cartes"><h4>Remplacements potentiels</h4>
-    ${proposals.length?proposals.map(x=>`<p>Remplacer <b>${esc(cardName(CARDS[x.remove]))}</b> par <b>${esc(cardName(CARDS[x.add]))}</b> · ${esc(x.why)}</p>`).join(''):'<p>Aucun remplacement évident selon ces heuristiques.</p>'}
+    ${proposals.length?proposals.map((x,i)=>`<div class="prime-coach-swap"><p>Remplacer <b>${esc(cardName(CARDS[x.remove]))}</b> par <b>${esc(cardName(CARDS[x.add]))}</b> · ${esc(x.why)}</p><button type="button" class="btn ghost" data-apply-swap="${i}">Prévisualiser ce changement</button></div>`).join(''):'<p>Aucun remplacement évident selon ces heuristiques.</p>'}
     <small>Suggestions non certifiées : vérifiez les interactions et testez plusieurs adversaires.</small>
     <button type="button" class="btn ghost" id="editCoachDeck">Ouvrir dans l’éditeur</button>
   </section>
@@ -4871,6 +4877,20 @@ function deckStatsScreen(){
   <p class="sim-hint prime-benchmark-report" id="deckBenchmarkResult">Comparaison contre cinq archétypes avec inversion des sièges. Les parties incomplètes et erreurs sont exclues des résultats.</p>
   <button class="btn ghost" data-nav="decks">Mes decks</button></div></div>`);
   app.querySelector('#deckBenchmark').onclick=benchmarkDeck;
+  app.querySelectorAll('[data-apply-swap]').forEach(button=>button.onclick=()=>{
+    const proposal=proposals[Number(button.dataset.applySwap)];
+    if(!proposal)return;
+    const draft={...chosen,name:chosen.name+' · essai',
+      legends:chosen.legends.slice(),main:chosen.main.slice(),key:undefined};
+    const index=draft.main.indexOf(proposal.remove);
+    if(index<0)return toast('Carte absente : veuillez actualiser l’analyse.',2500);
+    draft.main.splice(index,1,proposal.add);
+    if(validateDeck(draft).length>validateDeck(chosen).length)return toast('Échange illégal : aucune modification enregistrée.',3000);
+    // Never mutate the active deck. Open a fresh, unsaved draft.
+    builderScreen(draft);
+    toast('Échange préparé dans un nouveau brouillon. Enregistrez seulement si le résultat vous convient.',4500);
+  });
+
   app.querySelector('#editCoachDeck').onclick=()=>{
     const copy={...chosen,name:chosen.name,legends:chosen.legends.slice(),main:chosen.main.slice(),key:S.custom[S.myDeck]?S.myDeck:undefined};
     builderScreen(copy);
