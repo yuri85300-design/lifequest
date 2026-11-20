@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 26000,
-  "version": "2.6.0",
+  "version_code": 26001,
+  "version": "2.6.1",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.6.0/prime-content-v2.6.0.zip",
-  "sha256": "0438bb7c5a930231fa9a3013a4baa670e1c856b6cf93cba8660e2da95052af47",
-  "notes": "Campagne solo, palmares, decks illustres, coach de combat et analyse multi-decks. Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.6.1/prime-content-v2.6.1.zip",
+  "sha256": "7e1f5c32e2dca29fbd51faad2e9924b7b5c063e0211a2675a0d35dedad00aae6",
+  "notes": "Guide interactif dans les duels, correction visuelle de l accueil et fonctions 2.6.0 conservees."
 }
