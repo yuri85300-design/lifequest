@@ -181,5 +181,64 @@ module.exports=async function runSemanticOracles(api,assert){
   assert.equal(p.legends.filter(l=>l.known).length,0);
   assert.equal(p.legends.every(l=>l.faceUp),true);
  });
+ await check('animals-wrecker','vanilla-power-10-and-entry-lag',()=>{
+  const g=make(),u=put(g,'animals-wrecker');u.lag=true;
+  assert.equal(g.eff(u),10);assert.equal(g.canAttackNow(u),false);
+  u.lag=false;assert.equal(g.canAttackNow(u),true);
+ });
+ await check('mantis-blades','vanilla-gear-adds-exactly-two-power',()=>{
+  const g=make(),u=put(g,'animals-wrecker'),gr=g.newInst('mantis-blades',0);
+  assert.equal(g.eff(u),10);u.gear.push(gr);
+  assert.equal(g.eff(u),12);
+ });
+ await check('rockn-rockerboy','vanilla-power-eight-with-normal-entry-lag',()=>{
+  const g=make(),u=put(g,'rockn-rockerboy');u.lag=true;
+  assert.equal(g.eff(u),8);assert.equal(g.canAttackNow(u),false);
+  u.lag=false;assert.equal(g.canAttackNow(u),true);
+ });
+ await check('emergency-atlus','vanilla-power-four-and-no-extra-keywords',()=>{
+  const g=make(),u=put(g,'emergency-atlus');
+  assert.equal(g.eff(u),4);
+  assert.equal(g.hasKw(u,'ADRENALINE'),false);
+  assert.equal(g.hasKw(u,'BLOCKER'),false);
+ });
+ await check('psycho-squad','vanilla-power-six-and-no-extra-keywords',()=>{
+  const g=make(),u=put(g,'psycho-squad');
+  assert.equal(g.eff(u),6);
+  assert.equal(g.hasKw(u,'ADRENALINE'),false);
+  assert.equal(g.hasKw(u,'BLOCKER'),false);
+ });
+ await check('secondhand-bombus','zero-power-blocker-cannot-steal-gigs',()=>{
+  const g=make(),u=put(g,'secondhand-bombus');
+  assert.equal(g.eff(u),0);assert.equal(g.hasKw(u,'BLOCKER'),true);
+  assert.equal(g.stealCount(u),0);
+ });
+ await check('riding-nomad','printed-adrenaline-allows-attack-on-entry',()=>{
+  const g=make(),u=put(g,'riding-nomad');u.lag=true;
+  assert.equal(g.hasKw(u,'ADRENALINE'),true);
+  assert.equal(g.canAttackNow(u),true);
+ });
+ await check('goro-takemura-hands-unclean','legend-go-solo-and-blocker-granted',async()=>{
+  const g=make(),p=g.P(0),l=g.newInst('goro-takemura-hands-unclean',0);
+  p.legends=[l];l.faceUp=true;
+  assert.equal(g.hasKw(l,'GO_SOLO'),true);
+  assert.equal(g.hasKw(l,'BLOCKER'),true);
+  p.eddies=Array.from({length:12},(_,n)=>({uid:800000+n,ready:true}));
+  await g.withTimingWindow(()=>g.goSolo(0,l.uid,true));
+  assert.equal(g.onField(l),true);
+  assert.equal(l.flags.solo,true);
+  assert.equal(g.canAttackNow(l),true);
+ });
+ await check('v-corporate-exile','go-solo-attacks-turn-played-and-exiles-on-defeat',async()=>{
+  const g=make(),p=g.P(0),l=g.newInst('v-corporate-exile',0);
+  p.legends=[l];l.faceUp=true;
+  assert.equal(g.hasKw(l,'GO_SOLO'),true);
+  p.eddies=Array.from({length:12},(_,n)=>({uid:801000+n,ready:true}));
+  await g.withTimingWindow(()=>g.goSolo(0,l.uid,true));
+  assert.equal(g.onField(l),true);assert.equal(g.canAttackNow(l),true);
+  await g.withTimingWindow(()=>g.defeat(l,{effect:true}));
+  assert.equal(g.onField(l),false);
+  assert.equal(p.removed.includes(l),true);
+ });
  return {count:tests.length,passed:tests.filter(t=>t.status==='PASS').length,failed:tests.filter(t=>t.status==='FAIL').length,tests};
 };
