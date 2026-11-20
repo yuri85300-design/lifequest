@@ -1,0 +1,38 @@
+name: 7 Gigs PRIME - PC browser smoke
+on:
+  push:
+    paths:
+      - 'native/prime_v220_runtime.html'
+      - 'native/engine.js'
+      - 'native/ai-worker.js'
+      - 'native/pc_smoke.spec.cjs'
+      - 'native/playwright.config.cjs'
+      - '.github/workflows/pc-smoke.yml'
+  pull_request:
+    paths:
+      - 'native/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright runner
+        run: npm install --no-save @playwright/test@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile smoke tests
+        run: npx playwright test --config native/playwright.config.cjs
+      - name: Store diagnostics
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prime-pc-smoke-traces
+          path: test-results/
+          if-no-files-found: ignore
