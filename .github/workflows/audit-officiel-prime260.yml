@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/audit-officiel-prime260.yml'
+      - 'native/audit_texte_exact_live.py'
+      - 'native/prime_v260_runtime.html'
   workflow_dispatch:
 permissions:
   contents: read
@@ -55,6 +57,11 @@ jobs:
           p=Path('/tmp/official-260/rapport.json')
           if not p.exists():sys.exit('RAPPORT ABSENT : NON CERTIFIE')
           d=json.loads(p.read_text())
-          print('Certification officielle:',d.get('certification'), 'cartes:',d.get('summary',{}).get('cards'))
-          if not d.get('certification'):sys.exit('AUDIT NON CERTIFIE : divergence, indisponibilite ou carte hors perimetre')
+          summary=d.get('summary',{})
+          print('Exactitude directe des 150 cartes:',d.get('reference_150_exact'))
+          print('Cartes contrôlées:',summary.get('cards'),'Comparaisons exactes:',summary.get('page_vs_api_exact'))
+          print('Cartes nouvelles hors périmètre:',summary.get('extras'))
+          if not d.get('reference_150_exact'):sys.exit('LES 150 REFERENCES NE SONT PAS VERIFIEES')
+          if not d.get('certification'):sys.exit('PERIMETRE COMPLET NON CERTIFIE : fiches additionnelles ou divergences')
+          print('PERIMETRE COMPLET CERTIFIE')
           PY
