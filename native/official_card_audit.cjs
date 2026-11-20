@@ -194,3 +194,5 @@ async function main(){
  if(result.accessible!==cards.length||result.metadataMismatches.length||result.triggerCoverageMismatches.length||!result.listingComplete||result.missingFromOfficial.length) process.exitCode=1;
 }
 main().catch(e=>{console.error(e);process.exitCode=1});
+
+// CI validation: current English trigger contract structure.

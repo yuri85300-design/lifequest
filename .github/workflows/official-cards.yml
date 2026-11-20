@@ -51,3 +51,5 @@ jobs:
         run: |
           echo "Official metadata comparison not complete; never certify on incomplete data."
           exit 1
+
+# Consolidated official and lifecycle evidence verification.

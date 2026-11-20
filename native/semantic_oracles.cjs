@@ -321,3 +321,5 @@ module.exports=async function runSemanticOracles(api,assert){
  });
  return {count:tests.length,passed:tests.filter(t=>t.status==='PASS').length,failed:tests.filter(t=>t.status==='FAIL').length,tests};
 };
+
+// CI validation: 40 original behavioural effect oracles.
