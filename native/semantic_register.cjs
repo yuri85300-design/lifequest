@@ -32,6 +32,7 @@ const entries=cards.map(c=>{
   officialMetadata:evidence?.status||'NOT_LOADED',
   officialClauseSignals:evidence?.officialClauseSignals||null,
   officialTriggerEvidence:evidence?.triggerEvidence||[],
+  candidateOfficialSegments:evidence?.candidateOfficialSegments||[],
   frenchTextFingerprint:hash(c.txt),
   implementationBehaviours:behaviours,
   localClauseCountEstimate:localClauses.length,
@@ -50,6 +51,9 @@ const result={
  officialTriggerContractCount:entries.reduce((n,x)=>n+x.officialTriggerEvidence.length,0),
  officialTriggerOmissions:entries.reduce((n,x)=>n+x.officialTriggerEvidence.filter(y=>!y.implemented).length,0),
  cardsWithLifecycleWitness:entries.filter(x=>x.lifecycle?.status==='PASS').length,
+ cardsWithEveryCardDedicatedOracle:entries.every(x=>x.independentlyPassingOracles>0),
+  officialCandidateSegments:entries.reduce((n,x)=>n+x.candidateOfficialSegments.length,0),
+  independentlyClauseMappedSegments:0,
  cardsWithIndependentBehaviourOracles:entries.filter(x=>x.independentlyPassingOracles).length,
  testedBehaviourBranches:entries.reduce((n,c)=>n+c.independentlyPassingOracles,0),
  cardsFullySemanticallyCertified:0,
@@ -100,6 +104,6 @@ const gapMd=[
 ].join('\n');
 fs.writeFileSync(path.join(artifactDir,'semantic-gaps.md'),gapMd);
 
-console.log(JSON.stringify({cardCount:result.cardCount,cardsWithOfficialEnglishText:result.cardsWithOfficialEnglishText,cardsWithLifecycleWitness:result.cardsWithLifecycleWitness,cardsWithIndependentBehaviourOracles:result.cardsWithIndependentBehaviourOracles,testedBehaviourBranches:result.testedBehaviourBranches,cardsFullySemanticallyCertified:0,semanticCertification:'BLOCKED'},null,2));
+console.log(JSON.stringify({cardCount:result.cardCount,cardsWithOfficialEnglishText:result.cardsWithOfficialEnglishText,cardsWithLifecycleWitness:result.cardsWithLifecycleWitness,cardsWithIndependentBehaviourOracles:result.cardsWithIndependentBehaviourOracles,testedBehaviourBranches:result.testedBehaviourBranches,officialCandidateSegments:result.officialCandidateSegments,cardsFullySemanticallyCertified:0,semanticCertification:'BLOCKED'},null,2));
 if(entries.length!==150||(oracleData.tests||[]).some(x=>x.status!=='PASS'))process.exitCode=1;
 if(process.argv.includes('--require-certification')){console.error('FAIL CLOSED: 150-card semantic certification evidence incomplete.');process.exitCode=2;}
