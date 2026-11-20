@@ -1,0 +1,40 @@
+name: 7 Gigs PRIME - independent semantic oracles
+on:
+  push:
+    paths:
+      - 'native/engine.js'
+      - 'native/semantic_oracles.cjs'
+      - 'native/semantic_oracle_runner.cjs'
+      - 'native/semantic_register.cjs'
+      - '.github/workflows/semantic-oracles.yml'
+  pull_request:
+    paths:
+      - 'native/**'
+      - '.github/workflows/semantic-oracles.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  semantic-oracles:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Independent per-card behaviour oracles
+        run: node native/semantic_oracle_runner.cjs
+      - name: Generate uncensored certification ledger
+        if: always()
+        run: node native/semantic_register.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prime-semantic-evidence
+          path: |
+            audit-results/semantic-oracles.json
+            audit-results/semantic-register.json
+          if-no-files-found: error
+      - name: Assert NIGHTMARE remains certification-locked
+        run: grep -q 'const NIGHTMARE_TRAINING_CERTIFIED = false' native/prime_v220_runtime.html
