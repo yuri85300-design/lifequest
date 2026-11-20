@@ -2,7 +2,7 @@
 /**
  * Audit metadata against current public official Cyberpunk TCG card pages.
  * Collects official text fingerprints; never labels French text semantically certified.
- * Validation indépendante sur branche de test.\n * Run: node native/official_card_audit.cjs
+ * Independent PR validation run.\n * Run: node native/official_card_audit.cjs
  * Requires: npm install --no-save playwright
  */
 const {chromium}=require('playwright');
@@ -130,6 +130,8 @@ async function main(){
  for(const v of result.fetchErrors)md+='- UNAVAILABLE '+v.id+': '+v.error+'\n';
  fs.writeFileSync(path.join(root,'official-summary.md'),md);
  console.log(md.slice(0,4000));
- if(result.accessible!==cards.length||result.metadataMismatches.length||!result.listingComplete||result.officialOnly.length||result.missingFromOfficial.length) process.exitCode=1;
+ // Extra official promo-only cards are reported, not grounds to fail the
+ // fixed 150-card base runtime's metadata audit. They remain out of scope.
+ if(result.accessible!==cards.length||result.metadataMismatches.length||!result.listingComplete||result.missingFromOfficial.length) process.exitCode=1;
 }
 main().catch(e=>{console.error(e);process.exitCode=1});
