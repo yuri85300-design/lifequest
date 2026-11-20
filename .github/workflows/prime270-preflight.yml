@@ -8,6 +8,7 @@ on:
       - 'native/audit_262.cjs'
       - 'native/audit_270_puzzles.cjs'
       - 'native/audit_270.cjs'
+      - 'native/audit_270_ai.cjs'
       - '.github/workflows/prime270-preflight.yml'
   workflow_dispatch:
 permissions:
@@ -42,6 +43,8 @@ jobs:
           PRIME_HTML=native/prime_v270_runtime.html node native/audit_263.cjs | tee /tmp/prime270-preflight/audit-guide-actor.json
           PRIME_HTML=native/prime_v270_runtime.html node native/audit_270_puzzles.cjs | tee /tmp/prime270-preflight/audit-puzzles-v270.json
           PRIME_HTML=native/prime_v270_runtime.html node native/audit_270.cjs | tee /tmp/prime270-preflight/audit-strategy.json
+          PRIME_HTML=native/prime_v270_runtime.html node native/audit_270_ai.cjs | tee /tmp/prime270-preflight/audit-ai.json
+          grep -Fq '"nightmareDiagnostic": "PASS"' /tmp/prime270-preflight/audit-ai.json
           grep -Fq '"deckProbabilities": "PASS"' /tmp/prime270-preflight/audit-strategy.json
           grep -Fq '"academyMissions":' /tmp/prime270-preflight/audit-puzzles-v270.json
           grep -Fq '"opponentCannotUnlockGuide": "PASS"' /tmp/prime270-preflight/audit-guide-actor.json
