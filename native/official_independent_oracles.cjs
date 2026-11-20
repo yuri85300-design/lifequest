@@ -1,5 +1,6 @@
 'use strict';
 // Independent, separately authored cases checked against publisher card pages.
+// Validation branch confirms the twelve latest real card-rule scenarios.
 // Each case tests an explicit clause/branch, not the whole card.
 module.exports=async function officialOracles(api, assert){
  const {CARDS,Game,presetDecks,FastPolicy}=api, decks=presetDecks(),tests=[];
