@@ -1,4 +1,4 @@
-name: PRIME OTA 2.7.2 - Mise a jour sans APK
+name: PRIME OTA 2.7.3 - Collection et import sans APK
 on:
   push:
     branches: [main]
@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 native/build_ota_content.py --source native/prime_v272_runtime.html --version 2.7.2 --version-code 27002 --out /tmp/prime-ota
+          python3 native/build_ota_content.py --source native/prime_v272_runtime.html --version 2.7.3 --version-code 27003 --out /tmp/prime-ota
       - name: Compatibilite avec la coque Android 2.5.4 et suivantes
         shell: bash
         run: |
@@ -44,7 +44,7 @@ jobs:
           path=Path('/tmp/prime-ota/latest.json')
           manifest=json.loads(path.read_text(encoding='utf-8'))
           manifest['min_shell']=25004
-          manifest['notes']='Campagne 12 contrats et 12 missions, deck coach reversible, bilan tactique post-duel en informations publiques, sauvegardes conservees.'
+          manifest['notes']='Ma collection : ajout manuel, import TXT/CSV, synergies et decks fondes sur les cartes possedees. Sauvegardes conservees.'
           path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           print('MANIFEST_272',manifest['version_code'],manifest['min_shell'])
           PY
@@ -87,12 +87,12 @@ jobs:
       - name: Publication du contenu uniquement sur GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: prime-content-v2.7.2
-          name: PRIME - mise a jour sans APK - v2.7.2
+          tag_name: prime-content-v2.7.3
+          name: PRIME - mise a jour sans APK - v2.7.3
           prerelease: false
           make_latest: false
-          body: "Mise a jour HTML+IA pour l'application Android PRIME 2.5.4. Les 150 illustrations françaises restent dans l'APK et les sauvegardes sont conservees."
-          files: /tmp/prime-ota/prime-content-v2.7.2.zip
+          body: "PRIME 2.7.3 : ma collection, import TXT/CSV et suggestions de deck. Sauvegardes et 150 illustrations VF conservees."
+          files: /tmp/prime-ota/prime-content-v2.7.3.zip
           fail_on_unmatched_files: true
       - name: Actualiser le manifeste uniquement si sa version augmente
         shell: bash
