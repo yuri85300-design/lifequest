@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/publish-prime270-ota.yml'
       - 'native/prime_v270_runtime.html'
       - 'native/audit_260.cjs'
       - 'native/audit_261.cjs'
