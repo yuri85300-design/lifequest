@@ -22,7 +22,8 @@ vm.runInContext(source+'\nglobalThis.__semanticApi={Game,GameOver,CARDS,presetDe
  const relicContracts=await require('./semantic_oracles_relic_contracts.cjs')(sandbox.__semanticApi,assert);
  const crossCard=await require('./semantic_oracles_cross_card.cjs')(sandbox.__semanticApi,assert);
  const radioport=await require('./semantic_oracles_radioport.cjs')(sandbox.__semanticApi,assert);
- const suites=[primary,secondary,reactive,programs,advanced,advanced2,complexOne,lastA,lastB,choiceBranches,publisherVerified,nocturne,quickContracts,relicContracts,crossCard,radioport];
+ const evelyn=await require('./semantic_oracles_evelyn.cjs')(sandbox.__semanticApi,assert);
+ const suites=[primary,secondary,reactive,programs,advanced,advanced2,complexOne,lastA,lastB,choiceBranches,publisherVerified,nocturne,quickContracts,relicContracts,crossCard,radioport,evelyn];
  const result={count:suites.reduce((a,x)=>a+x.count,0),passed:suites.reduce((a,x)=>a+x.passed,0),failed:suites.reduce((a,x)=>a+x.failed,0),tests:suites.flatMap(x=>x.tests)};
  const cardIds=Object.keys(sandbox.__semanticApi.CARDS);
  const evidenced=new Set(result.tests.filter(x=>x.status==='PASS').map(x=>x.id));
