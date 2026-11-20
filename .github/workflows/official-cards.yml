@@ -21,6 +21,7 @@ on:
       - 'native/semantic_oracles_evelyn.cjs'
       - 'native/semantic_oracles_jackie.cjs'
       - 'native/semantic_oracles_faceplate.cjs'
+      - 'native/semantic_oracles_negotiators.cjs'
       - 'native/official_independent_oracles.cjs'
       - 'native/nocturne_official_oracles.cjs'
       - 'native/official_clause_witnesses.cjs'
