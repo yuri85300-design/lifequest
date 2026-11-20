@@ -4008,6 +4008,7 @@ const COLORS = ['Red', 'Yellow', 'Green', 'Blue'];
 const TYPES = ['Legend', 'Unit', 'Gear', 'Program'];
 const PRETRAINED_BRAIN = {"version":"2.1.2","rulesHash":"v2.1.2-six-cards-2026-11-19","type":"evolutionary-tactical-policy","source":"Champion historique conservé comme référence ; entraînement sur 2.1.2 bloqué en attendant la certification sémantique.","trainingMatches":0,"validationMatches":0,"championId":"deck-plan-incumbent-retained","weights":[1.3974189832543578,1.4699976459191606,0.9885230293712723,1.545319042104414,0.30727634420153577,0.5862382899223975,1.1590000288668791,1.4756460358026895],"validation":{"status":"non validé sur 2.1.2"},"method":"Référence historique non réentraînée ; version du moteur incompatible avec anciennes mesures"};
 const NIGHTMARE_TRAINING_CERTIFIED = false; // Ne jamais promouvoir tant que les 150 effets officiels ne sont pas attestés.
+const NIGHTMARE_TRAINING_EXPERIMENTAL = true; // Autorise uniquement des essais isolés, sans promouvoir le champion officiel.
 const LEVELS = { facile: ['Initiation', 'Heuristique simple'], normal: ['Tactique+', 'Recherche tactique'], expert: ['NIGHTMARE', 'Recherche approfondie + champion'] };
 
 // --------------------------------------------------------------- état ----
@@ -4841,8 +4842,8 @@ function labScreen(){
        <small>Politique de référence disponible, certification sémantique officielle en attente. 150 cartes · 10 decks prédéfinis · moteur non officiel.</small></div>
      <div class="lab-line"><span>Entraînement autonome</span><b id="labCount">0 / 300</b></div>
      <div class="lab-meter"><i id="labBar"></i></div>
-     <div class="lab-status" id="labStatus">Entraînement suspendu : 150 effets officiels non encore certifiés. Les anciens poids restent disponibles comme référence.</div>
-     <div class="lab-actions"><button class="btn primary" id="labTrain" disabled>Entraînement bloqué · audit incomplet</button><button class="btn ghost" id="labStop" disabled>Interrompre</button></div>
+     <div class="lab-status" id="labStatus">Mode expérimental disponible : les 150 effets ne sont pas entièrement certifiés. Les résultats sont isolés du champion officiel.</div>
+     <div class="lab-actions"><button class="btn primary" id="labTrain">Démarrer 300 auto-duels expérimentaux</button><button class="btn ghost" id="labStop" disabled>Interrompre</button></div>
      <div class="lab-hero" style="margin-top:20px;border-color:rgba(57,210,188,.4)">
        <small>APPRENTISSAGE CONTRE VOUS · PARTIES HUMAINES</small>
        <b id="rivalSummary">${esc(rivalText())}</b>
@@ -4856,8 +4857,8 @@ function labScreen(){
        </div>
      </div>
      <p class="lab-foot">Sauvegarde dans le navigateur : elle peut disparaître en changeant de fichier, de navigateur ou d’appareil. Exportez régulièrement votre mémoire en JSON, puis importez-la dans la nouvelle version du jeu.</p>
-     <p class="lab-foot">Entraînement du champion temporairement suspendu. Seule la validation complète des branches d’effets autorisera une nouvelle campagne et un éventuel remplacement statistique. Aucun agent ne peut garantir 100 % de victoires.</p>
-     <p class="lab-foot">PRIME : les tests techniques ne remplacent pas la comparaison exhaustive avec les 150 textes anglais officiels et leurs errata. Réentraînement verrouillé jusqu’à certification sémantique. Historique de l’IA conservé.</p>
+     <p class="lab-foot">Les 300 auto-duels expérimentaux et 80 duels de validation sont autorisés. Les résultats ne remplacent jamais le champion compétitif tant que les clauses et interactions ne sont pas certifiées. Aucun agent ne peut garantir 100 % de victoires.</p>
+     <p class="lab-foot">PRIME : les tests techniques ne remplacent pas la comparaison exhaustive avec les 150 textes anglais officiels et leurs errata. Promotion compétitive verrouillée jusqu’à certification sémantique. Historique de l’IA conservé.</p>
    </div></div></div>`);
   const updateRivalUI=()=>{
     const v=app.querySelector('#rivalSummary'),d=app.querySelector('#rivalDeckSummary'),t=app.querySelector('#rivalToggle');
@@ -4887,7 +4888,7 @@ function labScreen(){
   const train=app.querySelector('#labTrain'),stop=app.querySelector('#labStop'),meter=app.querySelector('#labBar'),stat=app.querySelector('#labStatus'),counter=app.querySelector('#labCount');
   stop.onclick=()=>{if(running){S.cancelTraining=true;stat.textContent='Interruption demandée après la partie en cours…';}};
   train.onclick=async()=>{
-    if(!NIGHTMARE_TRAINING_CERTIFIED){stat.textContent='Entraînement suspendu : validation des 150 effets officiels incomplète.';return;}
+    if(!NIGHTMARE_TRAINING_CERTIFIED && !NIGHTMARE_TRAINING_EXPERIMENTAL){stat.textContent='Entraînement suspendu : validation des 150 effets officiels incomplète.';return;}
     if(running)return;
     running=true;S.training=true;S.cancelTraining=false;train.disabled=true;stop.disabled=false;
     try{
@@ -4898,6 +4899,12 @@ function labScreen(){
          stat.textContent=p.phase==='validation'?`Test indépendant du challenger : ${p.validation}/80 duels`:`Auto-affrontement ${p.done}/300 · meilleure politique de la génération ${p.leader}`;
       },()=>S.cancelTraining);
       if(result.cancelled){stat.textContent=`Entraînement interrompu après ${result.done} duels ; champion inchangé.`;return;}
+      if(!NIGHTMARE_TRAINING_CERTIFIED){
+        const sandboxReport={rulesHash:PRETRAINED_BRAIN.rulesHash,mode:'EXPERIMENTAL_UNCERTIFIED',date:new Date().toISOString(),matches:result.matches,validationMatches:result.validationMatches,wins:result.wins,losses:result.losses,draws:result.draws,upgraded:result.upgraded,plans:result.plans};
+        store.set('nightmareSandboxTraining',sandboxReport);
+        stat.textContent=`${result.matches} auto-duels expérimentaux · validation : ${result.wins} victoires, ${result.losses} défaites, ${result.draws} égalités. Champion officiel inchangé, politique expérimentale conservée séparément.`;
+        return;
+      }
       S.brain={rulesHash:PRETRAINED_BRAIN.rulesHash,weights:S.brain.weights,plans:result.plans,matches:(S.brain.matches||PRETRAINED_BRAIN.trainingMatches)+result.matches,validation:{wins:result.wins,losses:result.losses,ties:result.draws,series:result.validationMatches}};
       store.set('championBrain',S.brain);
       stat.innerHTML=`${result.matches} duels terminés. Validation : ${result.wins} victoires, ${result.losses} défaites, ${result.draws} égalités. <b>${result.upgraded?'Nouveau champion conservé.':'Champion précédent conservé.'}</b>`;
@@ -4918,7 +4925,7 @@ function setupScreen() {
     <label for="enemyDeck">Deck adverse</label><select id="enemyDeck" class="sim-select"><option value="random" ${S.aiDeck==='random'?'selected':''}>Deck tactique aléatoire</option>${opts(S.aiDeck)}</select>
     <div class="sim-setup-split"><div><label for="pseudo">Votre nom</label><input class="search sim-pseudo" id="pseudo" maxlength="16" value="${esc(S.pseudo)}"></div>
     <div><label for="lvl">Intelligence de l'adversaire</label><select class="sim-select" id="lvl">${Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${S.level===k?'selected':''}>${v[0]} · ${v[1]}</option>`).join('')}</select></div></div>
-    <div class="sim-hint"><b>NIGHTMARE</b> utilise une recherche tactique et des poids historiques non certifiés sur cette version. ${Number(S.brain.matches)||0} auto-duel(s) enregistré(s) dans le champion local ; réentraînement compétitif suspendu.</div>
+    <div class="sim-hint"><b>NIGHTMARE</b> utilise une recherche tactique et des poids historiques non certifiés sur cette version. ${Number(S.brain.matches)||0} auto-duel(s) enregistré(s) dans le champion local ; laboratoire expérimental ouvert, promotion compétitive suspendue.</div>
     <div class="sim-hint" style="border-left:3px solid var(--sodium)">${S.learningEnabled ? '◈ Apprentissage activé : l’IA mémorise vos duels et adapte ses stratégies en Tactique+ et NIGHTMARE (Initiation sert à collecter les observations). '+(window.RivalLearning.summary(S.rivalMemory, D[S.myDeck]).deck?.games || 0)+' duel(s) enregistrés contre ce deck.' : 'Apprentissage désactivé : le duel ne sera pas mémorisé.'}</div>
     <button class="btn ghost" data-nav="decks" style="width:100%;margin-top:12px">Créer ou modifier un deck</button>
   </div><div class="actionbar"><button class="btn primary" style="flex:1" id="start">Commencer le duel</button></div></div>`);
