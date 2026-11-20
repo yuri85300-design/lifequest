@@ -72,6 +72,27 @@ function officialClauseSignals(text){
    requiresManualReview:true
  };
 }
+/**
+ * Splits published text into candidate review segments. They are deliberately
+ * NOT considered verified atomic clauses: grammar-dependent splitting can
+ * omit dependencies between sentences, choices and reminder text.
+ * Store hashes, not full copyrighted rules text, in CI artifacts.
+ */
+function candidateOfficialSegments(text){
+ const value=String(text||'').normalize('NFC').replace(/\\s+/g,' ').trim();
+ const segments=value.split(/(?:[.!?]\\s+(?=[A-Z{])|\\s*[;•]\\s*)/).map(s=>s.trim()).filter(Boolean);
+ return segments.map((fragment,index)=>({
+  index:index+1,
+  textSha256:sha(fragment),
+  wordCount:fragment.split(/\\s+/).length,
+  conditional:/\\b(?:if|unless|while|as long as)\\b/i.test(fragment),
+  optional:/\\b(?:may|up to|can choose)\\b/i.test(fragment),
+  choice:/\\b(?:choose|either|or)\\b/i.test(fragment),
+  timing:/\\b(?:when|whenever|first time|until|next turn|this turn)\\b/i.test(fragment),
+  triggerTokens:[...fragment.matchAll(/\\{([^}]+)\\}/g)].map(m=>m[1]),
+  independentlyReviewed:false
+ }));
+}
 function inspectEnglishTriggerCoverage(english,card) {
  // Checks the printed trigger against the presence of an executable runtime
  // handler. This is structural evidence only: a handler can still be wrong.
@@ -153,6 +174,7 @@ async function main(){
      for(const rule of datum.triggerEvidence)if(!rule.implemented)result.triggerCoverageMismatches.push({id:c.id,...rule});
 
      datum.officialClauseSignals=officialClauseSignals(official.text);
+     datum.candidateOfficialSegments=candidateOfficialSegments(official.text);
      datum.keywordAlignment=keywordAlignment(official.text,c.txt);
      if(datum.keywordAlignment.length)result.keywordMismatches.push({id:c.id,keywords:datum.keywordAlignment});
      for(const [field,expected] of [['type',c.type.toUpperCase()],['cost',c.cost??null],['power',c.power??null],['ram',c.ram??null]]){
@@ -183,6 +205,7 @@ async function main(){
  md+='Official-only slugs: '+(result.officialOnly.join(', ')||'none detected')+'\n\n';
  md+='Runtime slugs not on current listing: '+(result.missingFromOfficial.join(', ')||'none detected')+'\n\n';
  md+='Trigger contract omissions: '+result.triggerCoverageMismatches.length+'\\n\\n';
+ md+='Candidate official text segments requiring independent review: '+result.cardEvidence.reduce((n,c)=>n+(c.candidateOfficialSegments||[]).length,0)+'\\n\\n';
  md+='## Discrepancies\n\n';
  for(const t of result.triggerCoverageMismatches)md+='- TRIGGER '+t.id+': '+t.trigger+' missing '+t.handler+'\\n';
  for(const v of result.metadataMismatches)md+='- '+v.id+': '+JSON.stringify(v.diffs)+'\n';
