@@ -15,7 +15,13 @@ const specs=[
  ['kerry-conditional-draw','if (gigs8(g, i)) await g.draw(i, 2);','if (false) await g.draw(i, 2);','official_independent_oracles.cjs','kerry-eurodyne-the-last-rockerboy'],
  ['gorilla-arms-once','gr.flags.usedGorilla = true;','gr.flags.usedGorilla = false;','semantic_oracles.cjs','gorilla-arms'],
  ['viktor-first-cyberware','g.P(i).tf.cyberPlayed = true;','g.P(i).tf.cyberPlayed = false;','semantic_oracles.cjs','viktor-vektor-drop-your-illusions'],
- ['all-is-lost-trash-three',"await trashThenTake(g, i, 3, d => d.type === 'Unit'","await trashThenTake(g, i, 2, d => d.type === 'Unit'",'official_independent_oracles.cjs','all-is-lost']
+ ['all-is-lost-trash-three',"await trashThenTake(g, i, 3, d => d.type === 'Unit'","await trashThenTake(g, i, 2, d => d.type === 'Unit'",'official_independent_oracles.cjs','all-is-lost'],
+ ['cyberpsychosis-requires-gear',"g.allUnits().some(u => u.gear.length)","g.allUnits().some(u => true)",'semantic_oracles_quick_contracts.cjs','cyberpsychosis'],
+ ['cyberpsychosis-psycho-fight-and-steal',"g.flag(u, 'psycho', 'turn', i);","g.flag(u, 'unrelated', 'turn', i);",'semantic_oracles_quick_contracts.cjs','cyberpsychosis'],
+ ['take-control-reduces-steal',"g.flag(u, 'stealMinus1', 'turn', i);","g.flag(u, 'otherFlag', 'turn', i);",'semantic_oracles_quick_contracts.cjs','take-control'],
+ ['take-control-drone-and-vehicle-draw',"['AI', 'DRONE', 'VEHICLE']","['AI']",'semantic_oracles_quick_contracts.cjs','take-control'],
+ ['reboot-optics-enabled',"g.P(i).tf.rebootOptics = true;","g.P(i).tf.rebootOptics = false;",'semantic_oracles_quick_contracts.cjs','reboot-optics'],
+ ['reboot-optics-prevention',"const protectT = pU !== pT && !!this.P(pT).tf.rebootOptics;","const protectT = false;",'semantic_oracles_quick_contracts.cjs','reboot-optics']
 ];
 function engineApi(script) {
  const box={console,performance,Date,Math,setTimeout,clearTimeout,structuredClone};
