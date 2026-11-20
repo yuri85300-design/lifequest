@@ -16,5 +16,15 @@ module.exports=async function runChoiceBranches(api,assert){
  await t('el-sombrero-n-la-venganza-lenta','optional-decline-keeps-power-and-eddies',async()=>{const g=make(),p=g.P(0),u=put(g,'el-sombrero-n-la-venganza-lenta');p.gigs=[gig(270020,8)];p.eddies=[{uid:270021,ready:true},{uid:270022,ready:true}];g.yesNo=async()=>false;const n=g.eff(u);await CARDS[u.id].onAttack(g,u,0);assert.equal(g.eff(u),n);assert.equal(p.eddies.filter(e=>e.ready).length,2)});
  await t('alt-cunningham-mother-of-daemons','matched-cost-discard-prevents-gig-theft',async()=>{const g=make(),alt=put(g,'alt-cunningham-mother-of-daemons'),attacker=put(g,'animals-wrecker',1),card=g.newInst('floor-it',0),die=gig(270030,1);g.P(0).hand=[card];g.P(0).gigs=[die];const success=await g.stealGig(1,die,attacker);assert.equal(success,false);assert.equal(g.P(0).trash.includes(card),true);assert.equal(g.P(0).gigs.includes(die),true)});
  await t('johnny-silverhand-rocking-renegade','spend-ability-gives-rush-to-lagged-unit-versus-units',async()=>{const g=make(),p=g.P(0),l=g.newInst('johnny-silverhand-rocking-renegade',0),u=put(g,'animals-wrecker'),enemy=put(g,'corpo-security',1);p.legends=[l];l.faceUp=true;u.lag=true;enemy.ready=false;p.eddies=[{uid:270040,ready:true},{uid:270041,ready:true}];await g.activate(0,l.uid,0);assert.equal(g.hasFlag(u,'rushUnits'),true);assert.equal(g.canAttackNow(u),true);assert.equal(g.attackTargets(u).some(t=>t.uid===enemy.uid),true)});
+ await t('viktor-vektor-drop-your-illusions','free-first-cyberware-consumes-once-per-turn-discount',async()=>{
+  const g=make(),p=g.P(0),v=put(g,'viktor-vektor-drop-your-illusions');
+  p.legends.forEach(l=>l.faceUp=false);
+  const first=g.newInst('kiroshi-optics',0);
+  p.hand.push(first);
+  await g.withTimingWindow(()=>g.playCard(0,first.uid,v.uid,{free:true}));
+  assert.equal(v.gear.includes(first),true);
+  assert.equal(p.tf.cyberPlayed,true);
+  assert.equal(g.costOf(g.newInst('gorilla-arms',0),0),4);
+ });
  return {count:out.length,passed:out.filter(x=>x.status==='PASS').length,failed:out.filter(x=>x.status==='FAIL').length,tests:out};
 };
