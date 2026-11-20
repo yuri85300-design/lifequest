@@ -1339,6 +1339,22 @@ html.prime-readable :focus-visible{outline:3px solid #f4d580!important;outline-o
 .prime-probabilities small{display:block;font-size:11px;color:#a7c5d9;margin-top:10px}
 #whyBtn{min-height:44px;border-color:#7993ab!important}
 @media(max-width:530px){.prime-prob-row{font-size:12px}.prime-tactics-grid b{font-size:21px}}
+
+#app.prime-large-text .screen .sim-intro,
+#app.prime-large-text .screen .sim-deck-rule,
+#app.prime-large-text .screen .sim-hint,
+#app.prime-large-text .screen .prime-tactics-action small,
+#app.prime-large-text .screen .tcg-deck-insight{font-size:clamp(15px,3.5vw,19px)!important;line-height:1.6}
+#app.prime-large-text .screen .btn,
+#app.prime-large-text .screen .hub-tool,
+#app.prime-large-text .screen .hub-shortcut small{font-size:clamp(14px,3.7vw,19px)!important}
+#app.prime-quiet-motion *,#app.prime-quiet-motion *::before,#app.prime-quiet-motion *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+.prime-deck-suggestion{margin:11px 0;padding:13px;border:1px solid #527f9d;border-radius:12px;background:#152d41}
+.prime-deck-suggestion strong{font-size:13px;color:#ffe09e}
+.prime-deck-suggestion p{display:flex;flex-direction:column;gap:6px;color:#d7eaf4;font-size:12px}
+.prime-deck-suggestion .btn{min-height:44px}
+.prime-opponent-brief{margin-top:13px;padding:12px;border:1px solid #587d98;border-left:3px solid #eecb7c;border-radius:10px;background:#102337;color:#b9ddeb;font-size:13px;line-height:1.5}
+@media(max-width:530px){.sim-builder-footer{display:flex;gap:5px;flex-wrap:wrap}.sim-builder-footer .btn{flex:1 1 85px;padding:10px 6px;font-size:12px}}
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -4764,6 +4780,14 @@ function tacticalSituation(){
   sc.querySelector('[data-close-tactics]').onclick=closeSheet;
 }
 
+const Comfort={
+  key:'primeComfortV1',
+  read(){const raw=store.get(this.key,null);return {large:raw?.large===true,quiet:raw?.quiet===true};},
+  apply(){const p=this.read();app.classList.toggle('prime-large-text',p.large);app.classList.toggle('prime-quiet-motion',p.quiet);},
+  toggle(name){if(!['large','quiet'].includes(name))return false;const p=this.read();p[name]=!p[name];if(!store.set(this.key,p))return false;this.apply();return true;}
+};
+Comfort.apply();
+
 function deckStatsScreen(){
   const D=allDecks(); const chosen=D[S.myDeck]||Object.values(D)[0];
   const byType={Unit:0,Gear:0,Program:0},costs=[0,0,0,0,0,0,0,0],sell= {n:0},colors={Red:0,Yellow:0,Green:0,Blue:0};
@@ -4899,6 +4923,17 @@ function tacticalPuzzlesScreen(index=0){
 
 
 const ACADEMY_QUESTIONS=[
+ {topic:'Composition d’un deck',q:'Combien de cartes peut contenir le deck principal dans PRIME ?',opts:['20 à 30 cartes','40 à 50 cartes','60 cartes minimum'],correct:1,why:'Le validateur de PRIME impose 40 à 50 cartes principales.'},
+ {topic:'Choix des Légendes',q:'Combien de Légendes différentes faut-il sélectionner ?',opts:['Une','Trois','Cinq'],correct:1,why:'Trois Légendes distinctes déterminent les couleurs et la RAM disponibles.'},
+ {topic:'Doublons',q:'Combien de copies d’une carte ordinaire pouvez-vous ajouter au maximum ?',opts:['Une','Trois','Autant que possible'],correct:1,why:'PRIME limite les copies à trois dans le deck principal.'},
+ {topic:'Main initiale',q:'Dans une main de 6 cartes, comment calculer une probabilité de tirage ?',opts:['En traitant chaque carte comme indépendante','Sans remise, selon la composition du deck','En supposant que toutes les mains sont gagnantes'],correct:1,why:'Un tirage dans un deck se fait sans remise : la probabilité dépend de la composition du deck.'},
+ {topic:'Mulligan',q:'Que propose le mulligan dans PRIME ?',opts:['Remélanger une fois pour recevoir six nouvelles cartes','Choisir exactement six cartes du deck','Voir les cartes cachées adverses'],correct:0,why:'Le mulligan est une décision distincte des cartes adverses.'},
+ {topic:'Information publique',q:'Quelle information peut-on montrer dans le débrief d’un duel ?',opts:['Les cartes non révélées de la main adverse','Les Gigs et les unités visibles','Les plans futurs calculés secrètement par l’IA'],correct:1,why:'Le panneau tactique et le replay doivent respecter les informations cachées.'},
+ {topic:'Simulations',q:'Un taux de 70 % sur 10 duels signifie-t-il que le deck est supérieur ?',opts:['Oui, définitivement','Non : il faut plus de matchs et des intervalles de confiance','Oui, si l’IA a joué vite'],correct:1,why:'Un petit échantillon n’établit aucune supériorité statistique.'},
+ {topic:'Progression',q:'Une victoire accordée par une limite de simulation devrait-elle débloquer une mission ?',opts:['Oui','Non, seule une vraie victoire terminée par le moteur le permet','Seulement en difficulté expert'],correct:1,why:'PRIME distingue les matchs terminés des simulations interrompues.'},
+ {topic:'Coût et RAM',q:'Une carte peu chère peut-elle quand même être illégale dans votre deck ?',opts:['Oui, si sa couleur ou sa RAM est incompatible','Non, une carte gratuite est toujours légale','Non, les Légendes ne comptent jamais'],correct:0,why:'La RAM est vérifiée indépendamment des coûts en Eddies.'},
+ {topic:'Fin de tour',q:'Comment enregistrer la réussite de l’objectif “Terminer un tour” ?',opts:['Quand l’IA commence son tour','Lorsqu’un joueur déclenche une action de fin de tour autorisée','Dès que le joueur ouvre le menu'],correct:1,why:'Le guide exige une action humaine légale.'},
+
  {topic:'Vol de Gigs',q:'Votre Unité attaque les Gigs adverses. À quel moment compter le vol final ?',opts:['Dès l’annonce de l’attaque','Après les réactions, préventions et effets applicables','Après le prochain tour adverse'],correct:1,why:'Le vol peut être modifié par des réponses et des effets. Le moteur résout d’abord ces interactions.'},
  {topic:'Équipement',q:'Sur quel type de carte peut-on normalement placer un Gear ?',opts:['N’importe quelle carte de la main','Une Unité alliée ou Légende alliée face visible admissible','Une Légende adverse face cachée'],correct:1,why:'La restriction exacte dépend de chaque Gear et de son texte ; Kiroshi Optics et Gorilla Arms illustrent l’équipement allié.'},
  {topic:'Réactions',q:'Quelle situation appelle une réaction QUICK ?',opts:['Une fenêtre de réaction autorisée','À tout instant, même après le résultat final','Uniquement quand la main est vide'],correct:0,why:'Les actions rapides sont proposées dans une fenêtre définie. Les réactions tardives ne sont pas légales.'},
@@ -5738,10 +5773,14 @@ function homeMenu() {
     <div class="body prime-menu-scroll"><div class="acts">
       <button type="button" class="prime-update-button" data-prime-update>↻ Mise à jour · Vérifier sur GitHub</button>
       <button type="button" class="btn ghost" data-nav="rules">Règles &amp; aide</button>
+      <button type="button" class="btn ghost" data-comfort-large>Texte agrandi : ${typeof Comfort!=='undefined'&&Comfort.read().large?'activé':'désactivé'}</button>
+      <button type="button" class="btn ghost" data-comfort-quiet>Réduire les animations : ${typeof Comfort!=='undefined'&&Comfort.read().quiet?'activé':'désactivé'}</button>
       <div class="prime-home-menu-version">PRIME 2.7.0 · Mises à jour vérifiées depuis GitHub ; sauvegardes et illustrations VF conservées.</div>
       <button type="button" class="btn ghost" data-close-home-menu>Fermer le menu</button>
     </div></div>`);
   sc.querySelector('.sheet').setAttribute('aria-labelledby','prime-home-menu-title');
+  sc.querySelector('[data-comfort-large]').onclick=()=>{Comfort.toggle('large');closeSheet();homeMenu();};
+  sc.querySelector('[data-comfort-quiet]').onclick=()=>{Comfort.toggle('quiet');closeSheet();homeMenu();};
   sc.querySelector('[data-close-home-menu]').onclick=()=>{
     closeSheet();
     app.querySelector('[data-open-home-menu]')?.focus({preventScroll:true});
@@ -5932,6 +5971,7 @@ function setupScreen() {
     <label for="enemyDeck">Deck adverse</label><select id="enemyDeck" class="sim-select"><option value="random" ${S.aiDeck==='random'?'selected':''}>Deck tactique aléatoire</option>${opts(S.aiDeck)}</select>
     <div class="sim-setup-split"><div><label for="pseudo">Votre nom</label><input class="search sim-pseudo" id="pseudo" maxlength="16" value="${esc(S.pseudo)}"></div>
     <div><label for="lvl">Intelligence de l'adversaire</label><select class="sim-select" id="lvl">${Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${S.level===k?'selected':''}>${v[0]} · ${v[1]}</option>`).join('')}</select></div></div>
+    <div class="prime-opponent-brief" id="rivalBrief" role="status" aria-live="polite"></div>
     <div class="sim-hint"><b>NIGHTMARE</b> évalue plusieurs coups et les ripostes possibles avec une politique historique conservée, mais non certifiée sur cette version. Certaines décisions peuvent prendre plus de temps.</div>
     <div class="sim-hint" style="border-left:3px solid var(--sodium)">${S.learningEnabled ? '◈ Apprentissage activé : l’IA mémorise vos duels et adapte ses stratégies en Tactique+ et NIGHTMARE (Initiation sert à collecter les observations). '+(window.RivalLearning.summary(S.rivalMemory, D[S.myDeck]).deck?.games || 0)+' duel(s) enregistrés contre ce deck.' : 'Apprentissage désactivé : le duel ne sera pas mémorisé.'}</div>
     <button class="btn ghost" data-nav="decks" style="width:100%;margin-top:12px">Créer ou modifier un deck</button>
@@ -5947,7 +5987,15 @@ function setupScreen() {
     inp.onchange=async()=>{try{await GameArchive.import(inp.files[0]);toast('Sauvegarde importée');setupScreen();}catch(e){toast('Import impossible : '+e.message,3500);}finally{inp.remove();}};
     document.body.appendChild(inp);inp.click();};
   app.querySelector('#mineDeck').onchange=e=>{S.myDeck=e.target.value;store.set('myDeck',S.myDeck)};
-  app.querySelector('#enemyDeck').onchange=e=>{S.aiDeck=e.target.value;store.set('aiDeck',S.aiDeck)};
+  const rivalBrief=app.querySelector('#rivalBrief');
+  const explainOpponent=()=>{
+    const info=OpponentBriefings[S.aiDeck];
+    rivalBrief.textContent=info?info[0]+' · '+info[1]:
+      S.aiDeck==='random'?'Deck mystère : un adversaire différent est généré à chaque nouveau duel.':
+      'Deck personnalisé : vérifiez les trois Légendes et la composition.';
+  };
+  explainOpponent();
+  app.querySelector('#enemyDeck').onchange=e=>{S.aiDeck=e.target.value;store.set('aiDeck',S.aiDeck);explainOpponent();};
   app.querySelector('#lvl').onchange=e=>{S.level=e.target.value;store.set('level',S.level)};
   app.querySelector('#start').onclick=()=>{
     S.pseudo=app.querySelector('#pseudo').value.trim()||'Joueur';store.set('pseudo',S.pseudo);
@@ -6261,6 +6309,8 @@ function gameMenu() {
     <button class="btn" data-perf>Qualité graphique : ${Perf.mode==='fluide'?'Fluidité maximum':'Effets complets'}</button>
     <button class="btn" data-combat>Affichage combat : ${S.combatArtOnly ? 'images seules' : 'cartes tactiques'}</button>
     <button class="btn" data-readable aria-pressed="${Readability.active}">Lisibilité renforcée : ${Readability.active?'activée':'désactivée'}</button>
+    <button class="btn" data-large aria-pressed="${Comfort.read().large}">Texte agrandi : ${Comfort.read().large?'activé':'désactivé'}</button>
+    <button class="btn" data-quiet aria-pressed="${Comfort.read().quiet}">Réduire les animations : ${Comfort.read().quiet?'activé':'désactivé'}</button>
     <button class="btn" data-sp>Animations : ${S.speed < .2 ? 'Instantané' : S.speed < .9 ? 'Normal' : 'Immersif'}</button>
     <button class="btn" data-audio>Son d’arène : ${S.audio ? 'activé' : 'désactivé'}</button>
     <div class="sim-hint">IA : ${esc(S.aiStats.last)} · Recherche ${S.aiStats.searched} · Replis ${S.aiStats.fallback} · Dépassements ${S.aiStats.timeout}</div>
@@ -6274,6 +6324,8 @@ function gameMenu() {
   sc.querySelector('[data-audio]').onclick=()=>{S.audio=!S.audio;store.set('audio',S.audio);closeSheet();};
   sc.querySelector('[data-perf]').onclick=()=>{Perf.toggle();closeSheet();toast(Perf.mode==='fluide'?'Mode fluidité activé':'Effets complets activés',1600);};
   sc.querySelector('[data-readable]').onclick=()=>{Readability.toggle();closeSheet();toast(Readability.active?'Lisibilité renforcée activée':'Affichage standard activé',2200);};
+  sc.querySelector('[data-large]').onclick=()=>{Comfort.toggle('large');closeSheet();gameMenu();};
+  sc.querySelector('[data-quiet]').onclick=()=>{Comfort.toggle('quiet');closeSheet();gameMenu();};
   sc.querySelector('[data-combat]').onclick=()=>{S.combatArtOnly=!S.combatArtOnly;store.set('combatArtOnly',S.combatArtOnly);render();closeSheet();toast(S.combatArtOnly?'Combat : images seules':'Combat : cartes tactiques',1600);};
   sc.querySelector('[data-sp]').onclick = () => { S.speed = S.speed < .2 ? .35 : S.speed < .9 ? 1 : .05; store.set('speed', S.speed); closeSheet(); toast('Vitesse : '+(S.speed<.2?'Instantané':S.speed<.9?'Normal':'Immersif')); };
   sc.querySelector('[data-rules]').onclick = () => { const r = openSheet(`<div class="body rules" style="padding:0">${RULES_HTML}</div><div class="acts"><button class="btn ghost" data-close>Fermer</button></div>`); r.querySelector('[data-close]').onclick = closeSheet; };
