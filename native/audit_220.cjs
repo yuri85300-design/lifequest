@@ -42,7 +42,7 @@ async function play(g,id,i){
 (async()=>{
  await test('deck presets: all 10 legal',()=>{
    assert.equal(deckNames.length,10);
-   for(const [name,d] of Object.entries(presets))assert.deepEqual(validateDeck(d),[],name);
+   for(const [name,d] of Object.entries(presets))assert.equal(validateDeck(d).length,0,name);
  });
  await test('corrupt decks: reject unknown cards without crashing',()=>{
    assert(validateDeck(null).length>0);
