@@ -71,8 +71,7 @@ jobs:
             adb shell am start -W -n dev.septgigs.neonarena.prime254/dev.septgigs.neonarena.prime.PrimeUpdater254Activity --ez otaQa true | tee /tmp/prime260-proof/launch.txt
             sh -c 'n=0; while [ "$n" -lt 24 ]; do adb logcat -d > /tmp/prime260-proof/logcat-ota.txt; if grep -q PRIME_OTA_QA_FAIL /tmp/prime260-proof/logcat-ota.txt; then exit 1; fi; if grep -q PRIME_OTA_QA_PASS:26000 /tmp/prime260-proof/logcat-ota.txt; then exit 0; fi; n=$((n+1)); sleep 5; done; exit 2'
             grep -q 'PRIME_OTA_QA_PASS:26000' /tmp/prime260-proof/logcat-ota.txt
-            sleep 10
-            adb logcat -d > /tmp/prime260-proof/logcat-after-upgrade.txt
+            sh -c 'n=0; while [ "$n" -lt 30 ]; do adb logcat -d > /tmp/prime260-proof/logcat-after-upgrade.txt; if grep -q OFFLINE_FR_QA_FAIL /tmp/prime260-proof/logcat-after-upgrade.txt; then exit 1; fi; if grep -q OTA_LOCAL_SAVE_QA_PASS /tmp/prime260-proof/logcat-after-upgrade.txt && grep -q OFFLINE_FR_QA_PASS:150/150: /tmp/prime260-proof/logcat-after-upgrade.txt; then exit 0; fi; n=$((n+1)); sleep 5; done; exit 2'
             grep -q 'OTA_LOCAL_SAVE_QA_PASS' /tmp/prime260-proof/logcat-after-upgrade.txt
             grep -q 'OFFLINE_FR_QA_PASS:150/150:' /tmp/prime260-proof/logcat-after-upgrade.txt
             adb shell svc wifi disable
@@ -80,8 +79,7 @@ jobs:
             adb shell am force-stop dev.septgigs.neonarena.prime254
             adb logcat -c
             adb shell am start -W -n dev.septgigs.neonarena.prime254/dev.septgigs.neonarena.prime.PrimeUpdater254Activity --ez offlineQa true | tee /tmp/prime260-proof/offline-start.txt
-            sleep 12
-            adb logcat -d > /tmp/prime260-proof/logcat-offline.txt
+            sh -c 'n=0; while [ "$n" -lt 30 ]; do adb logcat -d > /tmp/prime260-proof/logcat-offline.txt; if grep -q OFFLINE_FR_QA_FAIL /tmp/prime260-proof/logcat-offline.txt; then exit 1; fi; if grep -q ACTIVE_PRIME_CONTENT=26000 /tmp/prime260-proof/logcat-offline.txt && grep -q OFFLINE_FR_QA_PASS:150/150: /tmp/prime260-proof/logcat-offline.txt; then exit 0; fi; n=$((n+1)); sleep 5; done; exit 2'
             grep -q 'ACTIVE_PRIME_CONTENT=26000' /tmp/prime260-proof/logcat-offline.txt
             grep -q 'OFFLINE_FR_QA_PASS:150/150:' /tmp/prime260-proof/logcat-offline.txt
             ! grep -q 'FATAL EXCEPTION' /tmp/prime260-proof/logcat-offline.txt
