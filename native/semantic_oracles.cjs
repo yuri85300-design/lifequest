@@ -319,5 +319,115 @@ module.exports=async function runSemanticOracles(api,assert){
   l.ready=true;p.eddies=[{uid:899001,ready:true}];
   assert.equal(g.legalActions(0,{reaction:true}).some(a=>a.type==='activate'&&a.uid===l.uid),true);
  });
+
+ await check('adam-smasher-ender-of-legends','on-play-defeat-rival-only',async()=>{
+  const g=make(),ally=put(g,'animals-wrecker'),rival=put(g,'corpo-security',1);
+  const a=g.newInst('adam-smasher-ender-of-legends',0);
+  await CARDS[a.id].onPlay(g,a,0);
+  assert.equal(g.onField(rival),false);
+  assert.equal(g.onField(ally),true);
+ });
+ await check('royce-psycho-on-the-edge','two-gears-add-four-power-only-during-owner-turn',()=>{
+  const g=make(),l=g.newInst('royce-psycho-on-the-edge',0);
+  g.P(0).legends=[l];l.faceUp=true;
+  assert.equal(g.eff(l),6);
+  l.gear.push(g.newInst('mantis-blades',0),g.newInst('mantis-blades',0));
+  assert.equal(g.eff(l),14); // 6 base + 4 Gear + 4 turn-only bonus
+  g.s.active=1;
+  assert.equal(g.eff(l),10);
+ });
+ await check('chrome-fang','only-protects-gigs-greater-than-thief-power',async()=>{
+  const g=make(),u=put(g,'chrome-fang'),rival=put(g,'corpo-security',1);
+  g.P(0).gigs=[gig(900011,8,8),gig(900012,1,6)];
+  assert.equal(g.stealAllowed(rival,g.P(0).gigs[0],0),true);
+  await CARDS[u.id].onPlay(g,u,0);
+  assert.equal(g.stealAllowed(rival,g.P(0).gigs[0],0),false);
+  assert.equal(g.stealAllowed(rival,g.P(0).gigs[1],0),true);
+ });
+ await check('valentino-guerrera','ready-blocker-only-while-leading-street-cred',()=>{
+  const g=make(),u=put(g,'valentino-guerrera'),block=put(g,'corpo-security',1);
+  assert.equal(g.hasKw(block,'BLOCKER'),true);
+  g.P(0).gigs=[gig(900021,8,8)];g.P(1).gigs=[gig(900022,1)];
+  assert.equal(g.attackTargets(u).some(t=>t.uid===block.uid),true);
+  g.P(0).gigs=[gig(900021,1)];g.P(1).gigs=[gig(900022,8,8)];
+  assert.equal(g.attackTargets(u).some(t=>t.uid===block.uid),false);
+ });
+ await check('deadman-transmitter','replaces-defeat-once-and-gear-goes-to-trash',async()=>{
+  const g=make(),u=put(g,'animals-wrecker'),gr=g.newInst('deadman-transmitter',0);
+  u.gear.push(gr);
+  const prevented=await g.defeat(u,{effect:true});
+  assert.equal(prevented,false);
+  assert.equal(g.onField(u),true);
+  assert.equal(g.P(0).trash.includes(gr),true);
+  assert.equal(u.gear.includes(gr),false);
+  const removed=await g.defeat(u,{effect:true});
+  assert.equal(removed,true);assert.equal(g.onField(u),false);
+ });
+ await check('satori-sword-of-saburo','host-winning-fight-draws-exactly-one',async()=>{
+  const g=make(),p=g.P(0),host=put(g,'animals-wrecker'),enemy=put(g,'corpo-security',1);
+  const gr=g.newInst('satori-sword-of-saburo',0);host.gear.push(gr);
+  const n=p.hand.length;
+  await g.fight({attacker:host.uid,p:0,target:{kind:'unit',uid:enemy.uid}});
+  assert.equal(p.hand.length,n+1);assert.equal(g.onField(enemy),false);
+ });
+ await check('industrial-assembly','gain-value-and-draw-on-eighth-or-more',async()=>{
+  const g=make(),p=g.P(0),c=g.newInst('industrial-assembly',0);
+  p.gigs=[gig(900041,7,10)];
+  const n=p.hand.length;
+  await CARDS[c.id].onPlay(g,c,0);
+  assert.equal(p.gigs[0].value>=8,true);
+  assert.equal(p.hand.length,n+1);
+ });
+ await check('minotaur','eliminate-only-low-power-when-leading',async()=>{
+  const g=make(),weak=put(g,'corpo-security',1),strong=put(g,'animals-wrecker',1);
+  g.P(0).gigs=[gig(900051,8,8)];g.P(1).gigs=[gig(900052,1)];
+  await CARDS['minotaur'].onPlay(g,g.newInst('minotaur',0),0);
+  assert.equal(g.onField(weak),false);
+  assert.equal(g.onField(strong),true);
+ });
+ await check('adam-smasher-metal-over-meat','destroy-all-other-units-both-sides',async()=>{
+  const g=make(),a=put(g,'animals-wrecker'),b=put(g,'animals-wrecker',1),smash=put(g,'adam-smasher-metal-over-meat');
+  await CARDS[smash.id].onPlay(g,smash,0);
+  assert.equal(g.onField(a),false);
+  assert.equal(g.onField(b),false);
+  assert.equal(g.onField(smash),true);
+ });
+ await check('maxtac-suppression-team','prevent-rival-lagged-unit-attacking',()=>{
+  const g=make(),team=put(g,'maxtac-suppression-team'),enemy=put(g,'riding-nomad',1);
+  enemy.lag=true;g.s.active=1;
+  assert.equal(g.canAttackNow(enemy),false);
+  g.P(0).field.splice(g.P(0).field.indexOf(team),1);
+  assert.equal(g.canAttackNow(enemy),true);
+ });
+ await check('offduty-malfini','entry-exhausts-self-and-a-rival-unit',async()=>{
+  const g=make(),u=put(g,'offduty-malfini'),enemy=put(g,'animals-wrecker',1);
+  await CARDS[u.id].onPlay(g,u,0);
+  assert.equal(u.ready,false);assert.equal(enemy.ready,false);
+ });
+ await check('sandayu-oda-hanako-s-guardian','pair-count-governs-number-of-rival-exhaustions',async()=>{
+  const g=make(),u=put(g,'sandayu-oda-hanako-s-guardian');
+  const e1=put(g,'corpo-security',1),e2=put(g,'animals-wrecker',1);
+  g.P(0).gigs=[gig(900061,2),gig(900062,2),gig(900063,3),gig(900064,3)];
+  await CARDS[u.id].onPlay(g,u,0);
+  assert.equal(e1.ready,false);assert.equal(e2.ready,false);
+ });
+ await check('saul-bright-stormrider','aura-applies-to-attacking-other-friendly-unit-only',()=>{
+  const g=make(),saul=put(g,'saul-bright-stormrider'),ally=put(g,'corpo-security'),enemy=put(g,'corpo-security',1);
+  g.s.attack={attacker:ally.uid};
+  assert.equal(g.eff(ally),4);
+  assert.equal(g.eff(saul),CARDS[saul.id].power);
+  assert.equal(g.eff(enemy),CARDS[enemy.id].power);
+  g.s.attack=null;assert.equal(g.eff(ally),2);
+ });
+ await check('sandevistan','end-turn-readies-host-only-for-own-turn',async()=>{
+  const g=make(),u=put(g,'animals-wrecker'),gr=g.newInst('sandevistan',0);
+  u.gear.push(gr);u.ready=false;
+  g.s.active=1;
+  await g.emit('turnEnd',{p:1});
+  assert.equal(u.ready,false);
+  g.s.active=0;
+  await g.emit('turnEnd',{p:0});
+  assert.equal(u.ready,true);
+ });
  return {count:tests.length,passed:tests.filter(t=>t.status==='PASS').length,failed:tests.filter(t=>t.status==='FAIL').length,tests};
 };
