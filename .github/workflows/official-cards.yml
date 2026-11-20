@@ -25,6 +25,8 @@ on:
       - 'native/semantic_register.cjs'
       - 'native/semantic_gap_matrix.cjs'
       - 'native/semantic_gap_matrix_contract.cjs'
+      - 'native/nightmare_training_browser_smoke.cjs'
+      - 'native/prime_v220_runtime.html'
       - '.github/workflows/official-cards.yml'
   pull_request:
     paths:
@@ -48,6 +50,8 @@ jobs:
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
+      - name: Smoke test NIGHTMARE sandbox training in Chromium
+        run: node native/nightmare_training_browser_smoke.cjs
       - name: Inspect published English official card metadata
         id: audit
         continue-on-error: true
