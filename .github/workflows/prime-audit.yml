@@ -26,6 +26,8 @@ jobs:
         run: |
           node native/extract_engine.cjs
           node --check native/engine.js
+          node --check native/ai-worker.js
+          git diff --exit-code -- native/engine.js
       - name: Pairwise 150-card checks and AI self-play
         run: node native/audit_220.cjs
       - name: Certification statement
