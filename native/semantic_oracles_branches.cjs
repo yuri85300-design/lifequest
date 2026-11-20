@@ -57,7 +57,31 @@ module.exports=async function runChoiceBranches(api,assert){
   assert.equal(!!p.tf.cyberPlayed,false);
   assert.equal(g.costOf(g.newInst('gorilla-arms',0),0),1);
  });
+ await t('alt-cunningham-soulkiller-architect','free-next-program-consumes-one-use-discount',async()=>{
+  const g=make(),p=g.P(0);p.legends.forEach(l=>l.faceUp=false);
+  p.tf.progDiscount=2;
+  const free=g.newInst('afterparty-at-lizzie-s',0),next=g.newInst('live-with-the-aftermath',0);
+  p.hand.push(free);
+  assert.equal(g.costOf(next,0),1);
+  await g.withTimingWindow(()=>g.playCard(0,free.uid,null,{free:true}));
+  assert.equal(p.tf.progDiscount,0);
+  assert.equal(g.costOf(next,0),3);
+ });
+ await t('alt-cunningham-soulkiller-architect','paid-next-program-consumes-one-use-discount',async()=>{
+  const g=make(),p=g.P(0);p.legends.forEach(l=>l.faceUp=false);
+  p.tf.progDiscount=2;
+  p.eddies=Array.from({length:8},(_,n)=>({uid:990010+n,ready:true}));
+  const first=g.newInst('live-with-the-aftermath',0),next=g.newInst('live-with-the-aftermath',0);
+  p.hand.push(first);
+  assert.equal(g.costOf(first,0),1);
+  await g.withTimingWindow(()=>g.playCard(0,first.uid,null,{}));
+  assert.equal(p.tf.progDiscount,0);
+  assert.equal(g.costOf(next,0),3);
+ });
+ await t('alt-cunningham-soulkiller-architect','invalid-program-play-does-not-consume-discount',async()=>{
+  const g=make(),p=g.P(0);p.tf.progDiscount=2;
+  await g.playCard(0,-1111,null,{free:true});
+  assert.equal(p.tf.progDiscount,2);
+ });
  return {count:out.length,passed:out.filter(x=>x.status==='PASS').length,failed:out.filter(x=>x.status==='FAIL').length,tests:out};
 };
-
-// Independent PR regression: verify free-play effect reset at turn boundary.
