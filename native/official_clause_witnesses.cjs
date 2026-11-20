@@ -92,6 +92,15 @@ module.exports={
  'zetatech-berserk':{sourceHash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',segments:[{index:1,hash:'11e712667bd098963dd948feb12368324cba4ce8c10f94aa84815978ba43fa88',cases:["face-up-legend-discount-and-floor"],branches:["zero-face-up","one-face-up","three-face-up"]}]},
  'corporate-surveillance':{sourceHash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',segments:[{index:1,hash:'397a1b43d9ccda1c0cc56df4a9b6373b61934ed646acf9b309e41c14a88adbba',cases:["only-ready-rival-units-cost-four-or-less","cannot-be-played-without-ready-eligible-target"],branches:["eligible-ready","no-eligible","excludes-cost-over-four"]}]},
  'kiroshi-optics':{sourceHash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',segments:[{index:1,hash:'77459f57948a7da0e40990ee75317712cd8e2f7490fed8caaf6f81691437d1e5',cases:["only-face-up-legends-are-gear-hosts","attack-peek-remains-face-down","no-facedown-legend-does-not-reveal-anything"],branches:["face-up-host-legal","face-down-host-illegal","peek-without-reveal","no-target"]}]},
+ 'valentino-street-racer':{
+  sourceHash:'8f2f1f53cd17327ba8aa22c3bac3caa5f515f75a54e07a38324effc0ee4f5b2b',
+  segments:[{index:1,hash:'8f2f1f53cd17327ba8aa22c3bac3caa5f515f75a54e07a38324effc0ee4f5b2b',
+    cases:['valentino-another-friendly-unit-cost-five-gains-adrenaline',
+     'valentino-no-other-friendly-unit-cannot-grant-to-self',
+     'valentino-cost-six-other-unit-excluded',
+     'valentino-adrenaline-grant-expires-at-turn-end'],
+    branches:['different-friendly-unit','cost-five-inclusive','cost-six-excluded','no-target','turn-expiry']}]
+ },
  'goro-takemura-vengeful-bodyguard':{
   sourceHash:'532c5af92c7a5471c9f9c94545f774ccd4483eec886cde1624dc135c9b30cddf',
   segments:[
