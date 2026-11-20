@@ -271,3 +271,28 @@ a réussi : **218/218 oracles, 40/280 segments avec témoins partiels,
 240 sans rapprochement, 0/150 carte intégralement certifiée**.
 Le laboratoire expérimental fonctionne dans les scénarios prouvés,
 mais `NIGHTMARE_TRAINING_CERTIFIED` reste `false` faute de preuve exhaustive.
+
+## Contrôles supplémentaires exécutés sur le moteur
+
+Le workflow [44791582804](https://github.com/yuri85300-design/lifequest/actions/runs/44791582804)
+a réussi un **véritable** essai de `DeckPlanAI.trainLeague` (et non la
+substitution par un entraîneur simulé) : 4 auto-duels achevés, 80
+validations achevées, 40 victoires / 40 défaites, 0 validation incomplète,
+aucune mutation du champion actif. C'est une preuve du pipeline, pas
+une mesure suffisante de performance compétitive.
+
+De nouveaux oracles manuels ont été ajoutés sur Arasaka Emergency
+Radioport (5 scénarios : refus, conditions d'Appel, plafond d'un
+Appel, déclenchement de l'hôte) et Evelyn Parker: Beautiful Enigma
+(5 scénarios : CORPO/GANGER, unités non éligibles, vol adverse,
+provocation, absence de cible). Leurs empreintes de texte anglais et
+les fragments concernés sont consignés dans
+`native/official_clause_witnesses.cjs` et référencés dans les workflows.
+
+Exécution indépendante [44792017284](https://github.com/yuri85300-design/lifequest/actions/runs/44792017284)
+: **228/228 oracles PASS**, **0 FAIL**. Les rapprochements officiels
+additionnels des trois fragments ne pourront être comptabilisés dans la
+matrice qu'après réussite de l'audit complet sur les nouveaux commits.
+
+La certification intégrale reste non acquise et le verrou compétitif
+`NIGHTMARE_TRAINING_CERTIFIED = false` doit rester actif.
