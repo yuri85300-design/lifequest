@@ -1287,10 +1287,11 @@ async function pickMode(g, i, title, modes) { // modes: [{label, score, run}]
 async function increaseUpTo(g, i, X, title) { return await g.adjustUpTo(i, X, { dir: 1, title: title || `Augmentez un Gig de ${X} maximum` }); }
 async function decreaseUpTo(g, i, X, title, whose) { return await g.adjustUpTo(i, X, { dir: -1, whose, title: title || `Diminuez un Gig de ${X} maximum` }); }
 async function rivalDiscards(g, i, n = 1) { return await g.discard(g.opp(i), n, `Votre Rival vous fait défausser ${n} carte(s)`); }
-async function setGigToOther(g, i, title) {
+async function setGigToOther(g, i, title, opt = {}) {
   const all = [...g.P(i).gigs, ...g.P(g.opp(i)).gigs];
   const options = [];
-  for (const a of all) for (const b of all) if (a !== b && b.value !== a.value && b.value <= a.sides) {
+  const owner = d => g.gigOwnerIdx(d);
+  for (const a of all) for (const b of all) if (a !== b && b.value !== a.value && b.value <= a.sides && (!opt.crossPlayer || owner(a) !== owner(b))) {
     const mine = g.P(i).gigs.includes(a);
     const pairBonus = mine && g.P(i).gigs.some(x => x !== a && x.value === b.value) ? 3 : 0;
     options.push({ label: `${mine ? 'Votre' : 'Adverse'} d${a.sides} (${a.value}) → ${b.value}`, value: `${a.uid}:${b.value}`, gig: a, score: (mine ? 1 : -1) * (b.value - a.value) * 0.5 + pairBonus });
@@ -1535,9 +1536,9 @@ C('augmented-negotiators', 'Augmented Negotiators', null, U, Y, 3, 1, 2, 'ARASAK
   '[BLOQUEUR]\nQuand cette Unité utilise BLOQUEUR, un Rival défausse 1.',
   { on: { blocked: async (g, self, d) => { if (d.blocker === self) await rivalDiscards(g, g.controllerOf(self), 1); } } });
 C('caliber-totentanz-s-top-dog', 'Caliber', 'Totentanz\'s Top Dog', U, Y, 5, 2, 5, 'GANGER|MAELSTROM', [],
-  '[JEU] Vainquez une Unité rivale de coût 2 ou moins.\n[VAINCU] Un Rival défausse 1. Si le coût de cette carte est égal à la valeur d\'un Gig ami, il défausse 1 de plus.',
+  '[JEU] Vainquez une Unité rivale de coût 2 ou moins.\n[VAINCU] Un Rival défausse 1. Si le coût de la carte défaussée est égal à la valeur d\'un Gig ami, ce Rival défausse 1 de plus.',
   { onPlay: async (g, u, i) => { await defeatPick(g, i, rU(g, i).filter(x => (g.def(x).cost ?? 0) <= 2), 'Caliber : vainquez (coût ≤ 2)'); },
-    onDefeated: async (g, u, i) => { await rivalDiscards(g, i, friendlyGigValue(g, i, 5) ? 2 : 1); } });
+    onDefeated: async (g, u, i) => { const [c] = await rivalDiscards(g, i, 1); if (c && friendlyGigValue(g, i, g.def(c).cost ?? -1)) await rivalDiscards(g, i, 1); } });
 C('gilded-mato-n', 'Gilded Matón', null, U, Y, 4, 2, 3, 'GANGER|VALENTINO', [],
   '[JEU] Vous pouvez vaincre un de vos Équipements. Si vous le faites, vainquez une Unité rivale de coût 3 ou moins.',
   { onPlay: async (g, u, i) => {
@@ -1681,11 +1682,11 @@ C('jackie-welles-mama-s-favorite', 'Jackie Welles', 'Mama\'s Favorite', L, V, 6,
       if (!(await g.pay(i, 1, [self.uid]))) return false;
       g.moveTo(self, 'trash'); g.log(`Jackie Welles se sacrifie pour ${g.name(victim)} !`, 'legend'); return true; } });
 C('padre-man-of-the-cross', 'Padre', 'Man of the Cross', L, V, null, 2, null, 'FIXER|GANGER|VALENTINO', [],
-  '[APPEL] Choisissez : épuisez une Unité rivale ; ou piochez 1.\n[⟳] : Réglez la valeur d\'un Gig sur celle d\'un autre Gig.',
+  '[APPEL] Choisissez : épuisez une Unité rivale ; ou piochez 1.\n[⟳] : Réglez la valeur d\'un Gig d\'un joueur sur celle d\'un Gig de l\'autre joueur.',
   { onCall: async (g, l, i) => pickMode(g, i, 'Padre : choisissez', [
       { label: 'Épuisez une Unité rivale', score: rU(g, i).some(u => u.ready) ? 1 : -1, run: () => spendPick(g, i, rU(g, i), 'Padre : Unité rivale à épuiser') },
       { label: 'Piochez 1', score: 0.5, run: () => g.draw(i, 1) }]),
-    abilities: [{ label: 'Copier une valeur de Gig', spend: true, cost: 0, cond: (g, l, i) => g.P(i).gigs.length + g.P(g.opp(i)).gigs.length >= 2, run: async (g, l, i) => { await setGigToOther(g, i); } }] });
+    abilities: [{ label: 'Copier une valeur de Gig', spend: true, cost: 0, cond: (g, l, i) => g.P(i).gigs.length > 0 && g.P(g.opp(i)).gigs.length > 0, run: async (g, l, i) => { await setGigToOther(g, i, 'Padre : réglez un Gig sur la valeur d\'un Gig de l\'autre joueur', { crossPlayer: true }); } }] });
 C('panam-palmer-nomad-cavalry', 'Panam Palmer', 'Nomad Cavalry', L, V, null, 2, null, 'ALDECALDO|MERC|NOMAD', [],
   '2 €$, [⟳] : Déplacez un Équipement de cette Légende vers une Unité amie non équipée. Si vous le faites, redressez cette Unité.\nÀ la fin de votre tour, si 5 Unités et/ou Légendes amies ou plus sont équipées, redressez-les.',
   { abilities: [{ label: 'Transférer un Équipement', spend: true, cost: 2, cond: (g, l, i) => l.gear.length && fU(g, i).some(u => !u.gear.length),
@@ -1872,9 +1873,10 @@ C('rita-wheeler-no-stupid-questions', 'Rita Wheeler', 'No Stupid Questions', U, 
   '[BLOQUEUR]\nLa première fois que cette Unité est épuisée à chaque tour, piochez 1, puis défaussez 1.',
   { on: { spent: async (g, self, d) => { if (d.inst !== self || self.flags.usedRita) return; self.flags.usedRita = true; const i = g.controllerOf(self); await g.draw(i, 1); await g.discard(i, 1); } } });
 C('rogue-amendiares-queen-of-the-afterlife', 'Rogue Amendiares', 'Queen of the Afterlife', U, B, 5, 2, 4, 'FIXER|MERC', [],
-  'La première fois à chaque tour qu\'une autre Unité amie vole un Gig de valeur inférieure à la puissance de cette Unité, redressez 2 Eddies.\n[RAPIDE] 2 €$, [⟳] : Une Unité rivale reçoit -X de puissance ce tour, X étant la puissance de cette Unité.',
-  { on: { steal: async (g, self, d) => { const i = g.controllerOf(self); if (d.p !== i || d.unit === self || self.flags.usedRogue) return; // Compare to THIS Unit's power (Rogue), not to the stealing Unit's power.
-      if (d.unit && d.gigs.some(x => x.value < g.eff(self))) { self.flags.usedRogue = true; g.readyEddies(i, 2); } } },
+  'La première fois à chaque tour qu\'une autre Unité amie vole un Gig de valeur inférieure à sa propre puissance, redressez 2 Eddies.\n[RAPIDE] 2 €$, [⟳] : Une Unité rivale reçoit -X de puissance ce tour, X étant la puissance de cette Unité.',
+  { on: { steal: async (g, self, d) => { const i = g.controllerOf(self); if (d.p !== i || d.unit === self || self.flags.usedRogue) return;
+      // Official: "steals a Gig with value less than ITS power" = the stealing Unit's own power.
+      if (d.unit && d.gigs.some(x => x.value < g.eff(d.unit))) { self.flags.usedRogue = true; g.readyEddies(i, 2); } } },
     abilities: [{ label: 'Affaiblir', quick: true, spend: true, cost: 2, cond: (g, u, i) => rU(g, i).length > 0, run: async (g, u, i) => { await debuffPick(g, i, g.eff(u), `Rogue : -${g.eff(u)} à…`); } }], aiValue: 1 });
 C('westbrook-netrunner', 'Westbrook Netrunner', null, U, B, 4, 2, 5, 'NETRUNNER', [],
   '[JEU] Jusqu\'à votre prochain tour, les Légendes rivales ne peuvent pas voler de Gigs amis de valeur inférieure à leur puissance.',

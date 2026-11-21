@@ -6,12 +6,12 @@ Mise à jour de contenu OTA (`version_code=27005`, `min_shell=25004`). Elle s'in
 
 `native/engine.js`, que valident tous les tests de règles (oracles), était extrait de l'ancien runtime `prime_v220_runtime.html`. Le jeu publié (2.7.0 → 2.7.4) venait de `prime_v272_runtime.html`. Les corrections de règles arrivaient dans `engine.js` et la copie 2.2.0, et les tests passaient. Le jeu réellement installé gardait les bugs.
 
-Résultat mesuré sur le moteur publié en 2.7.4 : **10 tests de règles en échec sur 357**.
+Résultat mesuré sur le moteur publié en 2.7.4 : **9 tests de règles en échec**, auxquels s'ajoutent 2 bugs nouvellement détectés (Caliber, Padre).
 
 Corrections structurelles :
 - `native/extract_engine.cjs` extrait désormais le moteur du runtime publié (`prime_v275_runtime.html`), avec les mêmes bornes que `build_ota_content.py`.
 - `node native/extract_engine.cjs --check` échoue si `engine.js` diffère du moteur publié.
-- Les workflows 2.7.5 (`prime275-preflight.yml`, `publish-prime275-ota.yml`) vérifient `cmp native/engine.js <moteur du paquet>`, puis lancent les 357 oracles **avant** toute publication.
+- Les workflows 2.7.5 (`prime275-preflight.yml`, `publish-prime275-ota.yml`) vérifient `cmp native/engine.js <moteur du paquet>`, puis lancent les 359 oracles **avant** toute publication.
 
 ## 2. Règles corrigées dans le jeu publié
 
@@ -21,9 +21,19 @@ Corrections structurelles :
 | Alt Cunningham — Soulkiller Architect | Un Programme joué gratuitement laissait la réduction « prochain Programme » active. | La réduction est consommée par le prochain Programme réellement joué. |
 | Nocturne OP55 N1 | Le choix « EN SOLO -2 €$ » imposait de désigner une Légende déjà face visible. La réduction était aussi refusée sans Légende EN SOLO visible. | La réduction vaut pour n'importe quelle Légende amie ce tour, coûte au minimum 1 €$, n'est consommée que par un EN SOLO réussi et expire en fin de tour (4 tests). |
 | Arasaka Emergency Radioport | Après un Appel, l'effet ne permettait même plus de **regarder** la Légende face cachée. | Regarder reste permis ; seul l'Appel gratuit est bloqué (un seul Appel par tour). |
-| Rogue Amendiares — Queen of the Afterlife | Le Gig volé était comparé à la puissance de l'**unité voleuse**. | Il est comparé à la puissance de **Rogue** (« de cette Unité »). Nouveau test : Animals Wrecker (10) vole un 6 alors que Rogue a 4 de puissance → aucun Eddie redressé. |
+| Caliber — Totentanz's Top Dog | [VAINCU] : la défausse supplémentaire dépendait du coût de Caliber (5). | Elle dépend du coût de la **carte défaussée**, selon le texte officiel : « If the card's cost equals… ». |
+| Padre — Man of the Cross | [⟳] : on pouvait copier la valeur d'un de ses propres Gigs sur un autre de ses Gigs. | La copie se fait uniquement entre les Gigs de **deux joueurs différents** (« a player's Gig … another player's Gig »). |
 
-Les cinq premières corrections existaient déjà dans `engine.js` mais n'avaient jamais été livrées. La correction de Rogue est nouvelle. Son test échoue sur 2.7.4 et passe sur 2.7.5.
+Les cinq premières corrections existaient déjà dans `engine.js` mais n'avaient jamais été livrées. Caliber et Padre sont nouvelles. Leurs tests échouent sur 2.7.4 et passent sur 2.7.5.
+
+### Concordance avec les 150 textes anglais officiels
+
+`native/official_text_dump.cjs` (workflow `official-text-review.yml`) récupère depuis le CI le texte anglais officiel actuel de chaque carte sur cyberpunktcg.com.
+- **Métadonnées** : 150/150 identiques (type, coût, puissance, RAM). Le catalogue officiel compte 152 cartes : les deux absentes du jeu (Rebecca, Lucyna) sont des cartes promotionnelles.
+- **Effets** : chaque texte officiel a été relu clause par clause face au code. Écarts trouvés : Caliber et Padre (corrigés ci-dessus), et la traduction française de **Rogue Amendiares — Queen of the Afterlife**.
+- Rogue : le texte officiel dit « steals a Gig with value less than **its** power », c'est-à-dire la puissance de l'unité qui vole. Le moteur était correct, mais la traduction française (« la puissance de cette Unité ») ne l'était pas. Elle devient « sa propre puissance », et un test fige le comportement officiel.
+- Registre sémantique reconstruit avec les textes officiels : 150/150 textes disponibles, 280 segments officiels, dont 122 reliés à des tests indépendants. Aucune revue manuelle n'est périmée.
+- L'échec ponctuel « STALE OFFICIAL TEXT for mox-inciters » d'une exécution CI venait d'une page mal servie par le site. Le texte officiel récupéré 4 minutes plus tard a exactement l'empreinte attendue, et la seconde exécution sur le même commit est verte.
 
 ## 3. Compatibilité entre les cartes
 
@@ -35,7 +45,7 @@ Les cinq premières corrections existaient déjà dans `engine.js` mais n'avaien
 - les puissances sont des nombres valides et les Gigs restent dans les bornes de leur dé ;
 - la partie se termine sans erreur moteur.
 
-Résultat : **5 000 parties, ~200 000 actions, 0 erreur, 0 violation**. Les 124 cartes non-Légende ont toutes été jouées au moins une fois. Une relecture manuelle des 150 définitions (texte français ↔ code) a été faite en complément ; elle a trouvé l'écart de Rogue.
+Résultat : **5 000 parties, ~200 000 actions, 0 erreur, 0 violation**. Les 124 cartes non-Légende ont toutes été jouées au moins une fois. Une relecture manuelle des 150 définitions (texte français et texte anglais officiel ↔ code) a été faite en complément ; voir la section 2.
 
 Le moteur ne masque aucune erreur d'effet de carte (aucun `catch` silencieux). Un effet défaillant fait donc échouer le test au lieu de passer inaperçu.
 
@@ -55,7 +65,7 @@ Aucune optimisation de performance n'était nécessaire. Il n'y en a donc pas eu
 
 ## 5. Ce qui reste hors périmètre
 
-- **Certification officielle carte par carte** : toujours bloquée (pas de comparaison automatisée avec les fiches anglaises officielles depuis cet environnement). Le verrou NIGHTMARE reste fermé.
+- **Certification formelle carte par carte** : la relecture manuelle des 150 textes officiels est faite, mais le registre exige que chacun des 280 segments soit relié à un test indépendant (122/280 aujourd'hui). Le verrou NIGHTMARE reste donc fermé.
 - **PvP public**, **signature permanente de l'APK** : inchangés (voir `docs/prime_272_readiness.md`).
 
 ## Reproduire

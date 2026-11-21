@@ -101,7 +101,7 @@ jobs:
           node multiplayer/protocol.test.mjs | tee /tmp/prime275-preflight/audit-protocol.json
           grep -Fq '"manifestNoDowngrade": "PASS"' /tmp/prime275-preflight/audit-version.json
           grep -Fq '"serverLegalActions":"PASS"' /tmp/prime275-preflight/audit-protocol.json
-      - name: Moteur teste = moteur publie, 357 oracles et 3000 duels chaos
+      - name: Moteur teste = moteur publie, oracles de regles et 3000 duels chaos
         run: |
           set -euo pipefail
           node native/extract_engine.cjs --check
