@@ -1,3 +1,13 @@
+/* Android: exporting JSON via the system document picker; classic browser falls back to Blob. */
+function exportJsonBridge(name, text) {
+  try {
+    if (window.Native7Gigs && typeof window.Native7Gigs.saveText === 'function') {
+      window.Native7Gigs.saveText(String(name), String(text));
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
 // ============================================================================
 //  MOTEUR DE JEU — simulateur non officiel du Cyberpunk TCG
 //  Moteur asynchrone : chaque décision passe par un "decider" (humain ou IA).
@@ -77,6 +87,8 @@ class Game {
     return new Game(st, deciders, hooks || { sim: true });
   }
 
+  // A checkpoint only occurs after a completely resolved transition.
+  checkpoint() { if (!this.hooks.sim && this.hooks.checkpoint) this.hooks.checkpoint(this.s); }
   // ------------------------------------------------------------ outils ----
   rand() { return rngNext(this.s); }
   randInt(n) { return Math.floor(this.rand() * n); }
@@ -1064,6 +1076,7 @@ class Game {
     await this.rollIn(i);
     s.firstTurnDone[i] = true;
     s.phase = 'main';
+    this.checkpoint();
   }
 
   async endTurn() {
@@ -1086,17 +1099,21 @@ class Game {
     if (!s.overtime && s.emptyStreak >= 2) { s.overtime = true; this.log('⚡ PROLONGATION : le premier joueur à contrôler 7 Gigs gagne immédiatement !', 'turn'); }
     this.checkOT();
     s.active = this.opp(i);
+    this.checkpoint();
   }
 
   async mainPhase() {
     const i = this.s.active;
     let guard = 0;
-    while (guard++ < 200) {
+    while (true) {
+      // A technical guard must NEVER be mistaken for the player's choice to end.
+      if (++guard > 200) throw new Error('Protection : plus de 200 actions durant un seul tour. La sauvegarde reste disponible.');
       const acts = this.legalActions(i);
       const a = await this.dec(i).mainAction(this, i, acts);
       if (!a || a.type === 'end') break;
       await this.doAction(i, a);
       this.checkOT();
+      this.checkpoint();
     }
   }
 
@@ -1106,9 +1123,16 @@ class Game {
     await this.endTurn();
   }
 
-  async run(maxTurns = null) {
+  async run(maxTurns = null, opts = {}) {
     try {
-      await this.setup();
+      if (!opts.resume) await this.setup();
+      else {
+        if (!['main','end'].includes(this.s.phase)) throw new Error('Phase non restaurable');
+        if (this.s.phase === 'main') {
+          await this.mainPhase();
+          await this.endTurn();
+        }
+      }
       // Le moteur de jeu humain n'a PAS de vainqueur lié à un plafond de tours.
       while (maxTurns == null || this.s.turn < maxTurns) await this.playTurn();
       // Un benchmark peut être interrompu; il ne s'agit jamais d'un GameOver.
@@ -1130,29 +1154,24 @@ function deckRamLimits(legendIds) {
 }
 function validateDeck(deck) {
   const errs = [];
-  if (!deck || !Array.isArray(deck.legends) || !Array.isArray(deck.main)) {
-    return ['Deck invalide : la liste des cartes ou des Légendes est illisible.'];
-  }
+  if (!deck || !Array.isArray(deck.legends) || !Array.isArray(deck.main))
+    return ['Structure du deck invalide.'];
+  const unknown = [...deck.legends, ...deck.main].filter(id => !Object.prototype.hasOwnProperty.call(CARDS,id));
+  if (unknown.length) errs.push('Carte inconnue : ' + String(unknown[0]));
   if (deck.legends.length !== 3) errs.push('Il faut exactement 3 Légendes.');
-  const names = deck.legends.map(id => CARDS[id]?.name || String(id));
-  for (const id of deck.legends) {
-    if (!CARDS[id] || CARDS[id].type !== 'Legend') errs.push('Légende inconnue ou invalide : ' + String(id).slice(0, 80));
-  }
+  const names = deck.legends.map(id => CARDS[id]?.name || id);
   if (new Set(names).size !== names.length) errs.push('Deux Légendes ne peuvent pas porter le même nom.');
+  if (deck.legends.some(id => CARDS[id] && CARDS[id].type !== 'Legend')) errs.push('Les Légendes doivent être des cartes Légende.');
   if (deck.main.length < 40 || deck.main.length > 50) errs.push(`Le deck principal doit contenir 40 à 50 cartes (actuellement ${deck.main.length}).`);
-  const cnt = {};
-  for (const id of deck.main) cnt[id] = (cnt[id] || 0) + 1;
-  for (const [id,n] of Object.entries(cnt)) {
-    if (!CARDS[id] || CARDS[id].type === 'Legend') {
-      errs.push('Carte inconnue ou invalide dans le deck : ' + String(id).slice(0, 80));
-      continue;
-    }
-    if (n > 3) errs.push(`Max 3 exemplaires : ${CARDS[id].name}.`);
+  const cnt = {}; for (const id of deck.main) cnt[id] = (cnt[id] || 0) + 1;
+  for (const [id, n] of Object.entries(cnt)) {
+    if (n > 3) errs.push(`Max 3 exemplaires : ${CARDS[id]?.name || id}.`);
+    if (CARDS[id]?.type === 'Legend') errs.push('Une Légende ne peut pas être dans le deck principal : ' + CARDS[id].name);
   }
   const lim = deckRamLimits(deck.legends);
   for (const id of Object.keys(cnt)) {
-    const d = CARDS[id];
-    if (d && (d.ram || 0) > lim[d.color]) errs.push(`RAM insuffisante pour ${d.name}${d.sub ? ' — ' + d.sub : ''} (${COLOR_FR[d.color]} ${d.ram} > ${lim[d.color]}).`);
+    const d = CARDS[id]; if (!d) continue;
+    if ((d.ram || 0) > lim[d.color]) errs.push(`RAM insuffisante pour ${d.name}${d.sub ? ' — ' + d.sub : ''} (${COLOR_FR[d.color]} ${d.ram} > ${lim[d.color]}).`);
   }
   return errs;
 }
@@ -1268,10 +1287,11 @@ async function pickMode(g, i, title, modes) { // modes: [{label, score, run}]
 async function increaseUpTo(g, i, X, title) { return await g.adjustUpTo(i, X, { dir: 1, title: title || `Augmentez un Gig de ${X} maximum` }); }
 async function decreaseUpTo(g, i, X, title, whose) { return await g.adjustUpTo(i, X, { dir: -1, whose, title: title || `Diminuez un Gig de ${X} maximum` }); }
 async function rivalDiscards(g, i, n = 1) { return await g.discard(g.opp(i), n, `Votre Rival vous fait défausser ${n} carte(s)`); }
-async function setGigToOther(g, i, title) {
+async function setGigToOther(g, i, title, opt = {}) {
   const all = [...g.P(i).gigs, ...g.P(g.opp(i)).gigs];
   const options = [];
-  for (const a of all) for (const b of all) if (a !== b && b.value !== a.value && b.value <= a.sides) {
+  const owner = d => g.gigOwnerIdx(d);
+  for (const a of all) for (const b of all) if (a !== b && b.value !== a.value && b.value <= a.sides && (!opt.crossPlayer || owner(a) !== owner(b))) {
     const mine = g.P(i).gigs.includes(a);
     const pairBonus = mine && g.P(i).gigs.some(x => x !== a && x.value === b.value) ? 3 : 0;
     options.push({ label: `${mine ? 'Votre' : 'Adverse'} d${a.sides} (${a.value}) → ${b.value}`, value: `${a.uid}:${b.value}`, gig: a, score: (mine ? 1 : -1) * (b.value - a.value) * 0.5 + pairBonus });
@@ -1516,9 +1536,9 @@ C('augmented-negotiators', 'Augmented Negotiators', null, U, Y, 3, 1, 2, 'ARASAK
   '[BLOQUEUR]\nQuand cette Unité utilise BLOQUEUR, un Rival défausse 1.',
   { on: { blocked: async (g, self, d) => { if (d.blocker === self) await rivalDiscards(g, g.controllerOf(self), 1); } } });
 C('caliber-totentanz-s-top-dog', 'Caliber', 'Totentanz\'s Top Dog', U, Y, 5, 2, 5, 'GANGER|MAELSTROM', [],
-  '[JEU] Vainquez une Unité rivale de coût 2 ou moins.\n[VAINCU] Un Rival défausse 1. Si le coût de cette carte est égal à la valeur d\'un Gig ami, il défausse 1 de plus.',
+  '[JEU] Vainquez une Unité rivale de coût 2 ou moins.\n[VAINCU] Un Rival défausse 1. Si le coût de la carte défaussée est égal à la valeur d\'un Gig ami, ce Rival défausse 1 de plus.',
   { onPlay: async (g, u, i) => { await defeatPick(g, i, rU(g, i).filter(x => (g.def(x).cost ?? 0) <= 2), 'Caliber : vainquez (coût ≤ 2)'); },
-    onDefeated: async (g, u, i) => { await rivalDiscards(g, i, friendlyGigValue(g, i, 5) ? 2 : 1); } });
+    onDefeated: async (g, u, i) => { const [c] = await rivalDiscards(g, i, 1); if (c && friendlyGigValue(g, i, g.def(c).cost ?? -1)) await rivalDiscards(g, i, 1); } });
 C('gilded-mato-n', 'Gilded Matón', null, U, Y, 4, 2, 3, 'GANGER|VALENTINO', [],
   '[JEU] Vous pouvez vaincre un de vos Équipements. Si vous le faites, vainquez une Unité rivale de coût 3 ou moins.',
   { onPlay: async (g, u, i) => {
@@ -1662,11 +1682,11 @@ C('jackie-welles-mama-s-favorite', 'Jackie Welles', 'Mama\'s Favorite', L, V, 6,
       if (!(await g.pay(i, 1, [self.uid]))) return false;
       g.moveTo(self, 'trash'); g.log(`Jackie Welles se sacrifie pour ${g.name(victim)} !`, 'legend'); return true; } });
 C('padre-man-of-the-cross', 'Padre', 'Man of the Cross', L, V, null, 2, null, 'FIXER|GANGER|VALENTINO', [],
-  '[APPEL] Choisissez : épuisez une Unité rivale ; ou piochez 1.\n[⟳] : Réglez la valeur d\'un Gig sur celle d\'un autre Gig.',
+  '[APPEL] Choisissez : épuisez une Unité rivale ; ou piochez 1.\n[⟳] : Réglez la valeur d\'un Gig d\'un joueur sur celle d\'un Gig de l\'autre joueur.',
   { onCall: async (g, l, i) => pickMode(g, i, 'Padre : choisissez', [
       { label: 'Épuisez une Unité rivale', score: rU(g, i).some(u => u.ready) ? 1 : -1, run: () => spendPick(g, i, rU(g, i), 'Padre : Unité rivale à épuiser') },
       { label: 'Piochez 1', score: 0.5, run: () => g.draw(i, 1) }]),
-    abilities: [{ label: 'Copier une valeur de Gig', spend: true, cost: 0, cond: (g, l, i) => g.P(i).gigs.length + g.P(g.opp(i)).gigs.length >= 2, run: async (g, l, i) => { await setGigToOther(g, i); } }] });
+    abilities: [{ label: 'Copier une valeur de Gig', spend: true, cost: 0, cond: (g, l, i) => g.P(i).gigs.length > 0 && g.P(g.opp(i)).gigs.length > 0, run: async (g, l, i) => { await setGigToOther(g, i, 'Padre : réglez un Gig sur la valeur d\'un Gig de l\'autre joueur', { crossPlayer: true }); } }] });
 C('panam-palmer-nomad-cavalry', 'Panam Palmer', 'Nomad Cavalry', L, V, null, 2, null, 'ALDECALDO|MERC|NOMAD', [],
   '2 €$, [⟳] : Déplacez un Équipement de cette Légende vers une Unité amie non équipée. Si vous le faites, redressez cette Unité.\nÀ la fin de votre tour, si 5 Unités et/ou Légendes amies ou plus sont équipées, redressez-les.',
   { abilities: [{ label: 'Transférer un Équipement', spend: true, cost: 2, cond: (g, l, i) => l.gear.length && fU(g, i).some(u => !u.gear.length),
@@ -1853,8 +1873,10 @@ C('rita-wheeler-no-stupid-questions', 'Rita Wheeler', 'No Stupid Questions', U, 
   '[BLOQUEUR]\nLa première fois que cette Unité est épuisée à chaque tour, piochez 1, puis défaussez 1.',
   { on: { spent: async (g, self, d) => { if (d.inst !== self || self.flags.usedRita) return; self.flags.usedRita = true; const i = g.controllerOf(self); await g.draw(i, 1); await g.discard(i, 1); } } });
 C('rogue-amendiares-queen-of-the-afterlife', 'Rogue Amendiares', 'Queen of the Afterlife', U, B, 5, 2, 4, 'FIXER|MERC', [],
-  'La première fois à chaque tour qu\'une autre Unité amie vole un Gig de valeur inférieure à la puissance de cette Unité, redressez 2 Eddies.\n[RAPIDE] 2 €$, [⟳] : Une Unité rivale reçoit -X de puissance ce tour, X étant la puissance de cette Unité.',
-  { on: { steal: async (g, self, d) => { const i = g.controllerOf(self); if (d.p !== i || d.unit === self || self.flags.usedRogue) return; if (d.unit && d.gigs.some(x => x.value < g.eff(d.unit))) { self.flags.usedRogue = true; g.readyEddies(i, 2); } } },
+  'La première fois à chaque tour qu\'une autre Unité amie vole un Gig de valeur inférieure à sa propre puissance, redressez 2 Eddies.\n[RAPIDE] 2 €$, [⟳] : Une Unité rivale reçoit -X de puissance ce tour, X étant la puissance de cette Unité.',
+  { on: { steal: async (g, self, d) => { const i = g.controllerOf(self); if (d.p !== i || d.unit === self || self.flags.usedRogue) return;
+      // Official: "steals a Gig with value less than ITS power" = the stealing Unit's own power.
+      if (d.unit && d.gigs.some(x => x.value < g.eff(d.unit))) { self.flags.usedRogue = true; g.readyEddies(i, 2); } } },
     abilities: [{ label: 'Affaiblir', quick: true, spend: true, cost: 2, cond: (g, u, i) => rU(g, i).length > 0, run: async (g, u, i) => { await debuffPick(g, i, g.eff(u), `Rogue : -${g.eff(u)} à…`); } }], aiValue: 1 });
 C('westbrook-netrunner', 'Westbrook Netrunner', null, U, B, 4, 2, 5, 'NETRUNNER', [],
   '[JEU] Jusqu\'à votre prochain tour, les Légendes rivales ne peuvent pas voler de Gigs amis de valeur inférieure à leur puissance.',
@@ -2866,9 +2888,12 @@ function makePolicy(weights,plans,opts={}){
 function mutate(plans,random=Math.random,scale=.28){
  const out=normalize(plans);for(const f of FAMILIES)for(let i=0;i<5;i++)if(random()<.55)out[f][i]=clip(out[f][i]+(random()-.5)*2*scale);return out;
 }
-async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cancel=()=>false){
+// runSeed varies each training session (mutations, training deals and validation deals);
+// without it every session replayed the exact same 380 duels and the same verdict.
+async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cancel=()=>false,runSeed=0){
  if(!Array.isArray(decks)||decks.length<2)throw Error('Deux decks minimum');
- let rngSeed=(0x7f4a7c15 ^ Math.imul(matchCount, 1664525) ^ Math.floor((weights?.[0]||1)*1e6))>>>0;
+ runSeed=(Number(runSeed)||0)>>>0;
+ let rngSeed=(0x7f4a7c15 ^ Math.imul(matchCount, 1664525) ^ Math.floor((weights?.[0]||1)*1e6) ^ Math.imul(runSeed,0x9e3779b1))>>>0;
  const random=()=>{rngSeed=(rngSeed+0x6D2B79F5)|0;let x=rngSeed;x=Math.imul(x^(x>>>15),x|1);x^=x+Math.imul(x^(x>>>7),x|61);return ((x^(x>>>14))>>>0)/4294967296;};
  const incumbent=normalize(previous),pop=[{id:0,plan:incumbent,elo:1000}];
  for(let k=1;k<10;k++)pop.push({id:k,plan:mutate(incumbent,random,.55),elo:1000});
@@ -2878,7 +2903,7 @@ async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cance
   if(n&&n%100===0){pop.sort((a,b)=>b.elo-a.elo);const elite=pop.slice(0,3);pop.splice(0,pop.length,...elite,...Array.from({length:7},(_,j)=>({id:serial++,plan:mutate(elite[j%3].plan,random,.23),elo:1000})));}
   const ia=n%pop.length,ib=(ia+1+Math.floor(n/10)%(pop.length-1))%pop.length,flip=n%2===1;
   const [p,q]=[pop[ia],pop[ib]], di=Math.floor(n/2)%decks.length,dj=(di+3+Math.floor(n/24))%decks.length;
-  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,q.plan),makePolicy(weights,p.plan)]:[makePolicy(weights,p.plan),makePolicy(weights,q.plan)],{seed:911+Math.floor(n/2)*6719,hooks:{sim:true}});
+  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,q.plan),makePolicy(weights,p.plan)]:[makePolicy(weights,p.plan),makePolicy(weights,q.plan)],{seed:(911+Math.floor(n/2)*6719+Math.imul(runSeed,7919))|0,hooks:{sim:true}});
   const res=await gs.run(90); if(res.status==='incomplete')continue;
   const result=res.winner<0?.5:res.winner===(flip?1:0)?1:0;
   const expected=1/(1+10**((q.elo-p.elo)/400)),adjust=20*(result-expected);p.elo+=adjust;q.elo-=adjust;done++;
@@ -2890,16 +2915,209 @@ async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cance
  for(let n=0;n<val;n++){
   if(cancel())return {cancelled:true,done};
   const flip=n%2===1,di=Math.floor(n/2)%decks.length,dj=(di+5)%decks.length;
-  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,incumbent),makePolicy(weights,candidate)]:[makePolicy(weights,candidate),makePolicy(weights,incumbent)],{seed:100007+Math.floor(n/2)*12721,hooks:{sim:true}});
+  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,incumbent),makePolicy(weights,candidate)]:[makePolicy(weights,candidate),makePolicy(weights,incumbent)],{seed:(100007+Math.floor(n/2)*12721+Math.imul(runSeed,104729))|0,hooks:{sim:true}});
   const res=await gs.run(90);if(res.status==='incomplete'){incompleteValidation++;continue;} if(res.winner<0)draws++;else if(res.winner===(flip?1:0))wins++;else losses++;
   if(n%10===9){report({done,total:matchCount,phase:'validation',validation:n+1});if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));}
  }
  // Un candidat n'est promu qu'avec un avantage suffisamment net en validation.
  const upgraded=incompleteValidation===0 && (wins+draws*.5)>=49;
- return {done,matches:done,validationMatches:val,wins,losses,draws,incompleteValidation,upgraded,plans:upgraded?candidate:incumbent,candidatePlans:candidate};
+ return {done,matches:done,validationMatches:val,wins,losses,draws,incompleteValidation,upgraded,plans:upgraded?candidate:incumbent,candidatePlans:candidate,runSeed};
 }
 const API={FAMILIES,LABELS,INITIAL,normalize,classify,rivalStyle,comboState,bias,score,makePolicy,mutate,trainLeague};
 root.DeckPlanAI=API;
+if(typeof module!=='undefined')module.exports=API;
+})(typeof window!=='undefined'?window:globalThis);
+
+// ============================================================================
+//  NIGHTMARE · FORGE DE DECKS — création, amélioration et contre-decks
+//  Évolution par mutations légales (validateDeck), évaluée en vraies parties
+//  simulées sur ce moteur. Un deck n'est retenu qu'après une validation sur
+//  des donnes jamais vues pendant l'évolution, jouées des deux côtés.
+// ============================================================================
+(function(root){
+'use strict';
+const R=root;
+function rng32(seed){let s=(seed>>>0)||1;return()=>{s=(s+0x6D2B79F5)|0;let x=s;x=Math.imul(x^(x>>>15),x|1);x^=x+Math.imul(x^(x>>>7),x|61);return((x^(x>>>14))>>>0)/4294967296;};}
+const legal=d=>!!d&&Array.isArray(d.legends)&&Array.isArray(d.main)&&!R.validateDeck(d).length;
+const legendIds=()=>Object.values(R.CARDS).filter(c=>c.type==='Legend').map(c=>c.id);
+function cardPool(legends){const lim=R.deckRamLimits(legends);return Object.values(R.CARDS).filter(c=>c.type!=='Legend'&&lim[c.color]>0&&(c.ram||0)<=lim[c.color]).map(c=>c.id);}
+const counts=list=>list.reduce((o,id)=>(o[id]=(o[id]||0)+1,o),{});
+function repair(deck,rand){
+  const pool=cardPool(deck.legends),ok=new Set(pool),cnt={},main=[];
+  for(const id of deck.main)if(ok.has(id)&&(cnt[id]||0)<3){cnt[id]=(cnt[id]||0)+1;main.push(id);}
+  for(let guard=0;main.length<40&&guard<2000&&pool.length;guard++){const id=pool[Math.floor(rand()*pool.length)];if((cnt[id]||0)<3){cnt[id]=(cnt[id]||0)+1;main.push(id);}}
+  return {...deck,main};
+}
+function randomLegends(rand){
+  const all=legendIds();
+  for(let t=0;t<200;t++){const pick=[],names=new Set(),pool=all.slice();
+    while(pick.length<3&&pool.length){const id=pool.splice(Math.floor(rand()*pool.length),1)[0];if(!names.has(R.CARDS[id].name)){names.add(R.CARDS[id].name);pick.push(id);}}
+    if(pick.length===3&&cardPool(pick).length>=14)return pick;}
+  return all.slice(0,3);
+}
+// Guided mutation: additions favour well-rated cards, removals favour weak ones.
+const rating=id=>{try{return R.cardRating?R.cardRating(id):0;}catch(_){return 0;}};
+function weightedPick(ids,rand,w){let tot=0;const ws=ids.map(id=>{const x=Math.max(.05,w(id));tot+=x;return x;});let r=rand()*tot;for(let i=0;i<ids.length;i++){r-=ws[i];if(r<=0)return ids[i];}return ids[ids.length-1];}
+function mutate(deck,rand,strength=1){
+  for(let attempt=0;attempt<40;attempt++){
+    let d={...deck,legends:deck.legends.slice(),main:deck.main.slice()};
+    if(rand()<0.10*strength){
+      const k=Math.floor(rand()*3),others=d.legends.filter((_,j)=>j!==k).map(id=>R.CARDS[id].name);
+      const cands=legendIds().filter(id=>!d.legends.includes(id)&&!others.includes(R.CARDS[id].name));
+      if(cands.length){d.legends[k]=cands[Math.floor(rand()*cands.length)];d=repair(d,rand);}
+    }
+    const pool=cardPool(d.legends),swaps=1+Math.floor(rand()*2*strength);
+    for(let s=0;s<swaps&&pool.length;s++){
+      const cnt=counts(d.main),avail=pool.filter(id=>(cnt[id]||0)<3);if(!avail.length)break;
+      const add=weightedPick(avail,rand,id=>Math.exp(rating(id)*.35));
+      const uniq=Object.keys(cnt),rem=weightedPick(uniq,rand,id=>Math.exp(-rating(id)*.35));
+      d.main.splice(d.main.indexOf(rem),1);d.main.push(add);
+    }
+    if(legal(d))return d;
+  }
+  return deck;
+}
+function makePolicy(o={}){
+  if(o.policy)return o.policy;
+  const P=R.DeckPlanAI;
+  return P&&P.makePolicy?P.makePolicy(o.weights||null,o.plans||P.INITIAL):R.FastPolicy;
+}
+async function playOne(a,b,seed,policy){
+  const g=R.Game.create([a,b],[policy,policy],{seed,hooks:{sim:true}});
+  const r=await g.run(90);
+  if(!r||r.status==='incomplete'||r.winner===undefined||r.winner===null)return null;
+  return r.winner;
+}
+// Score of `deck` against each opponent, every deal played from both seats.
+async function score(deck,opponents,games,seedBase,policy,tick){
+  let pts=0,n=0,wins=0,losses=0,draws=0;
+  for(let o=0;o<opponents.length;o++)for(let k=0;k<games;k++){
+    const seed=(seedBase+Math.imul(o+1,7919)+Math.imul(Math.floor(k/2)+1,104729))|0,flip=k%2===1;
+    const w=await playOne(flip?opponents[o]:deck,flip?deck:opponents[o],seed,policy);
+    if(tick)await tick();
+    if(w===null)continue;
+    n++;const me=flip?1:0;
+    if(w===me){pts++;wins++;}else if(w<0){pts+=.5;draws++;}else losses++;
+  }
+  return {pts,n,wins,losses,draws,rate:n?pts/n:0};
+}
+function diff(a,b){
+  const ca=counts(a.main),cb=counts(b.main),added=[],removed=[];
+  for(const id of new Set([...Object.keys(ca),...Object.keys(cb)])){const d=(cb[id]||0)-(ca[id]||0);if(d>0)added.push({id,n:d});else if(d<0)removed.push({id,n:-d});}
+  return {added,removed,legendsIn:b.legends.filter(x=>!a.legends.includes(x)),legendsOut:a.legends.filter(x=>!b.legends.includes(x))};
+}
+// Racing hill-climb. Each generation: children and incumbent play IDENTICAL deals;
+// the best child must then confirm on fresh deals before replacing the incumbent.
+// Final held-out validation on deals never used during evolution.
+async function evolve(o){
+  const rand=rng32(o.seed),policy=makePolicy(o);
+  const generations=o.generations??10,children=o.children??4,games=o.games??4,valGames=o.valGames??16,confirmGames=o.confirmGames??games;
+  const margin=o.stepMargin??0.06;
+  let ticks=0;const tick=async()=>{if(o.cancel&&o.cancel())throw Object.assign(new Error('cancelled'),{cancelled:true});
+    if(++ticks%4===0&&typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));};
+  try{
+    let best=o.start,accepted=0;const history=[];
+    for(let gen=0;gen<generations;gen++){
+      const seedA=((o.seed^0x51ed27)+Math.imul(gen+1,31337))|0,seedB=((o.seed^0x7a3d11)+Math.imul(gen+1,92821))|0;
+      const inc=await score(best,o.opponents,games,seedA,policy,tick);
+      let top=null;
+      for(let c=0;c<children;c++){
+        const d=mutate(best,rand,gen<generations/2?1.4:1);
+        if(d===best)continue;
+        const sc=await score(d,o.opponents,games,seedA,policy,tick);
+        if(!top||sc.rate>top.s.rate)top={d,s:sc};
+      }
+      let moved=false;
+      if(top&&top.s.rate>inc.rate){
+        const c2=await score(top.d,o.opponents,confirmGames,seedB,policy,tick),i2=await score(best,o.opponents,confirmGames,seedB,policy,tick);
+        const gain=(top.s.pts+c2.pts)/Math.max(1,top.s.n+c2.n)-(inc.pts+i2.pts)/Math.max(1,inc.n+i2.n);
+        if(gain>=margin){best=top.d;accepted++;moved=true;}
+      }
+      history.push({gen:gen+1,accepted:moved,rate:inc.rate});
+      if(o.report)o.report({phase:'evolution',gen:gen+1,generations,accepted});
+    }
+    const valSeed=((o.seed^0x2c1b3c6d)+1000003)|0;
+    if(o.report)o.report({phase:'validation',gen:generations,generations,accepted});
+    const candidate=accepted?await score(best,o.opponents,valGames,valSeed,policy,tick):null;
+    const baseline=await score(o.start,o.opponents,valGames,valSeed,policy,tick);
+    const cand=candidate||baseline;
+    // Two-proportion z-test on held-out deals: the gain must exceed ~2 standard errors.
+    const minGain=o.minGain??0.05,minZ=o.minZ??2.0;
+    const se=Math.sqrt(Math.max(1e-9,cand.rate*(1-cand.rate)/Math.max(1,cand.n)+baseline.rate*(1-baseline.rate)/Math.max(1,baseline.n)));
+    const z=(cand.rate-baseline.rate)/se;
+    const improved=accepted>0&&cand.n>0&&cand.rate>=baseline.rate+minGain&&z>=minZ&&(o.minRate==null||cand.rate>=o.minRate);
+    return {cancelled:false,deck:best,improved,accepted,z,validation:{candidate:cand,baseline},history,changes:diff(o.start,best)};
+  }catch(e){if(e&&e.cancelled)return {cancelled:true};throw e;}
+}
+function gauntlet(decks,rand,size=6){
+  const list=decks.filter(legal).slice(),out=[];
+  while(out.length<size&&list.length)out.push(list.splice(Math.floor(rand()*list.length),1)[0]);
+  return out;
+}
+// A brand new deck: random legal Legends, auto-built list, then evolved against a gauntlet.
+async function create(o){
+  const rand=rng32(o.seed);let start=null;
+  for(let t=0;t<30&&!legal(start);t++){const lg=randomLegends(rand);start=repair(R.autoDeck(lg,rand,40),rand);}
+  if(!legal(start))throw new Error('Impossible de générer un deck légal');
+  const opponents=gauntlet(o.pool,rand,o.gauntletSize??6);
+  // A new deck is kept if it improved during evolution AND holds at least 45 % against the gauntlet.
+  const r=await evolve({...o,start,opponents,valGames:o.valGames??40,minGain:o.minGain??0.05,minRate:o.minRate??0.45});
+  return {...r,start,opponents};
+}
+async function improve(o){
+  const rand=rng32(o.seed);const opponents=o.opponents||gauntlet(o.pool,rand,o.gauntletSize??6);
+  const r=await evolve({...o,opponents});return {...r,opponents};
+}
+// Counter-deck: 1) screen every known deck against the target and keep the best
+// match-up, 2) evolve it against the target, 3) keep the evolved list only if it
+// is significantly better; otherwise keep the screened deck only if it beats the
+// target significantly (>= 55 % and z >= 2 against a coin flip on 200 fresh deals).
+async function counter(o){
+  const policy=makePolicy(o);const cands=(o.candidates||[o.start]).filter(legal);
+  if(o.start&&!cands.includes(o.start))cands.unshift(o.start);
+  let tick=async()=>{if(o.cancel&&o.cancel())throw Object.assign(new Error('cancelled'),{cancelled:true});};
+  let screened=[];
+  try{
+    for(let i=0;i<cands.length;i++){
+      const sc=await score(cands[i],[o.target],o.screenGames??10,((o.seed^0x13579b)+97)|0,policy,tick);
+      screened.push({deck:cands[i],rate:sc.rate});
+      if(o.report)o.report({phase:'screen',done:i+1,total:cands.length});
+      if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));
+    }
+  }catch(e){if(e&&e.cancelled)return {cancelled:true};throw e;}
+  screened.sort((a,b)=>b.rate-a.rate);
+  const start=screened[0].deck;
+  const r=await evolve({...o,start,opponents:[o.target],games:o.games??16,valGames:o.valGames??200,minGain:o.minGain??0.06,minRate:o.minRate??0.55});
+  if(r.cancelled)return r;
+  if(r.improved)return {...r,kind:'evolved',screenedFrom:screened.length};
+  const b=r.validation.baseline,zCoin=(b.rate-.5)/Math.sqrt(.25/Math.max(1,b.n));
+  const ok=b.n>0&&b.rate>=.55&&zCoin>=2;
+  return {...r,deck:start,improved:ok,kind:ok?'selected':'none',zCoin,screenedFrom:screened.length,changes:diff(start,start)};
+}
+// Tactical weights (AdaptiveAI): evolve with its league, then validate the challenger
+// head-to-head against the champion on 200 fresh deals (both seats). Adopted only if
+// >= 55 % and z >= 2 against a coin flip.
+async function trainWeights(o){
+  const A=R.AdaptiveAI;if(!A||!A.trainLeague)return {improved:false,skipped:true};
+  const r=await A.trainLeague(o.decks,o.matches??300,o.weights,p=>o.report&&o.report({phase:'weights',...p}),o.cancel||(()=>false));
+  if(r.cancelled)return {cancelled:true};
+  const cand=r.candidateWeights,inc=A.normalize(o.weights);
+  if(JSON.stringify(cand)===JSON.stringify(inc))return {improved:false,rate:.5,n:0};
+  let pts=0,n=0;const N=o.valGames??200,base=((o.seed>>>0)%1000003)*7+900001;
+  for(let k=0;k<N;k++){
+    if(o.cancel&&o.cancel())return {cancelled:true};
+    const flip=k%2===1,di=Math.floor(k/2)%o.decks.length,dj=(di+1+Math.floor(k/20))%o.decks.length;
+    const g=R.Game.create([o.decks[di],o.decks[dj]],flip?[A.makePolicy(inc),A.makePolicy(cand)]:[A.makePolicy(cand),A.makePolicy(inc)],{seed:(base+Math.floor(k/2)*104729)|0,hooks:{sim:true}});
+    const res=await g.run(94);
+    if(res.status!=='incomplete'){n++;pts+=res.winner<0?.5:res.winner===(flip?1:0)?1:0;}
+    if(k%10===9){if(o.report)o.report({phase:'weights-validation',done:k+1,total:N});if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));}
+  }
+  const rate=n?pts/n:0,z=(rate-.5)/Math.sqrt(.25/Math.max(1,n));
+  return {improved:n>0&&rate>=.55&&z>=2,weights:cand,rate,n,z};
+}
+function signature(deck){return [...deck.legends].sort().join('+')+'|'+Object.entries(counts(deck.main)).sort().map(([k,n])=>k+':'+n).join(',');}
+const API={rng32,legal,cardPool,mutate,repair,randomLegends,score,evolve,create,improve,counter,diff,signature,trainWeights};
+root.NightmareForge=API;
 if(typeof module!=='undefined')module.exports=API;
 })(typeof window!=='undefined'?window:globalThis);
 window.CARD_META = {"num":{"adam-smasher-ender-of-legends":1,"dexter-deshawn-off-the-grid":2,"johnny-silverhand-rocking-renegade":3,"royce-psycho-on-the-edge":4,"v-streetkid":5,"6th-street-recruits":6,"animals-wrecker":7,"chrome-fang":8,"el-sombrero-n-la-venganza-lenta":9,"japantown-jonin":10,"johnny-silverhand-never-stop-fighting":11,"kerry-eurodyne-the-last-rockerboy":12,"la-llorona-ghost-of-the-past":13,"meredith-stout-stone-cold-corpo":14,"octant":15,"royce-don-t-call-me-simon":16,"ruthless-lowlife":17,"screw-lovelorn-fool":18,"swordwise-huscle":19,"v-roamer-of-the-badlands":20,"valentino-guerrera":21,"yorinobu-arasaka-steel-dragon":22,"arasaka-emergency-radioport":23,"deadman-transmitter":24,"mantis-blades":25,"satori-sword-of-saburo":26,"all-is-lost":27,"appetite-for-destruction":28,"bonnie-and-clyde":29,"carnage-at-the-colosseum":30,"detonate":31,"gunpoint-diplomacy":32,"industrial-assembly":33,"over-the-edge":34,"shattered-memories":35,"dum-dum-maelstrom-triggerman":36,"kerry-eurodyne-axe-attitude-audience":37,"muamar-reyes-el-capita-n":38,"river-ward-detective-on-the-hunt":39,"rogue-amendiares-preem-solo":40,"adam-smasher-metal-over-meat":41,"alt-cunningham-mother-of-daemons":42,"augmented-negotiators":43,"caliber-totentanz-s-top-dog":44,"gilded-mato-n":45,"hanako-arasaka-in-a-gilded-cage":46,"heywood-ripperdoc":47,"jackie-welles-ride-or-die-choom":48,"maelstrom-goons":49,"maxtac-suppression-team":50,"offduty-malfini":51,"rockn-rockerboy":52,"secondhand-bombus":53,"sketchy-ripper":54,"t-bug-amateur-philosopher":55,"trauma-team-operatives":56,"viktor-vektor-drop-your-illusions":57,"viktor-vektor-you-might-feel-a-little-pinch":58,"adrenaline-converter":59,"gorilla-arms":60,"kiroshi-optics":61,"mandibular-upgrade":62,"the-relic-experimental-biochip":63,"zetatech-faceplate":64,"afterparty-at-lizzie-s":65,"bootleg-black-sapphire-show":66,"cyberpsychosis":67,"live-with-the-aftermath":68,"safety-override":69,"the-heist":70,"goro-takemura-vengeful-bodyguard":71,"hanako-arasaka-daughter-of-the-emperor":72,"jackie-welles-mama-s-favorite":73,"padre-man-of-the-cross":74,"panam-palmer-nomad-cavalry":75,"corpo-security":76,"emergency-atlus":77,"field-operator":78,"maelstrom-zealots":79,"maxtac-av":80,"maxtac-heavy":81,"maxtac-squadron":82,"nadia-fighting-through-grief":83,"pacifica-netrunner":84,"panam-palmer-strength-through-family":85,"pepe-najarro-working-doubles":86,"riding-nomad":87,"sandayu-oda-hanako-s-guardian":88,"saul-bright-stormrider":89,"tyger-s-whisper":90,"valentino-street-racer":91,"wraith-marauders":92,"overwatch-panam-s-gift":93,"riot-shield":94,"sandevistan":95,"zetatech-berserk":96,"corporate-surveillance":97,"don-t-fear-the-reaper":98,"fool-on-the-hill":99,"memory-relapse":100,"peace-offering":101,"synapse-burnout":102,"take-control":103,"we-gotta-live-together":104,"wild-in-the-streets":105,"alt-cunningham-soulkiller-architect":106,"evelyn-parker-beautiful-enigma":107,"judy-alvarez-braindance-maestro":108,"sasha-yakovleva-won-t-let-you-down":109,"wakako-okada-peace-and-harmony":110,"delamain-rideshare-ai":111,"delamain-cab":112,"evelyn-parker-scheming-siren":113,"hacked-corpo":114,"jacked-in-voodoo-boy":115,"judy-alvarez-nothing-to-doubt":116,"lizzy-wizzy-delicate-weapon":117,"maman-brigitte-spirit-of-death":118,"misty-olszewski-mender-of-broken-spirits":119,"modded-kusanagi":120,"modded-muramasa":121,"mox-inciters":122,"placide-voodoo-sentinel":123,"psycho-squad":124,"rita-wheeler-no-stupid-questions":125,"rogue-amendiares-queen-of-the-afterlife":126,"westbrook-netrunner":127,"dying-night-v-s-pistol":128,"netwatch-netdriver":129,"tetratronic-rippler":130,"chrome-reverie":131,"floor-it":132,"les-e-le-mens":133,"nocturne-op55-n1":134,"pyramid-song":135,"reboot-optics":136,"three-mouths-one-desire":137,"towerfall":138,"trust-no-one":139,"unlikely-bond":140}};
@@ -3089,6 +3307,147 @@ function exportData(input){return JSON.stringify({app:'7 Gigs - apprentissage lo
 function importData(raw){const x=typeof raw==='string'?JSON.parse(raw):raw;if(x?.app!=='7 Gigs - apprentissage local'||x?.data?.version!==VERSION)throw Error('Fichier d’apprentissage incompatible');return sanitize(x.data);}
 root.RivalLearning={VERSION,STRATEGIES,signature,fresh,sanitize,begin,observeHuman,recordAI,finish,bias,biasReaction,summary,exportData,importData};
 if(typeof module!=='undefined')module.exports=root.RivalLearning;
+})(typeof window!=='undefined'?window:globalThis);
+
+/* Collection-aware deck advisor. Deterministic suggestions; no invented cards
+ * or pretend ownership. Official legality is delegated to validateDeck.
+ * This block is also embedded verbatim in prime_v220_runtime.html for APK.
+ */
+(function(root){
+  const qty=v=>Number.isFinite(Number(v))?Math.max(0,Math.min(99,Math.floor(Number(v)))):0;
+  const count=list=>(list||[]).reduce((out,id)=>(out[id]=(out[id]||0)+1,out),{});
+  const clean=(raw,cards)=>Object.fromEntries(Object.entries(raw||{}).filter(([id])=>Object.prototype.hasOwnProperty.call(cards,id)).map(([id,n])=>[id,qty(n)]).filter(([,n])=>n>0));
+  const safe=(d,legends,limits)=>d.type!=='Legend'&&limits[d.color]>0&&(d.ram||0)<=limits[d.color];
+  const normal=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  function importText(raw,cards,previous={}){
+    const result={...clean(previous,cards)},errors=[];
+    const index=new Map();
+    for(const d of Object.values(cards)){
+      for(const v of [d.id,d.name,d.nameEn,[d.name,d.sub].filter(Boolean).join(' '),[d.nameEn,d.subEn].filter(Boolean).join(' ')]){
+        if(v&&!index.has(normal(v)))index.set(normal(v),d.id);
+      }
+    }
+    let parsed=0;
+    for(const line of String(raw).split(/[\r\n;]+/).map(x=>x.trim()).filter(Boolean)){
+      let name=line,amount=1;
+      const prefix=line.match(/^(\d{1,2})\s*[x×*]\s*(.+)$/i);
+      const suffix=!prefix&&line.match(/^(.+?)\s*[x×*]\s*(\d{1,2})$/i);
+      if(prefix){amount=prefix[1];name=prefix[2];}
+      else if(suffix){name=suffix[1];amount=suffix[2];}
+      const id=index.get(normal(name));
+      if(!id){errors.push(line);continue;}
+      const n=qty(amount);
+      if(!n){errors.push(line);continue;}
+      result[id]=Math.min(99,(result[id]||0)+n);parsed+=n;
+    }
+    return {owned:result,errors,parsed};
+  }
+  function similarity(d,legends,template,cardSet){
+    const counts=count(template.main),legTags=new Set(legends.flatMap(id=>cardSet[id]?.tags||[]));
+    const t=Object.keys(counts).map(id=>cardSet[id]).filter(Boolean);
+    const tags=new Set(t.flatMap(x=>x.tags||[]));
+    let score=(counts[d.id]||0)*5;
+    score+=(d.tags||[]).filter(x=>legTags.has(x)).length*1.3;
+    score+=(d.tags||[]).filter(x=>tags.has(x)).length*.25;
+    score+=d.sell?1.4:0;
+    score+=d.type==='Unit'?1.3:d.type==='Gear'?.45:.65;
+    score+=(d.cost??0)<=4?1.3:(d.cost??0)>=7?-1:0;
+    score+=(d.kw||[]).includes('BLOCKER')?.7:0;
+    return score;
+  }
+  function ownedDeck(legends,template,owned,cards,limitsFn,validate){
+    const missingLegends=legends.filter(id=>!owned[id]);
+    const lim=limitsFn(legends);
+    const pool=Object.values(cards).filter(d=>safe(d,legends,lim)&&owned[d.id]>0)
+      .map(d=>({d,available:Math.min(3,owned[d.id]),value:similarity(d,legends,template,cards)}));
+    const main=[],used={},types={Unit:0,Gear:0,Program:0};
+    while(main.length<40){
+      const candidates=pool.filter(x=>(used[x.d.id]||0)<x.available);
+      if(!candidates.length)break;
+      const picked=candidates.map(x=>{
+        const bonus={Unit:Math.max(-6,(23-types.Unit)*.2),Gear:Math.max(-5,(8-types.Gear)*.27),Program:Math.max(-5,(9-types.Program)*.26)}[x.d.type]||0;
+        const repeat=(used[x.d.id]||0)*.45;
+        return {...x,score:x.value+bonus-repeat};
+      }).sort((a,b)=>b.score-a.score||a.d.id.localeCompare(b.d.id))[0];
+      main.push(picked.d.id);used[picked.d.id]=(used[picked.d.id]||0)+1;types[picked.d.type]++;
+    }
+    const deck={name:'Collection · '+template.name,legends:legends.slice(),main};
+    return {deck,used,missingLegends,needMain:Math.max(0,40-main.length),
+      playable:!missingLegends.length&&validate(deck).length===0};
+  }
+  function suggest(raw,cards,templates,validate,limitsFn){
+    const owned=clean(raw,cards),presets=Object.entries(templates)
+      .filter(([,d])=>d&&Array.isArray(d.legends)&&Array.isArray(d.main)&&!validate(d).length);
+    const ranked=presets.map(([id,deck])=>{
+      const wanted=count(deck.main),missingMain=Object.entries(wanted).map(([cardId,n])=>({
+        id:cardId,count:Math.max(0,n-Math.min(3,owned[cardId]||0))
+      })).filter(x=>x.count>0);
+      const missingLegends=deck.legends.filter(l=>!(owned[l]>0));
+      const haveMain=deck.main.length-missingMain.reduce((n,x)=>n+x.count,0);
+      const haveLegends=3-missingLegends.length;
+      const own=ownedDeck(deck.legends,deck,owned,cards,limitsFn,validate);
+      return {id,name:deck.name,deck,haveMain,haveLegends,missingMain,missingLegends,
+        coverage:Math.round(100*(haveMain+haveLegends)/(deck.main.length+3)),
+        missingCopies:missingMain.reduce((n,x)=>n+x.count,0)+missingLegends.length,
+        playableAlternative:own};
+    }).sort((a,b)=>a.missingCopies-b.missingCopies||b.haveMain-a.haveMain||a.id.localeCompare(b.id));
+    let ownedBest=null;
+    const legends=Object.values(cards).filter(c=>c.type==='Legend'&&owned[c.id]>0);
+    const sets=[];
+    // Bound combinatorics even for an almost complete 150-card collection.
+    for(let i=0;i<legends.length&&sets.length<160;i++)
+      for(let j=i+1;j<legends.length&&sets.length<160;j++)
+        for(let k=j+1;k<legends.length&&sets.length<160;k++){
+          const trio=[legends[i],legends[j],legends[k]];
+          if(new Set(trio.map(x=>x.name)).size===3)sets.push(trio.map(x=>x.id));
+        }
+    for(const lg of sets)for(const target of ranked.slice(0,12)){
+      const proposed=ownedDeck(lg,target.deck,owned,cards,limitsFn,validate);
+      const score=proposed.deck.main.length*100+
+        proposed.deck.main.reduce((v,id)=>v+(count(target.deck.main)[id]?2:0),0);
+      if(!ownedBest||score>ownedBest.score)ownedBest={...proposed,score,basedOn:target.name};
+    }
+    return {owned,ranked,closest:ranked[0]||null,ownedBest,
+      totalCopies:Object.values(owned).reduce((a,n)=>a+n,0),
+      unique:Object.keys(owned).length};
+  }
+
+  // High-confidence engine-mechanic pairs, not card-certification claims.
+  const PAIRS=[
+    {a:'netwatch-netdriver',b:'tetratronic-rippler',why:'Épuiser un même hôte permet de piocher, puis éventuellement de défausser la carte du dessus.'},
+    {a:'goro-takemura-vengeful-bodyguard',b:'corpo-security',why:'Goro renforce les options BLOQUEUR ; Corpo Security protège vos Gigs.'},
+    {a:'evelyn-parker-beautiful-enigma',b:'animals-wrecker',why:'Un GANGER qui vole des Gigs peut déclencher le redressement d’un Eddie avec Evelyn.'},
+    {a:'jackie-welles-pour-one-out-for-me',b:'delamain-cab',why:'Une première unité bleue déclenche l’ajustement de Gig de Jackie et une pioche conditionnelle.'},
+    {a:'yorinobu-arasaka-steel-dragon',b:'field-operator',why:'Yorinobu peut jouer gratuitement une unité ARASAKA de coût admissible.'},
+    {a:'dying-night-v-s-pistol',b:'v-corporate-exile',why:'Équiper V avec Dying Night permet de redresser des Eddies en fin de tour.'}
+  ];
+  // Guided examples remain advisory. They never bypass engine legality checks.
+  const LESSONS=[{"title":"Pioche et contrôle","level":"Débutant","goal":"Transformer l'épuisement d'un même hôte en avantage de cartes.","steps":["Repère un hôte que tu peux épuiser légalement.","Lis les deux effets et leur moment de déclenchement.","Si les conditions sont réunies, résous-les dans l'ordre prévu par les règles."],"tip":"La pioche aide à trouver des réponses. Un effet conditionnel n'est jamais automatique."},{"title":"Défendre ses Gigs","level":"Débutant","goal":"Protéger ta zone de Gigs grâce aux BLOQUEURS.","steps":["Prépare ton unité défensive et vérifie qu'elle peut bloquer.","Garde une possibilité de réaction pendant une attaque ennemie.","Applique la protection et les effets de Goro uniquement si leurs conditions sont satisfaites."],"tip":"Une unité épuisée n'est pas nécessairement disponible pour bloquer."},{"title":"Vol de Gigs et économie","level":"Intermédiaire","goal":"Profiter d'un vol de Gig pour améliorer les ressources disponibles.","steps":["Prépare le GANGER et une attaque légale vers les Gigs adverses.","Vérifie qu'un Gig est effectivement volé.","Vérifie le déclenchement d'Evelyn avant de redresser un Eddie."],"tip":"Attaquer ne suffit pas : le vol doit réellement se produire."},{"title":"Unités bleues et pioche","level":"Débutant","goal":"Construire un tour autour de la première unité bleue jouée.","steps":["Vérifie que Jackie est dans l'état requis par son effet.","Joue une unité bleue compatible, comme Delamain Cab.","Applique l'ajustement du Gig puis vérifie la condition de pioche."],"tip":"L'ordre des actions et les conditions de la carte comptent plus que leur simple présence."},{"title":"Réduction du coût ARASAKA","level":"Intermédiaire","goal":"Déployer une unité ARASAKA admissible sans payer son coût normal.","steps":["Lis la condition exacte de l'effet de Yorinobu.","Vérifie que Field Operator remplit les restrictions de faction et de coût.","Déclenche l'effet au moment permis, puis joue la carte admissible."],"tip":"Gratuit ne signifie pas jouable à n'importe quel moment."},{"title":"Équipement et ressources","level":"Débutant","goal":"Utiliser l'équipement de V pour récupérer des Eddies.","steps":["Mets en jeu un V pouvant légalement porter l'équipement.","Équipe Dying Night sur V en respectant son coût et son timing.","À la fin du tour, vérifie l'effet avant de redresser les Eddies concernés."],"tip":"Un équipement doit avoir un porteur légal et son effet doit être actif."}];
+  function tutorials(owned={},cards={},deck=null){
+    const ids=new Set([...(deck?.main||[]),...(deck?.legends||[])]);
+    return PAIRS.filter(p=>cards[p.a]&&cards[p.b]).map((p,i)=>{
+      const ownedIds=[p.a,p.b].filter(id=>(owned[id]||0)>0);
+      const lesson=LESSONS[i];
+      return {...p,...lesson,number:i+1,ownedCount:ownedIds.length,
+        missing:[p.a,p.b].filter(id=>!(owned[id]>0)),
+        bothInDeck:ids.has(p.a)&&ids.has(p.b),
+        ready:ownedIds.length===2};
+    }).sort((a,b)=>b.ownedCount-a.ownedCount||a.number-b.number);
+  }
+  function synergies(owned,cards,deck){
+    const ids=new Set([...(deck?.main||[]),...(deck?.legends||[])]);
+    return PAIRS.filter(x=>cards[x.a]&&cards[x.b]&&
+      ((owned[x.a]||0)>0||(owned[x.b]||0)>0))
+      .map(x=>{
+        const missing=[x.a,x.b].filter(id=>!(owned[id]>0));
+        const bothInDeck=ids.has(x.a)&&ids.has(x.b);
+        return {...x,missing,bothInDeck,ready:missing.length===0};
+      }).sort((a,b)=>Number(b.bothInDeck)-Number(a.bothInDeck)||
+        a.missing.length-b.missing.length||a.a.localeCompare(b.a));
+  }
+  const api={clean,importText,suggest,ownedDeck,synergies,tutorials};
+  root.CollectionAdvisor=api;
+  if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
 
 

@@ -1,0 +1,26 @@
+name: 7 Gigs PRIME - official English texts for concordance review
+# Read-only review aid: prints the publisher's current English rules text of
+# every card in the job log. Publishes nothing and certifies nothing.
+on:
+  push:
+    paths:
+      - 'native/official_text_dump.cjs'
+      - '.github/workflows/official-text-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dump:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser tooling
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Print official English texts
+        run: node native/official_text_dump.cjs

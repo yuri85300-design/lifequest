@@ -1,0 +1,152 @@
+name: PRIME 2.7.5 - Prerequis de publication, regles et duels complets
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/prime_v275_runtime.html'
+      - 'native/engine.js'
+      - 'native/extract_engine.cjs'
+      - 'native/audit_275_chaos.cjs'
+      - 'native/ui_full_duel_275.cjs'
+      - 'native/nightmare_lab_275.cjs'
+      - 'native/nightmare_forge_test.cjs'
+      - 'native/nightmare_forge_ui_275.cjs'
+      - 'native/nightmare_training_contract.cjs'
+      - 'native/semantic_oracles_last_b.cjs'
+      - 'native/audit_261.cjs'
+      - 'native/audit_262.cjs'
+      - 'native/audit_271_puzzles.cjs'
+      - 'native/audit_270.cjs'
+      - 'native/audit_271_ai.cjs'
+      - 'native/audit_272.cjs'
+      - 'native/audit_270_league.cjs'
+      - 'native/ota_manifest_guard.py'
+      - 'native/audit_ota_guard.py'
+      - 'multiplayer/protocol.mjs'
+      - 'multiplayer/protocol.test.mjs'
+      - '.github/workflows/prime275-preflight.yml'
+  pull_request:
+    paths:
+      - 'native/prime_v275_runtime.html'
+      - 'native/engine.js'
+      - 'native/extract_engine.cjs'
+      - 'native/audit_275_chaos.cjs'
+      - 'native/ui_full_duel_275.cjs'
+      - 'native/nightmare_lab_275.cjs'
+      - 'native/nightmare_forge_test.cjs'
+      - 'native/nightmare_forge_ui_275.cjs'
+      - 'native/nightmare_training_contract.cjs'
+      - 'native/semantic_oracles_last_b.cjs'
+      - 'native/audit_261.cjs'
+      - 'native/audit_262.cjs'
+      - 'native/audit_271_puzzles.cjs'
+      - 'native/audit_270.cjs'
+      - 'native/audit_271_ai.cjs'
+      - 'native/audit_272.cjs'
+      - 'native/audit_270_league.cjs'
+      - 'native/ota_manifest_guard.py'
+      - 'native/audit_ota_guard.py'
+      - 'multiplayer/protocol.mjs'
+      - 'multiplayer/protocol.test.mjs'
+      - '.github/workflows/prime275-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assembler le runtime et verifier les scripts JavaScript
+        run: |
+          set -euo pipefail
+          python3 native/build_ota_content.py --source native/prime_v275_runtime.html --version 2.7.5 --version-code 27005 --out /tmp/prime275-preflight
+          node --check /tmp/prime275-preflight/inline.js
+          node --check /tmp/prime275-preflight/ai-worker.js
+          node --check native/audit_261.cjs
+      - name: Valider 150 cartes et les sauvegardes avec le vrai moteur
+        run: |
+          set -euo pipefail
+          PRIME_ENGINE_PATH=/tmp/prime275-preflight/engine.js node --max-old-space-size=512 native/audit_230.cjs | tee /tmp/prime275-preflight/audit-resume.json
+          PRIME_ENGINE_PATH=/tmp/prime275-preflight/engine.js node --max-old-space-size=512 native/audit_220.cjs | tee /tmp/prime275-preflight/audit-engine.json
+          grep -Fq '"TECHNICAL_PASS_NOT_OFFICIAL_CERTIFIED"' /tmp/prime275-preflight/audit-engine.json
+      - name: UI, menus, campagnes, palmares et tutoriel live
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock linkedom@0.18.12
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_257.cjs | tee /tmp/prime275-preflight/audit-menu.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_271.cjs | tee /tmp/prime275-preflight/audit-features.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_272.cjs | tee /tmp/prime275-preflight/audit-replay-coach.json
+          grep -Fq '"noHiddenData":"PASS"' /tmp/prime275-preflight/audit-replay-coach.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_261.cjs | tee /tmp/prime275-preflight/audit-guide.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_262.cjs | tee /tmp/prime275-preflight/audit-decks.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_263.cjs | tee /tmp/prime275-preflight/audit-guide-actor.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_271_puzzles.cjs | tee /tmp/prime275-preflight/audit-puzzles-v270.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_270.cjs | tee /tmp/prime275-preflight/audit-strategy.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_271_ai.cjs | tee /tmp/prime275-preflight/audit-ai.json
+          grep -Fq '"nightmareDiagnostic": "PASS"' /tmp/prime275-preflight/audit-ai.json
+          grep -Fq '"deckProbabilities": "PASS"' /tmp/prime275-preflight/audit-strategy.json
+          grep -Fq '"academyMissions":' /tmp/prime275-preflight/audit-puzzles-v270.json
+          grep -Fq '"opponentCannotUnlockGuide": "PASS"' /tmp/prime275-preflight/audit-guide-actor.json
+          grep -Fq '"hideFilteredDecks": "PASS"' /tmp/prime275-preflight/audit-decks.json
+          grep -Fq '"guideLive": "PASS"' /tmp/prime275-preflight/audit-guide.json
+          grep -Fq '"campaignUnlock": "PASS"' /tmp/prime275-preflight/audit-features.json
+          PRIME_HTML=native/prime_v263_runtime.html node native/audit_252.cjs | tee /tmp/prime275-preflight/audit-puzzles-legacy.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_253.cjs | tee /tmp/prime275-preflight/audit-choice.json
+      - name: 40 vrais duels et aucune victoire artificielle
+        run: |
+          set -euo pipefail
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_260_benchmark.cjs | tee /tmp/prime275-preflight/audit-benchmark.json
+          grep -Fq '"noFakeWins": "PASS"' /tmp/prime275-preflight/audit-benchmark.json
+          PRIME_HTML=native/prime_v275_runtime.html node native/audit_270_league.cjs | tee /tmp/prime275-preflight/audit-league.json
+          grep -Fq '"TECHNICAL_PASS_NOT_NIGHTMARE_CERTIFICATION"' /tmp/prime275-preflight/audit-league.json
+      - name: Regressions de version et fondations multijoueur (sans deploiement)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 native/audit_ota_guard.py | tee /tmp/prime275-preflight/audit-version.json
+          node multiplayer/protocol.test.mjs | tee /tmp/prime275-preflight/audit-protocol.json
+          grep -Fq '"manifestNoDowngrade": "PASS"' /tmp/prime275-preflight/audit-version.json
+          grep -Fq '"serverLegalActions":"PASS"' /tmp/prime275-preflight/audit-protocol.json
+      - name: Moteur teste = moteur publie, oracles de regles et 3000 duels chaos
+        run: |
+          set -euo pipefail
+          node native/extract_engine.cjs --check
+          cmp native/engine.js /tmp/prime275-preflight/engine.js
+          node native/semantic_oracle_runner.cjs | tee /tmp/prime275-preflight/audit-oracles.txt
+          node native/card_lifecycle_oracles.cjs | tee /tmp/prime275-preflight/audit-lifecycle.txt
+          node native/semantic_mutation_audit.cjs | tee /tmp/prime275-preflight/audit-mutation.txt
+          CHAOS_GAMES=3000 PRIME_ENGINE_PATH=/tmp/prime275-preflight/engine.js node native/audit_275_chaos.cjs | tee /tmp/prime275-preflight/audit-chaos.json
+          grep -Fq '"status": "PASS"' /tmp/prime275-preflight/audit-chaos.json
+      - name: Duels complets dans l'interface (PC et mobile) et reprise d'une sauvegarde 2.7.4
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          UI_DUELS=3 node native/ui_full_duel_275.cjs /tmp/prime275-preflight index.html | tee /tmp/prime275-preflight/audit-ui-duels.json
+          python3 native/build_ota_content.py --source native/prime_v272_runtime.html --version 2.7.4 --version-code 27004 --out /tmp/prime274-old
+          cp /tmp/prime274-old/index.html /tmp/prime275-preflight/old.html
+          UI_DUELS=2 UI_RESUME_FROM=old.html node native/ui_full_duel_275.cjs /tmp/prime275-preflight index.html | tee /tmp/prime275-preflight/audit-ui-resume.json
+      - name: Laboratoire NIGHTMARE (entrainement reel, adoption, restauration)
+        run: |
+          set -euo pipefail
+          node native/nightmare_training_contract.cjs
+          node native/nightmare_lab_275.cjs /tmp/prime275-preflight index.html | tee /tmp/prime275-preflight/audit-nightmare-lab.json
+          grep -Fq '"status": "PASS"' /tmp/prime275-preflight/audit-nightmare-lab.json
+      - name: Forge NIGHTMARE (decks crees, ameliores, contre-decks, apprentissage apres duel)
+        run: |
+          set -euo pipefail
+          PRIME_ENGINE_PATH=/tmp/prime275-preflight/engine.js node native/nightmare_forge_test.cjs | tee /tmp/prime275-preflight/audit-nightmare-forge.json
+          grep -Fq '"status": "PASS"' /tmp/prime275-preflight/audit-nightmare-forge.json
+          node native/nightmare_forge_ui_275.cjs /tmp/prime275-preflight index.html | tee /tmp/prime275-preflight/audit-nightmare-forge-ui.json
+          grep -Fq '"status": "PASS"' /tmp/prime275-preflight/audit-nightmare-forge-ui.json
+      - name: Conserver les preuves
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prime275-preflight-evidence
+          path: |
+            /tmp/prime275-preflight/audit-*.json
+            /tmp/prime275-preflight/audit-*.txt
+          if-no-files-found: warn
