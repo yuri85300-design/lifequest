@@ -15,6 +15,9 @@ const assert=require('node:assert/strict');
   const errs=[];page.on('pageerror',e=>errs.push(String(e)));
   await page.goto(pathToFileURL(path.join(__dirname,process.env.PRIME_RUNTIME||'prime_v275_runtime.html')).href,
     {waitUntil:'domcontentloaded',timeout:30000});
+  // Manual mode: with "Évolution automatique" off, a validated challenger is only offered.
+  await page.evaluate(()=>localStorage.setItem('septgigs.nightmareAutoEvolve','false'));
+  await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('[data-nav="lab"]').first().click({timeout:15000});
   const button=page.locator('#labTrain');
   await button.waitFor({timeout:10000});

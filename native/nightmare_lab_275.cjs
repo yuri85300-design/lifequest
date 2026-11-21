@@ -22,6 +22,8 @@ const ok=(k,v)=>{out.checks[k]=v?'PASS':'FAIL';};
   const browser=await chromium.launch();
   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   const errors=[];page.on('pageerror',e=>errors.push(String(e).slice(0,300)));
+  // Manual adoption mode for deterministic checks (automatic mode is covered by the forge test).
+  await page.addInitScript(()=>{try{if(localStorage.getItem('septgigs.nightmareAutoEvolve')===null)localStorage.setItem('septgigs.nightmareAutoEvolve','false');}catch(_){}});
   await page.addInitScript(()=>{window.__long=[];try{new PerformanceObserver(l=>{for(const e of l.getEntries())window.__long.push(Math.round(e.duration));}).observe({type:'longtask',buffered:true});}catch(_){}});
   const openLab=async()=>{await page.goto(url,{waitUntil:'domcontentloaded'});await page.locator('[data-nav="lab"]').first().click();await page.waitForSelector('#labTrain');};
   await openLab();

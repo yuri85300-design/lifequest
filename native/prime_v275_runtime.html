@@ -4336,6 +4336,199 @@ const API={FAMILIES,LABELS,INITIAL,normalize,classify,rivalStyle,comboState,bias
 root.DeckPlanAI=API;
 if(typeof module!=='undefined')module.exports=API;
 })(typeof window!=='undefined'?window:globalThis);
+
+// ============================================================================
+//  NIGHTMARE · FORGE DE DECKS — création, amélioration et contre-decks
+//  Évolution par mutations légales (validateDeck), évaluée en vraies parties
+//  simulées sur ce moteur. Un deck n'est retenu qu'après une validation sur
+//  des donnes jamais vues pendant l'évolution, jouées des deux côtés.
+// ============================================================================
+(function(root){
+'use strict';
+const R=root;
+function rng32(seed){let s=(seed>>>0)||1;return()=>{s=(s+0x6D2B79F5)|0;let x=s;x=Math.imul(x^(x>>>15),x|1);x^=x+Math.imul(x^(x>>>7),x|61);return((x^(x>>>14))>>>0)/4294967296;};}
+const legal=d=>!!d&&Array.isArray(d.legends)&&Array.isArray(d.main)&&!R.validateDeck(d).length;
+const legendIds=()=>Object.values(R.CARDS).filter(c=>c.type==='Legend').map(c=>c.id);
+function cardPool(legends){const lim=R.deckRamLimits(legends);return Object.values(R.CARDS).filter(c=>c.type!=='Legend'&&lim[c.color]>0&&(c.ram||0)<=lim[c.color]).map(c=>c.id);}
+const counts=list=>list.reduce((o,id)=>(o[id]=(o[id]||0)+1,o),{});
+function repair(deck,rand){
+  const pool=cardPool(deck.legends),ok=new Set(pool),cnt={},main=[];
+  for(const id of deck.main)if(ok.has(id)&&(cnt[id]||0)<3){cnt[id]=(cnt[id]||0)+1;main.push(id);}
+  for(let guard=0;main.length<40&&guard<2000&&pool.length;guard++){const id=pool[Math.floor(rand()*pool.length)];if((cnt[id]||0)<3){cnt[id]=(cnt[id]||0)+1;main.push(id);}}
+  return {...deck,main};
+}
+function randomLegends(rand){
+  const all=legendIds();
+  for(let t=0;t<200;t++){const pick=[],names=new Set(),pool=all.slice();
+    while(pick.length<3&&pool.length){const id=pool.splice(Math.floor(rand()*pool.length),1)[0];if(!names.has(R.CARDS[id].name)){names.add(R.CARDS[id].name);pick.push(id);}}
+    if(pick.length===3&&cardPool(pick).length>=14)return pick;}
+  return all.slice(0,3);
+}
+// Guided mutation: additions favour well-rated cards, removals favour weak ones.
+const rating=id=>{try{return R.cardRating?R.cardRating(id):0;}catch(_){return 0;}};
+function weightedPick(ids,rand,w){let tot=0;const ws=ids.map(id=>{const x=Math.max(.05,w(id));tot+=x;return x;});let r=rand()*tot;for(let i=0;i<ids.length;i++){r-=ws[i];if(r<=0)return ids[i];}return ids[ids.length-1];}
+function mutate(deck,rand,strength=1){
+  for(let attempt=0;attempt<40;attempt++){
+    let d={...deck,legends:deck.legends.slice(),main:deck.main.slice()};
+    if(rand()<0.10*strength){
+      const k=Math.floor(rand()*3),others=d.legends.filter((_,j)=>j!==k).map(id=>R.CARDS[id].name);
+      const cands=legendIds().filter(id=>!d.legends.includes(id)&&!others.includes(R.CARDS[id].name));
+      if(cands.length){d.legends[k]=cands[Math.floor(rand()*cands.length)];d=repair(d,rand);}
+    }
+    const pool=cardPool(d.legends),swaps=1+Math.floor(rand()*2*strength);
+    for(let s=0;s<swaps&&pool.length;s++){
+      const cnt=counts(d.main),avail=pool.filter(id=>(cnt[id]||0)<3);if(!avail.length)break;
+      const add=weightedPick(avail,rand,id=>Math.exp(rating(id)*.35));
+      const uniq=Object.keys(cnt),rem=weightedPick(uniq,rand,id=>Math.exp(-rating(id)*.35));
+      d.main.splice(d.main.indexOf(rem),1);d.main.push(add);
+    }
+    if(legal(d))return d;
+  }
+  return deck;
+}
+function makePolicy(o={}){
+  if(o.policy)return o.policy;
+  const P=R.DeckPlanAI;
+  return P&&P.makePolicy?P.makePolicy(o.weights||null,o.plans||P.INITIAL):R.FastPolicy;
+}
+async function playOne(a,b,seed,policy){
+  const g=R.Game.create([a,b],[policy,policy],{seed,hooks:{sim:true}});
+  const r=await g.run(90);
+  if(!r||r.status==='incomplete'||r.winner===undefined||r.winner===null)return null;
+  return r.winner;
+}
+// Score of `deck` against each opponent, every deal played from both seats.
+async function score(deck,opponents,games,seedBase,policy,tick){
+  let pts=0,n=0,wins=0,losses=0,draws=0;
+  for(let o=0;o<opponents.length;o++)for(let k=0;k<games;k++){
+    const seed=(seedBase+Math.imul(o+1,7919)+Math.imul(Math.floor(k/2)+1,104729))|0,flip=k%2===1;
+    const w=await playOne(flip?opponents[o]:deck,flip?deck:opponents[o],seed,policy);
+    if(tick)await tick();
+    if(w===null)continue;
+    n++;const me=flip?1:0;
+    if(w===me){pts++;wins++;}else if(w<0){pts+=.5;draws++;}else losses++;
+  }
+  return {pts,n,wins,losses,draws,rate:n?pts/n:0};
+}
+function diff(a,b){
+  const ca=counts(a.main),cb=counts(b.main),added=[],removed=[];
+  for(const id of new Set([...Object.keys(ca),...Object.keys(cb)])){const d=(cb[id]||0)-(ca[id]||0);if(d>0)added.push({id,n:d});else if(d<0)removed.push({id,n:-d});}
+  return {added,removed,legendsIn:b.legends.filter(x=>!a.legends.includes(x)),legendsOut:a.legends.filter(x=>!b.legends.includes(x))};
+}
+// Racing hill-climb. Each generation: children and incumbent play IDENTICAL deals;
+// the best child must then confirm on fresh deals before replacing the incumbent.
+// Final held-out validation on deals never used during evolution.
+async function evolve(o){
+  const rand=rng32(o.seed),policy=makePolicy(o);
+  const generations=o.generations??10,children=o.children??4,games=o.games??4,valGames=o.valGames??16,confirmGames=o.confirmGames??games;
+  const margin=o.stepMargin??0.06;
+  let ticks=0;const tick=async()=>{if(o.cancel&&o.cancel())throw Object.assign(new Error('cancelled'),{cancelled:true});
+    if(++ticks%4===0&&typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));};
+  try{
+    let best=o.start,accepted=0;const history=[];
+    for(let gen=0;gen<generations;gen++){
+      const seedA=((o.seed^0x51ed27)+Math.imul(gen+1,31337))|0,seedB=((o.seed^0x7a3d11)+Math.imul(gen+1,92821))|0;
+      const inc=await score(best,o.opponents,games,seedA,policy,tick);
+      let top=null;
+      for(let c=0;c<children;c++){
+        const d=mutate(best,rand,gen<generations/2?1.4:1);
+        if(d===best)continue;
+        const sc=await score(d,o.opponents,games,seedA,policy,tick);
+        if(!top||sc.rate>top.s.rate)top={d,s:sc};
+      }
+      let moved=false;
+      if(top&&top.s.rate>inc.rate){
+        const c2=await score(top.d,o.opponents,confirmGames,seedB,policy,tick),i2=await score(best,o.opponents,confirmGames,seedB,policy,tick);
+        const gain=(top.s.pts+c2.pts)/Math.max(1,top.s.n+c2.n)-(inc.pts+i2.pts)/Math.max(1,inc.n+i2.n);
+        if(gain>=margin){best=top.d;accepted++;moved=true;}
+      }
+      history.push({gen:gen+1,accepted:moved,rate:inc.rate});
+      if(o.report)o.report({phase:'evolution',gen:gen+1,generations,accepted});
+    }
+    const valSeed=((o.seed^0x2c1b3c6d)+1000003)|0;
+    if(o.report)o.report({phase:'validation',gen:generations,generations,accepted});
+    const candidate=accepted?await score(best,o.opponents,valGames,valSeed,policy,tick):null;
+    const baseline=await score(o.start,o.opponents,valGames,valSeed,policy,tick);
+    const cand=candidate||baseline;
+    // Two-proportion z-test on held-out deals: the gain must exceed ~2 standard errors.
+    const minGain=o.minGain??0.05,minZ=o.minZ??2.0;
+    const se=Math.sqrt(Math.max(1e-9,cand.rate*(1-cand.rate)/Math.max(1,cand.n)+baseline.rate*(1-baseline.rate)/Math.max(1,baseline.n)));
+    const z=(cand.rate-baseline.rate)/se;
+    const improved=accepted>0&&cand.n>0&&cand.rate>=baseline.rate+minGain&&z>=minZ&&(o.minRate==null||cand.rate>=o.minRate);
+    return {cancelled:false,deck:best,improved,accepted,z,validation:{candidate:cand,baseline},history,changes:diff(o.start,best)};
+  }catch(e){if(e&&e.cancelled)return {cancelled:true};throw e;}
+}
+function gauntlet(decks,rand,size=6){
+  const list=decks.filter(legal).slice(),out=[];
+  while(out.length<size&&list.length)out.push(list.splice(Math.floor(rand()*list.length),1)[0]);
+  return out;
+}
+// A brand new deck: random legal Legends, auto-built list, then evolved against a gauntlet.
+async function create(o){
+  const rand=rng32(o.seed);let start=null;
+  for(let t=0;t<30&&!legal(start);t++){const lg=randomLegends(rand);start=repair(R.autoDeck(lg,rand,40),rand);}
+  if(!legal(start))throw new Error('Impossible de générer un deck légal');
+  const opponents=gauntlet(o.pool,rand,o.gauntletSize??6);
+  // A new deck is kept if it improved during evolution AND holds at least 45 % against the gauntlet.
+  const r=await evolve({...o,start,opponents,valGames:o.valGames??40,minGain:o.minGain??0.05,minRate:o.minRate??0.45});
+  return {...r,start,opponents};
+}
+async function improve(o){
+  const rand=rng32(o.seed);const opponents=o.opponents||gauntlet(o.pool,rand,o.gauntletSize??6);
+  const r=await evolve({...o,opponents});return {...r,opponents};
+}
+// Counter-deck: 1) screen every known deck against the target and keep the best
+// match-up, 2) evolve it against the target, 3) keep the evolved list only if it
+// is significantly better; otherwise keep the screened deck only if it beats the
+// target significantly (>= 55 % and z >= 2 against a coin flip on 200 fresh deals).
+async function counter(o){
+  const policy=makePolicy(o);const cands=(o.candidates||[o.start]).filter(legal);
+  if(o.start&&!cands.includes(o.start))cands.unshift(o.start);
+  let tick=async()=>{if(o.cancel&&o.cancel())throw Object.assign(new Error('cancelled'),{cancelled:true});};
+  let screened=[];
+  try{
+    for(let i=0;i<cands.length;i++){
+      const sc=await score(cands[i],[o.target],o.screenGames??10,((o.seed^0x13579b)+97)|0,policy,tick);
+      screened.push({deck:cands[i],rate:sc.rate});
+      if(o.report)o.report({phase:'screen',done:i+1,total:cands.length});
+      if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));
+    }
+  }catch(e){if(e&&e.cancelled)return {cancelled:true};throw e;}
+  screened.sort((a,b)=>b.rate-a.rate);
+  const start=screened[0].deck;
+  const r=await evolve({...o,start,opponents:[o.target],games:o.games??16,valGames:o.valGames??200,minGain:o.minGain??0.06,minRate:o.minRate??0.55});
+  if(r.cancelled)return r;
+  if(r.improved)return {...r,kind:'evolved',screenedFrom:screened.length};
+  const b=r.validation.baseline,zCoin=(b.rate-.5)/Math.sqrt(.25/Math.max(1,b.n));
+  const ok=b.n>0&&b.rate>=.55&&zCoin>=2;
+  return {...r,deck:start,improved:ok,kind:ok?'selected':'none',zCoin,screenedFrom:screened.length,changes:diff(start,start)};
+}
+// Tactical weights (AdaptiveAI): evolve with its league, then validate the challenger
+// head-to-head against the champion on 200 fresh deals (both seats). Adopted only if
+// >= 55 % and z >= 2 against a coin flip.
+async function trainWeights(o){
+  const A=R.AdaptiveAI;if(!A||!A.trainLeague)return {improved:false,skipped:true};
+  const r=await A.trainLeague(o.decks,o.matches??300,o.weights,p=>o.report&&o.report({phase:'weights',...p}),o.cancel||(()=>false));
+  if(r.cancelled)return {cancelled:true};
+  const cand=r.candidateWeights,inc=A.normalize(o.weights);
+  if(JSON.stringify(cand)===JSON.stringify(inc))return {improved:false,rate:.5,n:0};
+  let pts=0,n=0;const N=o.valGames??200,base=((o.seed>>>0)%1000003)*7+900001;
+  for(let k=0;k<N;k++){
+    if(o.cancel&&o.cancel())return {cancelled:true};
+    const flip=k%2===1,di=Math.floor(k/2)%o.decks.length,dj=(di+1+Math.floor(k/20))%o.decks.length;
+    const g=R.Game.create([o.decks[di],o.decks[dj]],flip?[A.makePolicy(inc),A.makePolicy(cand)]:[A.makePolicy(cand),A.makePolicy(inc)],{seed:(base+Math.floor(k/2)*104729)|0,hooks:{sim:true}});
+    const res=await g.run(94);
+    if(res.status!=='incomplete'){n++;pts+=res.winner<0?.5:res.winner===(flip?1:0)?1:0;}
+    if(k%10===9){if(o.report)o.report({phase:'weights-validation',done:k+1,total:N});if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));}
+  }
+  const rate=n?pts/n:0,z=(rate-.5)/Math.sqrt(.25/Math.max(1,n));
+  return {improved:n>0&&rate>=.55&&z>=2,weights:cand,rate,n,z};
+}
+function signature(deck){return [...deck.legends].sort().join('+')+'|'+Object.entries(counts(deck.main)).sort().map(([k,n])=>k+':'+n).join(',');}
+const API={rng32,legal,cardPool,mutate,repair,randomLegends,score,evolve,create,improve,counter,diff,signature,trainWeights};
+root.NightmareForge=API;
+if(typeof module!=='undefined')module.exports=API;
+})(typeof window!=='undefined'?window:globalThis);
 window.CARD_META = {"num":{"adam-smasher-ender-of-legends":1,"dexter-deshawn-off-the-grid":2,"johnny-silverhand-rocking-renegade":3,"royce-psycho-on-the-edge":4,"v-streetkid":5,"6th-street-recruits":6,"animals-wrecker":7,"chrome-fang":8,"el-sombrero-n-la-venganza-lenta":9,"japantown-jonin":10,"johnny-silverhand-never-stop-fighting":11,"kerry-eurodyne-the-last-rockerboy":12,"la-llorona-ghost-of-the-past":13,"meredith-stout-stone-cold-corpo":14,"octant":15,"royce-don-t-call-me-simon":16,"ruthless-lowlife":17,"screw-lovelorn-fool":18,"swordwise-huscle":19,"v-roamer-of-the-badlands":20,"valentino-guerrera":21,"yorinobu-arasaka-steel-dragon":22,"arasaka-emergency-radioport":23,"deadman-transmitter":24,"mantis-blades":25,"satori-sword-of-saburo":26,"all-is-lost":27,"appetite-for-destruction":28,"bonnie-and-clyde":29,"carnage-at-the-colosseum":30,"detonate":31,"gunpoint-diplomacy":32,"industrial-assembly":33,"over-the-edge":34,"shattered-memories":35,"dum-dum-maelstrom-triggerman":36,"kerry-eurodyne-axe-attitude-audience":37,"muamar-reyes-el-capita-n":38,"river-ward-detective-on-the-hunt":39,"rogue-amendiares-preem-solo":40,"adam-smasher-metal-over-meat":41,"alt-cunningham-mother-of-daemons":42,"augmented-negotiators":43,"caliber-totentanz-s-top-dog":44,"gilded-mato-n":45,"hanako-arasaka-in-a-gilded-cage":46,"heywood-ripperdoc":47,"jackie-welles-ride-or-die-choom":48,"maelstrom-goons":49,"maxtac-suppression-team":50,"offduty-malfini":51,"rockn-rockerboy":52,"secondhand-bombus":53,"sketchy-ripper":54,"t-bug-amateur-philosopher":55,"trauma-team-operatives":56,"viktor-vektor-drop-your-illusions":57,"viktor-vektor-you-might-feel-a-little-pinch":58,"adrenaline-converter":59,"gorilla-arms":60,"kiroshi-optics":61,"mandibular-upgrade":62,"the-relic-experimental-biochip":63,"zetatech-faceplate":64,"afterparty-at-lizzie-s":65,"bootleg-black-sapphire-show":66,"cyberpsychosis":67,"live-with-the-aftermath":68,"safety-override":69,"the-heist":70,"goro-takemura-vengeful-bodyguard":71,"hanako-arasaka-daughter-of-the-emperor":72,"jackie-welles-mama-s-favorite":73,"padre-man-of-the-cross":74,"panam-palmer-nomad-cavalry":75,"corpo-security":76,"emergency-atlus":77,"field-operator":78,"maelstrom-zealots":79,"maxtac-av":80,"maxtac-heavy":81,"maxtac-squadron":82,"nadia-fighting-through-grief":83,"pacifica-netrunner":84,"panam-palmer-strength-through-family":85,"pepe-najarro-working-doubles":86,"riding-nomad":87,"sandayu-oda-hanako-s-guardian":88,"saul-bright-stormrider":89,"tyger-s-whisper":90,"valentino-street-racer":91,"wraith-marauders":92,"overwatch-panam-s-gift":93,"riot-shield":94,"sandevistan":95,"zetatech-berserk":96,"corporate-surveillance":97,"don-t-fear-the-reaper":98,"fool-on-the-hill":99,"memory-relapse":100,"peace-offering":101,"synapse-burnout":102,"take-control":103,"we-gotta-live-together":104,"wild-in-the-streets":105,"alt-cunningham-soulkiller-architect":106,"evelyn-parker-beautiful-enigma":107,"judy-alvarez-braindance-maestro":108,"sasha-yakovleva-won-t-let-you-down":109,"wakako-okada-peace-and-harmony":110,"delamain-rideshare-ai":111,"delamain-cab":112,"evelyn-parker-scheming-siren":113,"hacked-corpo":114,"jacked-in-voodoo-boy":115,"judy-alvarez-nothing-to-doubt":116,"lizzy-wizzy-delicate-weapon":117,"maman-brigitte-spirit-of-death":118,"misty-olszewski-mender-of-broken-spirits":119,"modded-kusanagi":120,"modded-muramasa":121,"mox-inciters":122,"placide-voodoo-sentinel":123,"psycho-squad":124,"rita-wheeler-no-stupid-questions":125,"rogue-amendiares-queen-of-the-afterlife":126,"westbrook-netrunner":127,"dying-night-v-s-pistol":128,"netwatch-netdriver":129,"tetratronic-rippler":130,"chrome-reverie":131,"floor-it":132,"les-e-le-mens":133,"nocturne-op55-n1":134,"pyramid-song":135,"reboot-optics":136,"three-mouths-one-desire":137,"towerfall":138,"trust-no-one":139,"unlikely-bond":140}};
 /* 7 GIGS — apprentissage local contre le joueur (v1)
    Donnees d'entree : actions publiques et resultats des duels termines.
@@ -4698,6 +4891,7 @@ const S = {
   myDeck: store.get('myDeck', 'the-heist'),
   aiDeck: store.get('aiDeck', 'embracing-power'),
   level: store.get('level', 'expert'),
+  forgeAuto: store.get('nightmareAutoEvolve', true) !== false, forgeCancel: false,
   speed: store.get('speed', .35),
   pseudo: store.get('pseudo', 'Joueur'),
   game: null, resolveMain: null, acts: [], sheet: null, fx: {}, ticker: '', thinking: false,
@@ -5436,7 +5630,71 @@ const TacticalWorker = (()=>{
 // Preload the AI worker after first paint rather than during initial HTML parsing.
 setTimeout(()=>TacticalWorker.boot(),100);
 
-const allDecks = () => ({ ...PRESETS, ...S.custom });
+// ===================== NIGHTMARE · decks créés, améliorés et contre-decks =====================
+const NightmareDecks=(()=>{
+  const KEY='nightmareDecksV1',MAX=24;let cache=null;
+  const clean=raw=>{const out={decks:{},counters:{}};if(!raw||typeof raw!=='object')return out;
+    for(const [id,d] of Object.entries(raw.decks||{})){
+      if(!/^nm-[a-z0-9-]{1,40}$/.test(id)||!d||!Array.isArray(d.legends)||!Array.isArray(d.main))continue;
+      const deck={legends:d.legends.slice(0,3).map(String),main:d.main.slice(0,40).map(String)};
+      if(!NightmareForge.legal(deck))continue;
+      out.decks[id]={...deck,name:String(d.name||'NIGHTMARE').slice(0,60),desc:String(d.desc||'').slice(0,240),nightmare:true,
+        kind:['created','improved','counter','selected'].includes(d.kind)?d.kind:'created',rate:Math.max(0,Math.min(1,+d.rate||0)),games:Math.max(0,+d.games||0),
+        version:Math.max(1,Math.floor(+d.version||1)),updated:typeof d.updated==='string'?d.updated.slice(0,30):null,
+        target:typeof d.target==='string'?d.target.slice(0,80):null,changes:d.changes&&Array.isArray(d.changes.added)?{added:d.changes.added.slice(0,40),removed:(d.changes.removed||[]).slice(0,40),legendsIn:(d.changes.legendsIn||[]).slice(0,3),legendsOut:(d.changes.legendsOut||[]).slice(0,3)}:null};
+    }
+    for(const [sig,id] of Object.entries(raw.counters||{}))if(out.decks[id])out.counters[String(sig).slice(0,6000)]=id;
+    return out;};
+  const read=()=>cache||(cache=clean(store.get(KEY,null)));
+  const write=x=>{const ids=Object.keys(x.decks);
+    if(ids.length>MAX){const keep=new Set(Object.values(x.counters));ids.filter(id=>!keep.has(id)).sort((a,b)=>x.decks[a].rate-x.decks[b].rate).slice(0,ids.length-MAX).forEach(id=>delete x.decks[id]);}
+    cache=clean(x);return store.set(KEY,cache);};
+  return {
+    all:()=>read().decks,
+    save(id,deck){const x=read();x.decks[id]={...deck,updated:new Date().toISOString()};return write(x);},
+    remove(id){const x=read();delete x.decks[id];for(const [k,v] of Object.entries(x.counters))if(v===id)delete x.counters[k];return write(x);},
+    setCounter(deck,id){const x=read();x.counters[NightmareForge.signature(deck)]=id;return write(x);},
+    counterFor(deck){const x=read(),id=x.counters[NightmareForge.signature(deck)];return id&&x.decks[id]?[id,x.decks[id]]:null;},
+    best(){return Object.entries(read().decks).filter(([,d])=>d.kind!=='counter').sort((a,b)=>b[1].rate-a[1].rate)[0]||null;},
+    exportData(){return read();},importData(raw){return write(clean(raw));},
+    reset(){cache=null;store.del(KEY);}
+  };
+})();
+const allDecks = () => ({ ...PRESETS, ...NightmareDecks.all(), ...S.custom });
+const nmName=deck=>'NIGHTMARE · '+deck.legends.map(id=>(CARDS[id]?.name||id).split(' ')[0]).join(' / ');
+const nmChanges=ch=>{if(!ch)return '';const f=list=>list.slice(0,3).map(x=>`${x.n}× ${cardName(CARDS[x.id])}`).join(', ');
+  const parts=[];if(ch.legendsIn?.length)parts.push('Légende : '+ch.legendsIn.map(id=>cardName(CARDS[id])).join(', '));
+  if(ch.added?.length)parts.push('ajoute '+f(ch.added));if(ch.removed?.length)parts.push('retire '+f(ch.removed));return parts.join(' · ');};
+const forgePolicy=()=>window.DeckPlanAI.makePolicy(S.brain?.weights||null,S.brain?.plans||window.DeckPlanAI.INITIAL);
+const forgePool=()=>[...Object.values(PRESETS),...Object.values(NightmareDecks.all())];
+const forgeSeed=()=>{try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0];}catch(_){return (Date.now()^Math.floor(Math.random()*4294967296))>>>0;}};
+// Opponent chosen by NIGHTMARE: its validated counter to YOUR deck, else its best deck.
+function adaptiveDeck(mine){const c=NightmareDecks.counterFor(mine);if(c)return c[1];const b=NightmareDecks.best();return b?b[1]:randomAIDeck();}
+// Background learning after each finished duel: look for a counter to the deck you just played.
+const NightmareAuto={running:false,get last(){return store.get('nightmareAutoLast',null);},set last(v){store.set('nightmareAutoLast',v);},
+  async afterDuel(mine,mineName){
+    // Never compute during a duel: stop as soon as a new duel starts.
+    const duelActive=()=>!!S.game&&S.game.s.phase!=='over';
+    if(this.running||!S.forgeAuto||!mine||!NightmareForge.legal(mine)||duelActive())return;
+    this.running=true;
+    try{
+      const known=NightmareDecks.counterFor(mine);
+      const cands=forgePool().filter(d=>NightmareForge.signature(d)!==NightmareForge.signature(mine));
+      const r=await NightmareForge.counter({target:mine,candidates:cands,start:known?known[1]:cands[0],seed:forgeSeed(),policy:forgePolicy(),
+        generations:4,games:12,valGames:160,screenGames:6,cancel:duelActive});
+      this.last={date:new Date().toISOString(),target:mineName,result:r.cancelled?'interrompu':r.improved?r.kind:'aucun'};
+      if(r.cancelled||!r.improved)return;
+      const rate=r.kind==='evolved'?r.validation.candidate.rate:r.validation.baseline.rate;
+      if(known&&rate<=known[1].rate)return;
+      const id=known?known[0]:'nm-c-'+Date.now().toString(36);
+      NightmareDecks.save(id,{legends:r.deck.legends.slice(),main:r.deck.main.slice(),name:'NIGHTMARE · Contre '+String(mineName||'votre deck').slice(0,40),
+        desc:`Contre-deck validé : ${Math.round(rate*100)} % de victoires contre « ${String(mineName||'votre deck').slice(0,40)} » sur ${r.validation.baseline.n} duels de validation.`,
+        kind:'counter',rate,games:r.validation.baseline.n,version:(known?.[1].version||0)+1,target:String(mineName||'').slice(0,80),changes:r.kind==='evolved'?r.changes:null});
+      NightmareDecks.setCounter(mine,id);
+      if(!S.game||S.game.s.phase==='over')toast(`NIGHTMARE a trouvé un contre-deck à « ${mineName} » (${Math.round(rate*100)} %).`,4200);
+    }catch(e){console.warn('[NIGHTMARE] apprentissage interrompu',e);}
+    finally{this.running=false;}
+  }};
 window.AIChampion = () => S.brain?.weights || PRETRAINED_BRAIN.weights;
 window.AIPlanChampion = () => S.brain.plans || window.DeckPlanAI.INITIAL;
 window.GIGS_TRAINING_INFO = PRETRAINED_BRAIN;
@@ -6276,6 +6534,17 @@ function labIdleText(){
   if(r&&r.rulesHash===PRETRAINED_BRAIN.rulesHash&&!r.upgraded)return `Dernier entraînement : le champion actuel est resté le plus fort (${r.wins} V / ${r.losses} D / ${r.draws} N sur ${r.validationMatches}).`;
   return 'Prêt : 300 auto-duels puis 80 duels de validation contre le champion actuel.';
 }
+function forgeIdleText(){
+  const n=Object.keys(NightmareDecks.all()).length,l=NightmareAuto.last;
+  return `${n} deck(s) NIGHTMARE enregistré(s).`+(l?` Dernier apprentissage après duel (${new Date(l.date).toLocaleTimeString('fr-FR')}) : ${l.result==='aucun'?'pas de contre-deck assez fort contre « '+l.target+' »':l.result==='interrompu'?'interrompu':'contre-deck trouvé contre « '+l.target+' »'}.`:'');
+}
+function forgeListHTML(){
+  const list=Object.entries(NightmareDecks.all()).sort((a,b)=>b[1].rate-a[1].rate);
+  if(!list.length)return '<p class="lab-foot">Aucun deck NIGHTMARE pour l’instant. Lancez un cycle d’évolution ou jouez des duels.</p>';
+  const kind={created:'Créé',improved:'Amélioré',counter:'Contre-deck',selected:'Contre-deck'};
+  return list.map(([id,d])=>`<div class="lab-line" style="flex-wrap:wrap;gap:6px;align-items:flex-start"><span style="flex:1 1 220px"><b>${esc(d.name)}</b> · ${kind[d.kind]||'Deck'} v${d.version} · ${Math.round(d.rate*100)} %<br><small>${esc(d.desc)}${d.changes?'<br>Technique : '+esc(nmChanges(d.changes)):''}</small></span>
+    <span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn small primary" data-nm-play="${esc(id)}">Affronter</button><button class="btn small ghost" data-nm-copy="${esc(id)}">Copier</button><button class="btn small ghost" data-nm-del="${esc(id)}">Supprimer</button></span></div>`).join('');
+}
 function labScreen(){
   const n=(S.brain.matches||0);
   const v=S.brain.validation;
@@ -6297,6 +6566,25 @@ function labScreen(){
        <p class="lab-foot">NIGHTMARE est confronté à douze situations tactiques jouables. Le contrôle vérifie la légalité de sa décision et si elle correspond à l'objectif attendu. Un score élevé n'est pas une certification.</p>
        <button type="button" class="btn ghost" id="labProbe">Examiner 12 décisions tactiques</button>
        <div class="lab-status" id="labProbeResult" role="status" aria-live="polite">Prêt pour un test local borné.</div>
+     </div>
+     <div class="lab-hero" style="margin-top:14px;border-color:#b24bf3">
+       <small>FORGE NIGHTMARE · DECKS CRÉÉS, AMÉLIORÉS ET CONTRE-DECKS</small>
+       <p class="lab-foot">NIGHTMARE construit ses propres decks légaux, les fait évoluer carte par carte en vrais duels simulés, et cherche le deck qui bat le vôtre. Un deck n’est conservé que s’il gagne nettement sur des duels de validation jamais vus pendant l’évolution (test statistique).</p>
+       <div class="lab-actions" style="flex-wrap:wrap">
+         <button class="btn primary" id="forgeCycle">Cycle complet d’évolution</button>
+         <button class="btn ghost" id="forgeCreate">Créer un deck</button>
+         <button class="btn ghost" id="forgeImprove">Améliorer le meilleur deck</button>
+         <button class="btn ghost" id="forgeCounter">Contrer mon deck actif</button>
+         <button class="btn ghost" id="forgeStop" disabled>Interrompre</button>
+       </div>
+       <div class="lab-status" id="forgeStatus" role="status" aria-live="polite">${esc(forgeIdleText())}</div>
+       <label class="lab-foot" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="forgeAuto" ${S.forgeAuto?'checked':''}> Évolution automatique : chercher un contre-deck après chacun de vos duels et adopter seul les champions validés.</label>
+       <div id="forgeList"></div>
+       <div class="lab-actions" style="flex-wrap:wrap;margin-top:8px">
+         <button class="btn ghost" id="nmExport">Exporter NIGHTMARE</button>
+         <button class="btn ghost" id="nmImport">Importer NIGHTMARE</button>
+         <button class="btn danger" id="forgeReset">Effacer les decks NIGHTMARE</button>
+       </div>
      </div>
      <div class="lab-hero" style="margin-top:20px;border-color:rgba(57,210,188,.4)">
        <small>APPRENTISSAGE CONTRE VOUS · PARTIES HUMAINES</small>
@@ -6339,7 +6627,7 @@ function labScreen(){
      }catch(e){toast('Import impossible : '+e.message,3500);}finally{inp.remove();}};
     app.appendChild(inp);inp.click();
   };
-  let running=false;
+  let running=false,autoAdopt=false;
   const train=app.querySelector('#labTrain'),stop=app.querySelector('#labStop'),meter=app.querySelector('#labBar'),stat=app.querySelector('#labStatus'),counter=app.querySelector('#labCount');
   const adopt=app.querySelector('#labAdopt'),restore=app.querySelector('#labRestore');
   const refreshChampion=()=>{const c=app.querySelector('#labChampion'),h=app.querySelector('.lab-hero b');
@@ -6364,6 +6652,94 @@ function labScreen(){
     store.del('championBrain');store.del('championBrainPrevious');S.brain=defaultBrain();
     stat.textContent='Champion d’origine rétabli.';refreshChampion();toast('Champion d’origine rétabli');
   };
+  // ------------------------------- Forge NIGHTMARE
+  const fStat=app.querySelector('#forgeStatus'),fList=app.querySelector('#forgeList'),fStop=app.querySelector('#forgeStop');
+  const fBtns=['#forgeCycle','#forgeCreate','#forgeImprove','#forgeCounter'].map(q=>app.querySelector(q));
+  const drawList=()=>{if(!fList.isConnected)return;fList.innerHTML=forgeListHTML();
+    fList.querySelectorAll('[data-nm-play]').forEach(b=>b.onclick=()=>{S.aiDeck=b.dataset.nmPlay;store.set('aiDeck',S.aiDeck);setupScreen();});
+    fList.querySelectorAll('[data-nm-copy]').forEach(b=>b.onclick=()=>{const d=NightmareDecks.all()[b.dataset.nmCopy];if(!d)return;const key='custom-'+Date.now().toString(36);
+      S.custom[key]={name:d.name.replace('NIGHTMARE · ','Copie · '),desc:'Copie d’un deck NIGHTMARE',legends:d.legends.slice(),main:d.main.slice()};store.set('decks',S.custom);toast('Deck copié dans vos decks');});
+    fList.querySelectorAll('[data-nm-del]').forEach(b=>b.onclick=()=>{if(!window.confirm('Supprimer ce deck NIGHTMARE ?'))return;NightmareDecks.remove(b.dataset.nmDel);if(S.aiDeck===b.dataset.nmDel){S.aiDeck='nm-adaptive';store.set('aiDeck',S.aiDeck);}drawList();});};
+  drawList();
+  app.querySelector('#forgeAuto').onchange=e=>{S.forgeAuto=!!e.target.checked;store.set('nightmareAutoEvolve',S.forgeAuto);toast(S.forgeAuto?'Évolution automatique activée':'Évolution automatique désactivée');};
+  let forging=false;
+  const progress=label=>p=>{if(!fStat.isConnected)return;fStat.textContent=p.phase==='screen'?`${label} : essai des decks connus ${p.done}/${p.total}`:
+    p.phase==='validation'?`${label} : validation sur des duels jamais vus…`:`${label} : génération ${p.gen}/${p.generations} · ${p.accepted||0} amélioration(s) retenue(s)`;};
+  const runForge=async steps=>{
+    if(forging||running||NightmareAuto.running){toast('NIGHTMARE travaille déjà.');return;}
+    forging=true;S.forgeCancel=false;fBtns.forEach(b=>b.disabled=true);fStop.disabled=false;const log=[];
+    try{for(const step of steps){if(S.forgeCancel)break;log.push(await step());if(fStat.isConnected)fStat.textContent=log.join(' ');}
+      if(S.forgeCancel)log.push('Interrompu.');
+    }catch(e){console.error(e);log.push('Erreur : '+e.message);}
+    finally{forging=false;fBtns.forEach(b=>{if(b.isConnected)b.disabled=false;});if(fStop.isConnected)fStop.disabled=true;if(fStat.isConnected)fStat.textContent=log.join(' ');drawList();}
+  };
+  const doCreate=async()=>{
+    const r=await NightmareForge.create({pool:forgePool(),seed:forgeSeed(),policy:forgePolicy(),generations:8,report:progress('Création'),cancel:()=>S.forgeCancel});
+    if(r.cancelled)return '';
+    if(!r.improved)return `Création : aucun deck assez fort (${Math.round(r.validation.candidate.rate*100)} % en validation), rien n’est ajouté.`;
+    const id='nm-'+Date.now().toString(36),v=r.validation.candidate;
+    NightmareDecks.save(id,{legends:r.deck.legends.slice(),main:r.deck.main.slice(),name:nmName(r.deck),desc:`Créé par NIGHTMARE : ${Math.round(v.rate*100)} % contre ${r.opponents.length} decks en validation (${v.n} duels).`,kind:'created',rate:v.rate,games:v.n,version:1,changes:r.changes});
+    return `Création : nouveau deck « ${nmName(r.deck)} » (${Math.round(v.rate*100)} %).`;
+  };
+  const doImprove=async()=>{
+    const best=NightmareDecks.best();
+    const start=best?best[1]:Object.values(PRESETS)[Math.floor(Math.random()*Object.keys(PRESETS).length)];
+    const r=await NightmareForge.improve({start,pool:forgePool(),seed:forgeSeed(),policy:forgePolicy(),generations:8,report:progress('Amélioration'),cancel:()=>S.forgeCancel});
+    if(r.cancelled)return '';
+    if(!r.improved)return `Amélioration : pas de gain significatif sur « ${start.name} », deck inchangé.`;
+    const v=r.validation.candidate,id=best?best[0]:'nm-'+Date.now().toString(36);
+    NightmareDecks.save(id,{legends:r.deck.legends.slice(),main:r.deck.main.slice(),name:best?best[1].name:nmName(r.deck),desc:`Amélioré par NIGHTMARE : ${Math.round(v.rate*100)} % contre ${r.opponents.length} decks (avant : ${Math.round(r.validation.baseline.rate*100)} %).`,kind:'improved',rate:v.rate,games:v.n,version:(best?.[1].version||0)+1,changes:r.changes});
+    return `Amélioration : « ${best?best[1].name:nmName(r.deck)} » passe de ${Math.round(r.validation.baseline.rate*100)} % à ${Math.round(v.rate*100)} %.`;
+  };
+  const doCounter=async()=>{
+    const mine=allDecks()[S.myDeck];if(!mine||!NightmareForge.legal(mine))return 'Contre-deck : votre deck actif est invalide.';
+    const known=NightmareDecks.counterFor(mine),cands=forgePool().filter(d=>NightmareForge.signature(d)!==NightmareForge.signature(mine));
+    const r=await NightmareForge.counter({target:mine,candidates:cands,start:known?known[1]:cands[0],seed:forgeSeed(),policy:forgePolicy(),generations:6,report:progress('Contre-deck'),cancel:()=>S.forgeCancel});
+    if(r.cancelled)return '';
+    if(!r.improved)return `Contre-deck : aucun deck ne bat nettement « ${mine.name} ». Votre deck résiste !`;
+    const rate=r.kind==='evolved'?r.validation.candidate.rate:r.validation.baseline.rate;
+    if(known&&rate<=known[1].rate)return `Contre-deck : le contre-deck actuel (${Math.round(known[1].rate*100)} %) reste le meilleur.`;
+    const id=known?known[0]:'nm-c-'+Date.now().toString(36);
+    NightmareDecks.save(id,{legends:r.deck.legends.slice(),main:r.deck.main.slice(),name:'NIGHTMARE · Contre '+String(mine.name).slice(0,40),desc:`Contre-deck validé : ${Math.round(rate*100)} % de victoires contre « ${String(mine.name).slice(0,40)} » sur ${r.validation.baseline.n} duels de validation.`,kind:'counter',rate,games:r.validation.baseline.n,version:(known?.[1].version||0)+1,target:String(mine.name).slice(0,80),changes:r.kind==='evolved'?r.changes:null});
+    NightmareDecks.setCounter(mine,id);
+    return `Contre-deck : ${Math.round(rate*100)} % contre « ${mine.name} ». Choisissez « NIGHTMARE adaptatif » pour l’affronter.`;
+  };
+  app.querySelector('#forgeCreate').onclick=()=>runForge([doCreate]);
+  app.querySelector('#forgeImprove').onclick=()=>runForge([doImprove]);
+  app.querySelector('#forgeCounter').onclick=()=>runForge([doCounter]);
+  // Full cycle: train the game plans first (validated champions adopted automatically
+  // when "Évolution automatique" is on), then create, improve and counter decks.
+  const doTrain=async()=>{await train.onclick();const t=stat.isConnected?stat.textContent:'';return 'Entraînement : '+t.replace(/\s+/g,' ').slice(0,180);};
+  const doWeights=async()=>{
+    const r=await NightmareForge.trainWeights({decks:Object.values(PRESETS),weights:S.brain.weights||PRETRAINED_BRAIN.weights,seed:forgeSeed(),cancel:()=>S.forgeCancel,
+      report:p=>{if(fStat.isConnected)fStat.textContent=p.phase==='weights'?`Tactique : ligue ${p.done||0}/${p.total||300}`:`Tactique : validation ${p.done}/${p.total}`;}});
+    if(r.cancelled||r.skipped)return '';
+    if(!r.improved)return `Tactique : aucun challenger significativement meilleur (${Math.round((r.rate||.5)*100)} % contre le champion), poids inchangés.`;
+    if(!S.forgeAuto)return `Tactique : un challenger bat le champion (${Math.round(r.rate*100)} %), mais l’évolution automatique est désactivée.`;
+    const prev=store.get('championBrain',null);if(prev)store.set('championBrainPrevious',prev);
+    const next={...S.brain,rulesHash:PRETRAINED_BRAIN.rulesHash,weights:r.weights,origin:'lab',trainedAt:new Date().toISOString(),validation:{wins:Math.round(r.rate*r.n),losses:r.n-Math.round(r.rate*r.n),ties:0,series:r.n}};
+    if(store.set('championBrain',next)){S.brain=next;refreshChampion();}
+    return `Tactique : nouveaux poids adoptés (${Math.round(r.rate*100)} % contre l’ancien champion sur ${r.n} duels).`;
+  };
+  app.querySelector('#forgeCycle').onclick=()=>runForge([doWeights,doTrain,doCreate,doImprove,doCounter]);
+  fStop.onclick=()=>{S.forgeCancel=true;fStat.textContent='Interruption demandée…';};
+  app.querySelector('#forgeReset').onclick=()=>{if(!window.confirm('Effacer tous les decks NIGHTMARE et contre-decks ?'))return;NightmareDecks.reset();if(String(S.aiDeck).startsWith('nm-')&&S.aiDeck!=='nm-adaptive'){S.aiDeck='nm-adaptive';store.set('aiDeck',S.aiDeck);}drawList();fStat.textContent=forgeIdleText();};
+  app.querySelector('#nmExport').onclick=()=>{
+    const payload=JSON.stringify({schema:'nightmare-v1',date:new Date().toISOString(),brain:store.get('championBrain',null),decks:NightmareDecks.exportData(),rivalMemory:JSON.parse(window.RivalLearning.exportData(S.rivalMemory))},null,2);
+    if(exportJsonBridge('7gigs-nightmare.json',payload))return;
+    const url=URL.createObjectURL(new Blob([payload],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='7gigs-nightmare.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+  };
+  app.querySelector('#nmImport').onclick=()=>{
+    const inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';inp.style.display='none';
+    inp.onchange=async()=>{try{const f=inp.files?.[0];if(!f)return;if(f.size>5*1024*1024)throw new Error('fichier trop volumineux');
+      const x=JSON.parse(await f.text());if(!x||x.schema!=='nightmare-v1')throw new Error('format inconnu');
+      const parts=[];
+      if(x.decks){NightmareDecks.importData(x.decks);parts.push(Object.keys(NightmareDecks.all()).length+' deck(s)');}
+      const b=x.brain;if(b&&b.rulesHash===PRETRAINED_BRAIN.rulesHash&&Array.isArray(b.weights)&&b.weights.length===8){store.set('championBrain',b);S.brain=b;refreshChampion();parts.push('champion');}
+      if(x.rivalMemory){try{S.rivalMemory=window.RivalLearning.importData(JSON.stringify(x.rivalMemory));store.set('rivalLearningV1',S.rivalMemory);parts.push('mémoire des duels');}catch(e){console.warn('[NIGHTMARE] mémoire non importée',e);}}
+      drawList();toast('NIGHTMARE importé : '+(parts.join(', ')||'rien à importer'));}catch(e){toast('Import impossible : '+e.message,3500);}finally{inp.remove();}};
+    app.appendChild(inp);inp.click();
+  };
   stop.onclick=()=>{if(running){S.cancelTraining=true;stat.textContent='Interruption demandée après la partie en cours…';}};
   train.onclick=async()=>{
     if(!NIGHTMARE_TRAINING_CERTIFIED && !NIGHTMARE_TRAINING_EXPERIMENTAL){stat.textContent='Entraînement suspendu : validation des 150 effets officiels incomplète.';return;}
@@ -6385,6 +6761,7 @@ function labScreen(){
           ?`${result.matches} auto-duels · validation : ${result.wins} victoires, ${result.losses} défaites, ${result.draws} égalités. Le challenger bat le champion : vous pouvez l’adopter.`
           :`${result.matches} auto-duels · validation : ${result.wins} victoires, ${result.losses} défaites, ${result.draws} égalités. Le champion actuel reste le plus fort ; rien n’est modifié.`;
         if(adopt.isConnected)adopt.hidden=!result.upgraded;
+        if(result.upgraded&&S.forgeAuto)autoAdopt=true;
         return;
       }
       S.brain={rulesHash:PRETRAINED_BRAIN.rulesHash,weights:S.brain.weights,plans:result.plans,matches:(S.brain.matches||PRETRAINED_BRAIN.trainingMatches)+result.matches,validation:{wins:result.wins,losses:result.losses,ties:result.draws,series:result.validationMatches}};
@@ -6392,7 +6769,7 @@ function labScreen(){
       stat.innerHTML=`${result.matches} duels terminés. Validation : ${result.wins} victoires, ${result.losses} défaites, ${result.draws} égalités. <b>${result.upgraded?'Nouveau champion conservé.':'Champion précédent conservé.'}</b>`;
       app.querySelector('.lab-hero b').textContent=`NIGHTMARE // ${S.brain.matches.toLocaleString('fr-FR')} DUELS`;
     }catch(e){console.error(e);stat.textContent='Erreur du laboratoire : '+e.message;}
-    finally{running=false;S.training=false;S.cancelTraining=false;if(train.isConnected){train.disabled=false;stop.disabled=true;}if(restore?.isConnected)restore.disabled=false;}
+    finally{running=false;S.training=false;S.cancelTraining=false;if(train.isConnected){train.disabled=false;stop.disabled=true;}if(restore?.isConnected)restore.disabled=false;if(autoAdopt){autoAdopt=false;adopt.onclick();}}
   };
 }
 
@@ -6404,7 +6781,7 @@ function setupScreen() {
   mount(`<div class="screen">${topbar('Partie solo')}<div class="scroll pad sim-setup">
     <p class="sim-intro">Deux decks légaux, trois Légendes chacun. L'ordinateur joue sans révéler ses cartes cachées.</p>
     <label for="mineDeck">Votre deck</label><select id="mineDeck" class="sim-select">${opts(S.myDeck)}</select>
-    <label for="enemyDeck">Deck adverse</label><select id="enemyDeck" class="sim-select"><option value="random" ${S.aiDeck==='random'?'selected':''}>Deck tactique aléatoire</option>${opts(S.aiDeck)}</select>
+    <label for="enemyDeck">Deck adverse</label><select id="enemyDeck" class="sim-select"><option value="nm-adaptive" ${S.aiDeck==='nm-adaptive'?'selected':''}>◈ NIGHTMARE adaptatif · contre votre deck</option><option value="random" ${S.aiDeck==='random'?'selected':''}>Deck tactique aléatoire</option>${opts(S.aiDeck)}</select>
     <div class="sim-setup-split"><div><label for="pseudo">Votre nom</label><input class="search sim-pseudo" id="pseudo" maxlength="16" value="${esc(S.pseudo)}"></div>
     <div><label for="lvl">Intelligence de l'adversaire</label><select class="sim-select" id="lvl">${Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${S.level===k?'selected':''}>${v[0]} · ${v[1]}</option>`).join('')}</select></div></div>
     <div class="prime-opponent-brief" id="rivalBrief" role="status" aria-live="polite"></div>
@@ -6422,12 +6799,17 @@ function setupScreen() {
   app.querySelector('#importGame').onclick=()=>{const inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';
     inp.onchange=async()=>{try{await GameArchive.import(inp.files[0]);toast('Sauvegarde importée');setupScreen();}catch(e){toast('Import impossible : '+e.message,3500);}finally{inp.remove();}};
     document.body.appendChild(inp);inp.click();};
-  app.querySelector('#mineDeck').onchange=e=>{S.myDeck=e.target.value;store.set('myDeck',S.myDeck)};
+  app.querySelector('#mineDeck').onchange=e=>{S.myDeck=e.target.value;store.set('myDeck',S.myDeck);explainOpponent();};
   const rivalBrief=app.querySelector('#rivalBrief');
   const explainOpponent=()=>{
     const info=OpponentBriefings[S.aiDeck];
     rivalBrief.textContent=info?info[0]+' · '+info[1]:
       S.aiDeck==='random'?'Deck mystère : un adversaire différent est généré à chaque nouveau duel.':
+      S.aiDeck==='nm-adaptive'?(()=>{const c=NightmareDecks.counterFor(allDecks()[S.myDeck]||{legends:[],main:[]});const b=NightmareDecks.best();
+        return c?`NIGHTMARE jouera son contre-deck validé à votre deck (${Math.round(c[1].rate*100)} % en validation).`:
+          b?`Pas encore de contre-deck à votre deck : NIGHTMARE jouera « ${b[1].name} ». Il en cherche un après chaque duel.`:
+          'NIGHTMARE n’a pas encore de deck à lui : il jouera un deck tactique et cherchera un contre-deck après le duel.';})():
+      allDecks()[S.aiDeck]?.nightmare?(allDecks()[S.aiDeck].desc||'Deck créé par NIGHTMARE.'):
       'Deck personnalisé : vérifiez les trois Légendes et la composition.';
   };
   explainOpponent();
@@ -6437,7 +6819,7 @@ function setupScreen() {
     S.pseudo=app.querySelector('#pseudo').value.trim()||'Joueur';store.set('pseudo',S.pseudo);
     const mine=allDecks()[S.myDeck], aiD=allDecks()[S.aiDeck];
     const err=validateDeck(mine);if(err.length)return toast('Deck joueur invalide : '+err[0],4200);
-    if(S.aiDeck!=='random'&&validateDeck(aiD).length)return toast('Deck adverse invalide : '+validateDeck(aiD)[0],4200);
+    if(S.aiDeck!=='random'&&S.aiDeck!=='nm-adaptive'&&validateDeck(aiD).length)return toast('Deck adverse invalide : '+validateDeck(aiD)[0],4200);
     startGame();
   };
 }
@@ -6821,7 +7203,8 @@ async function startGame(resume=false) {
   else {GameArchive.clear();S.timeline=[];S.eventTrace=[];}
   const D = allDecks();
   const mine = D[S.myDeck] || PRESETS['the-heist'];
-  const theirs = S.aiDeck === 'random' ? randomAIDeck() : (D[S.aiDeck] || PRESETS['embracing-power']);
+  S.forgeCancel=true;
+  const theirs = S.aiDeck === 'random' ? randomAIDeck() : S.aiDeck === 'nm-adaptive' ? adaptiveDeck(mine) : (D[S.aiDeck] || PRESETS['embracing-power']);
   const invalidPlayer = validateDeck(mine), invalidEnemy = validateDeck(theirs);
   if (invalidPlayer.length || invalidEnemy.length) {
     mount('<div class="screen"><div class="board"></div></div>');
@@ -6935,6 +7318,7 @@ async function startGame(resume=false) {
   GameArchive.finish(g.s,res);
   // One completed, real duel is recorded exactly once; never promote an incomplete simulation.
   CareerStats.record(res,allDecks()[S.myDeck]?.name||S.myDeck,S.campaignRun);
+  if(!S.campaignRun)setTimeout(()=>NightmareAuto.afterDuel(mine,allDecks()[S.myDeck]?.name||'votre deck'),1500);
   if(S.campaignRun)CampaignProgress.finish(S.campaignRun,res);
   if(session){
     S.rivalMemory=window.RivalLearning.finish(S.rivalMemory,session,res.winner);

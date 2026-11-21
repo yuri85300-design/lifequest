@@ -9,6 +9,8 @@ on:
       - 'native/audit_275_chaos.cjs'
       - 'native/ui_full_duel_275.cjs'
       - 'native/nightmare_lab_275.cjs'
+      - 'native/nightmare_forge_test.cjs'
+      - 'native/nightmare_forge_ui_275.cjs'
       - 'native/nightmare_training_contract.cjs'
       - 'native/semantic_oracles_last_b.cjs'
       - 'native/audit_261.cjs'
@@ -31,6 +33,8 @@ on:
       - 'native/audit_275_chaos.cjs'
       - 'native/ui_full_duel_275.cjs'
       - 'native/nightmare_lab_275.cjs'
+      - 'native/nightmare_forge_test.cjs'
+      - 'native/nightmare_forge_ui_275.cjs'
       - 'native/nightmare_training_contract.cjs'
       - 'native/semantic_oracles_last_b.cjs'
       - 'native/audit_261.cjs'
@@ -51,7 +55,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Assembler le runtime et verifier les scripts JavaScript
@@ -130,6 +134,13 @@ jobs:
           node native/nightmare_training_contract.cjs
           node native/nightmare_lab_275.cjs /tmp/prime275-preflight index.html | tee /tmp/prime275-preflight/audit-nightmare-lab.json
           grep -Fq '"status": "PASS"' /tmp/prime275-preflight/audit-nightmare-lab.json
+      - name: Forge NIGHTMARE (decks crees, ameliores, contre-decks, apprentissage apres duel)
+        run: |
+          set -euo pipefail
+          PRIME_ENGINE_PATH=/tmp/prime275-preflight/engine.js node native/nightmare_forge_test.cjs | tee /tmp/prime275-preflight/audit-nightmare-forge.json
+          grep -Fq '"status": "PASS"' /tmp/prime275-preflight/audit-nightmare-forge.json
+          node native/nightmare_forge_ui_275.cjs /tmp/prime275-preflight index.html | tee /tmp/prime275-preflight/audit-nightmare-forge-ui.json
+          grep -Fq '"status": "PASS"' /tmp/prime275-preflight/audit-nightmare-forge-ui.json
       - name: Conserver les preuves
         if: always()
         uses: actions/upload-artifact@v4

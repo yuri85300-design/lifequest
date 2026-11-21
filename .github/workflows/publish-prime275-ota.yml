@@ -30,7 +30,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 22
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - name: Construire un paquet du jeu sans APK ni illustrations
@@ -47,7 +47,7 @@ jobs:
           path=Path('/tmp/prime-ota/latest.json')
           manifest=json.loads(path.read_text(encoding='utf-8'))
           manifest['min_shell']=25004
-          manifest['notes']='Laboratoire NIGHTMARE actif. Corrections de regles : Viktor Vektor, Alt Cunningham, Nocturne, Radioport Arasaka, Caliber et Padre ; 150 cartes comparees au texte officiel. Sauvegardes conservees.'
+          manifest['notes']='NIGHTMARE cree, ameliore et contre vos decks, apprend apres chaque duel. Corrections de regles : Viktor Vektor, Alt Cunningham, Nocturne, Radioport Arasaka, Caliber et Padre ; 150 cartes comparees au texte officiel. Sauvegardes conservees.'
           path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           print('MANIFEST_275',manifest['version_code'],manifest['min_shell'])
           PY
@@ -67,6 +67,8 @@ jobs:
           node native/card_lifecycle_oracles.cjs | tee /tmp/prime-ota/audit-lifecycle.txt
           node native/semantic_mutation_audit.cjs | tee /tmp/prime-ota/audit-mutation.txt
           node native/nightmare_training_contract.cjs
+          PRIME_ENGINE_PATH=/tmp/prime-ota/engine.js node native/nightmare_forge_test.cjs | tee /tmp/prime-ota/audit-nightmare-forge.json
+          grep -Fq '"status": "PASS"' /tmp/prime-ota/audit-nightmare-forge.json
           CHAOS_GAMES=3000 PRIME_ENGINE_PATH=/tmp/prime-ota/engine.js node native/audit_275_chaos.cjs > /tmp/prime-ota/audit-chaos.json
           grep -Fq '"status": "PASS"' /tmp/prime-ota/audit-chaos.json
       - name: Valider les regles et les duels AVANT publication
@@ -112,7 +114,7 @@ jobs:
           name: PRIME - mise a jour sans APK - v2.7.5
           prerelease: false
           make_latest: false
-          body: "PRIME 2.7.5 : laboratoire NIGHTMARE actif (entrainement, adoption validee et reversible du champion), corrections de regles de cartes (Viktor Vektor, Alt Cunningham, Nocturne OP55 N1, Radioport d urgence Arasaka, Caliber, Padre), 150 cartes comparees au texte anglais officiel, moteur teste = moteur publie, 5000 duels de compatibilite entre les 150 cartes. Sauvegardes et parties en cours conservees."
+          body: "PRIME 2.7.5 : NIGHTMARE apprend seul (forge de decks, contre-decks valides apres chaque duel, adversaire adaptatif, entrainement tactique valide statistiquement, export/import), corrections de regles de cartes (Viktor Vektor, Alt Cunningham, Nocturne OP55 N1, Radioport d urgence Arasaka, Caliber, Padre), 150 cartes comparees au texte anglais officiel, moteur teste = moteur publie, 5000 duels de compatibilite entre les 150 cartes. Sauvegardes et parties en cours conservees."
           files: /tmp/prime-ota/prime-content-v2.7.5.zip
           fail_on_unmatched_files: true
       - name: Actualiser le manifeste uniquement si sa version augmente
@@ -147,4 +149,5 @@ jobs:
             /tmp/prime-ota/audit-lifecycle.txt
             /tmp/prime-ota/audit-mutation.txt
             /tmp/prime-ota/audit-chaos.json
+            /tmp/prime-ota/audit-nightmare-forge.json
           if-no-files-found: error

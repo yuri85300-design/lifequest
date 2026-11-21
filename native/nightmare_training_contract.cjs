@@ -28,8 +28,11 @@ assert.match(adopt,/const r=pendingChampion\(\);if\(!r\|\|running\)/,'Only a pen
 assert.match(html,/function pendingChampion\(\)\{[\s\S]{0,200}r\.upgraded&&!r\.adopted&&r\.plans/,'Pending challenger must have passed validation');
 assert.match(adopt,/store\.set\('championBrainPrevious',previous\)/,'Previous champion must be kept');
 assert.match(html,/restore\.onclick=\(\)=>\{[\s\S]{0,300}store\.del\('championBrain'\)[\s\S]{0,80}S\.brain=defaultBrain\(\)/,'Original champion must be restorable');
+// Automatic evolution: only a validated challenger, only when the player left the option on.
+assert.ok(html.includes('if(result.upgraded&&S.forgeAuto)autoAdopt=true;'),'Automatic adoption must require validation and the player option');
+assert.ok(html.includes("forgeAuto: store.get('nightmareAutoEvolve', true) !== false"),'Automatic evolution option missing');
 // Promotion threshold and per-session seed.
 assert.ok(html.includes('const upgraded=incompleteValidation===0 && (wins+draws*.5)>=49;'),'Validation threshold changed');
 assert.ok(html.includes('},()=>S.cancelTraining,runSeed);'),'Each session must use its own seed');
 assert.ok(html.includes('const result=await DeckPlanAI.trainLeague(Object.values(PRESETS),300,'),'Existing bounded trainer must remain');
-console.log('PASS NIGHTMARE training contract ('+file+'): training open, adoption explicit and reversible, certified=false');
+console.log('PASS NIGHTMARE training contract ('+file+'): training open, adoption validated (manual or automatic) and reversible, certified=false');

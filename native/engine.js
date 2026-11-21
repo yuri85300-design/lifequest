@@ -2927,6 +2927,199 @@ const API={FAMILIES,LABELS,INITIAL,normalize,classify,rivalStyle,comboState,bias
 root.DeckPlanAI=API;
 if(typeof module!=='undefined')module.exports=API;
 })(typeof window!=='undefined'?window:globalThis);
+
+// ============================================================================
+//  NIGHTMARE · FORGE DE DECKS — création, amélioration et contre-decks
+//  Évolution par mutations légales (validateDeck), évaluée en vraies parties
+//  simulées sur ce moteur. Un deck n'est retenu qu'après une validation sur
+//  des donnes jamais vues pendant l'évolution, jouées des deux côtés.
+// ============================================================================
+(function(root){
+'use strict';
+const R=root;
+function rng32(seed){let s=(seed>>>0)||1;return()=>{s=(s+0x6D2B79F5)|0;let x=s;x=Math.imul(x^(x>>>15),x|1);x^=x+Math.imul(x^(x>>>7),x|61);return((x^(x>>>14))>>>0)/4294967296;};}
+const legal=d=>!!d&&Array.isArray(d.legends)&&Array.isArray(d.main)&&!R.validateDeck(d).length;
+const legendIds=()=>Object.values(R.CARDS).filter(c=>c.type==='Legend').map(c=>c.id);
+function cardPool(legends){const lim=R.deckRamLimits(legends);return Object.values(R.CARDS).filter(c=>c.type!=='Legend'&&lim[c.color]>0&&(c.ram||0)<=lim[c.color]).map(c=>c.id);}
+const counts=list=>list.reduce((o,id)=>(o[id]=(o[id]||0)+1,o),{});
+function repair(deck,rand){
+  const pool=cardPool(deck.legends),ok=new Set(pool),cnt={},main=[];
+  for(const id of deck.main)if(ok.has(id)&&(cnt[id]||0)<3){cnt[id]=(cnt[id]||0)+1;main.push(id);}
+  for(let guard=0;main.length<40&&guard<2000&&pool.length;guard++){const id=pool[Math.floor(rand()*pool.length)];if((cnt[id]||0)<3){cnt[id]=(cnt[id]||0)+1;main.push(id);}}
+  return {...deck,main};
+}
+function randomLegends(rand){
+  const all=legendIds();
+  for(let t=0;t<200;t++){const pick=[],names=new Set(),pool=all.slice();
+    while(pick.length<3&&pool.length){const id=pool.splice(Math.floor(rand()*pool.length),1)[0];if(!names.has(R.CARDS[id].name)){names.add(R.CARDS[id].name);pick.push(id);}}
+    if(pick.length===3&&cardPool(pick).length>=14)return pick;}
+  return all.slice(0,3);
+}
+// Guided mutation: additions favour well-rated cards, removals favour weak ones.
+const rating=id=>{try{return R.cardRating?R.cardRating(id):0;}catch(_){return 0;}};
+function weightedPick(ids,rand,w){let tot=0;const ws=ids.map(id=>{const x=Math.max(.05,w(id));tot+=x;return x;});let r=rand()*tot;for(let i=0;i<ids.length;i++){r-=ws[i];if(r<=0)return ids[i];}return ids[ids.length-1];}
+function mutate(deck,rand,strength=1){
+  for(let attempt=0;attempt<40;attempt++){
+    let d={...deck,legends:deck.legends.slice(),main:deck.main.slice()};
+    if(rand()<0.10*strength){
+      const k=Math.floor(rand()*3),others=d.legends.filter((_,j)=>j!==k).map(id=>R.CARDS[id].name);
+      const cands=legendIds().filter(id=>!d.legends.includes(id)&&!others.includes(R.CARDS[id].name));
+      if(cands.length){d.legends[k]=cands[Math.floor(rand()*cands.length)];d=repair(d,rand);}
+    }
+    const pool=cardPool(d.legends),swaps=1+Math.floor(rand()*2*strength);
+    for(let s=0;s<swaps&&pool.length;s++){
+      const cnt=counts(d.main),avail=pool.filter(id=>(cnt[id]||0)<3);if(!avail.length)break;
+      const add=weightedPick(avail,rand,id=>Math.exp(rating(id)*.35));
+      const uniq=Object.keys(cnt),rem=weightedPick(uniq,rand,id=>Math.exp(-rating(id)*.35));
+      d.main.splice(d.main.indexOf(rem),1);d.main.push(add);
+    }
+    if(legal(d))return d;
+  }
+  return deck;
+}
+function makePolicy(o={}){
+  if(o.policy)return o.policy;
+  const P=R.DeckPlanAI;
+  return P&&P.makePolicy?P.makePolicy(o.weights||null,o.plans||P.INITIAL):R.FastPolicy;
+}
+async function playOne(a,b,seed,policy){
+  const g=R.Game.create([a,b],[policy,policy],{seed,hooks:{sim:true}});
+  const r=await g.run(90);
+  if(!r||r.status==='incomplete'||r.winner===undefined||r.winner===null)return null;
+  return r.winner;
+}
+// Score of `deck` against each opponent, every deal played from both seats.
+async function score(deck,opponents,games,seedBase,policy,tick){
+  let pts=0,n=0,wins=0,losses=0,draws=0;
+  for(let o=0;o<opponents.length;o++)for(let k=0;k<games;k++){
+    const seed=(seedBase+Math.imul(o+1,7919)+Math.imul(Math.floor(k/2)+1,104729))|0,flip=k%2===1;
+    const w=await playOne(flip?opponents[o]:deck,flip?deck:opponents[o],seed,policy);
+    if(tick)await tick();
+    if(w===null)continue;
+    n++;const me=flip?1:0;
+    if(w===me){pts++;wins++;}else if(w<0){pts+=.5;draws++;}else losses++;
+  }
+  return {pts,n,wins,losses,draws,rate:n?pts/n:0};
+}
+function diff(a,b){
+  const ca=counts(a.main),cb=counts(b.main),added=[],removed=[];
+  for(const id of new Set([...Object.keys(ca),...Object.keys(cb)])){const d=(cb[id]||0)-(ca[id]||0);if(d>0)added.push({id,n:d});else if(d<0)removed.push({id,n:-d});}
+  return {added,removed,legendsIn:b.legends.filter(x=>!a.legends.includes(x)),legendsOut:a.legends.filter(x=>!b.legends.includes(x))};
+}
+// Racing hill-climb. Each generation: children and incumbent play IDENTICAL deals;
+// the best child must then confirm on fresh deals before replacing the incumbent.
+// Final held-out validation on deals never used during evolution.
+async function evolve(o){
+  const rand=rng32(o.seed),policy=makePolicy(o);
+  const generations=o.generations??10,children=o.children??4,games=o.games??4,valGames=o.valGames??16,confirmGames=o.confirmGames??games;
+  const margin=o.stepMargin??0.06;
+  let ticks=0;const tick=async()=>{if(o.cancel&&o.cancel())throw Object.assign(new Error('cancelled'),{cancelled:true});
+    if(++ticks%4===0&&typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));};
+  try{
+    let best=o.start,accepted=0;const history=[];
+    for(let gen=0;gen<generations;gen++){
+      const seedA=((o.seed^0x51ed27)+Math.imul(gen+1,31337))|0,seedB=((o.seed^0x7a3d11)+Math.imul(gen+1,92821))|0;
+      const inc=await score(best,o.opponents,games,seedA,policy,tick);
+      let top=null;
+      for(let c=0;c<children;c++){
+        const d=mutate(best,rand,gen<generations/2?1.4:1);
+        if(d===best)continue;
+        const sc=await score(d,o.opponents,games,seedA,policy,tick);
+        if(!top||sc.rate>top.s.rate)top={d,s:sc};
+      }
+      let moved=false;
+      if(top&&top.s.rate>inc.rate){
+        const c2=await score(top.d,o.opponents,confirmGames,seedB,policy,tick),i2=await score(best,o.opponents,confirmGames,seedB,policy,tick);
+        const gain=(top.s.pts+c2.pts)/Math.max(1,top.s.n+c2.n)-(inc.pts+i2.pts)/Math.max(1,inc.n+i2.n);
+        if(gain>=margin){best=top.d;accepted++;moved=true;}
+      }
+      history.push({gen:gen+1,accepted:moved,rate:inc.rate});
+      if(o.report)o.report({phase:'evolution',gen:gen+1,generations,accepted});
+    }
+    const valSeed=((o.seed^0x2c1b3c6d)+1000003)|0;
+    if(o.report)o.report({phase:'validation',gen:generations,generations,accepted});
+    const candidate=accepted?await score(best,o.opponents,valGames,valSeed,policy,tick):null;
+    const baseline=await score(o.start,o.opponents,valGames,valSeed,policy,tick);
+    const cand=candidate||baseline;
+    // Two-proportion z-test on held-out deals: the gain must exceed ~2 standard errors.
+    const minGain=o.minGain??0.05,minZ=o.minZ??2.0;
+    const se=Math.sqrt(Math.max(1e-9,cand.rate*(1-cand.rate)/Math.max(1,cand.n)+baseline.rate*(1-baseline.rate)/Math.max(1,baseline.n)));
+    const z=(cand.rate-baseline.rate)/se;
+    const improved=accepted>0&&cand.n>0&&cand.rate>=baseline.rate+minGain&&z>=minZ&&(o.minRate==null||cand.rate>=o.minRate);
+    return {cancelled:false,deck:best,improved,accepted,z,validation:{candidate:cand,baseline},history,changes:diff(o.start,best)};
+  }catch(e){if(e&&e.cancelled)return {cancelled:true};throw e;}
+}
+function gauntlet(decks,rand,size=6){
+  const list=decks.filter(legal).slice(),out=[];
+  while(out.length<size&&list.length)out.push(list.splice(Math.floor(rand()*list.length),1)[0]);
+  return out;
+}
+// A brand new deck: random legal Legends, auto-built list, then evolved against a gauntlet.
+async function create(o){
+  const rand=rng32(o.seed);let start=null;
+  for(let t=0;t<30&&!legal(start);t++){const lg=randomLegends(rand);start=repair(R.autoDeck(lg,rand,40),rand);}
+  if(!legal(start))throw new Error('Impossible de générer un deck légal');
+  const opponents=gauntlet(o.pool,rand,o.gauntletSize??6);
+  // A new deck is kept if it improved during evolution AND holds at least 45 % against the gauntlet.
+  const r=await evolve({...o,start,opponents,valGames:o.valGames??40,minGain:o.minGain??0.05,minRate:o.minRate??0.45});
+  return {...r,start,opponents};
+}
+async function improve(o){
+  const rand=rng32(o.seed);const opponents=o.opponents||gauntlet(o.pool,rand,o.gauntletSize??6);
+  const r=await evolve({...o,opponents});return {...r,opponents};
+}
+// Counter-deck: 1) screen every known deck against the target and keep the best
+// match-up, 2) evolve it against the target, 3) keep the evolved list only if it
+// is significantly better; otherwise keep the screened deck only if it beats the
+// target significantly (>= 55 % and z >= 2 against a coin flip on 200 fresh deals).
+async function counter(o){
+  const policy=makePolicy(o);const cands=(o.candidates||[o.start]).filter(legal);
+  if(o.start&&!cands.includes(o.start))cands.unshift(o.start);
+  let tick=async()=>{if(o.cancel&&o.cancel())throw Object.assign(new Error('cancelled'),{cancelled:true});};
+  let screened=[];
+  try{
+    for(let i=0;i<cands.length;i++){
+      const sc=await score(cands[i],[o.target],o.screenGames??10,((o.seed^0x13579b)+97)|0,policy,tick);
+      screened.push({deck:cands[i],rate:sc.rate});
+      if(o.report)o.report({phase:'screen',done:i+1,total:cands.length});
+      if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));
+    }
+  }catch(e){if(e&&e.cancelled)return {cancelled:true};throw e;}
+  screened.sort((a,b)=>b.rate-a.rate);
+  const start=screened[0].deck;
+  const r=await evolve({...o,start,opponents:[o.target],games:o.games??16,valGames:o.valGames??200,minGain:o.minGain??0.06,minRate:o.minRate??0.55});
+  if(r.cancelled)return r;
+  if(r.improved)return {...r,kind:'evolved',screenedFrom:screened.length};
+  const b=r.validation.baseline,zCoin=(b.rate-.5)/Math.sqrt(.25/Math.max(1,b.n));
+  const ok=b.n>0&&b.rate>=.55&&zCoin>=2;
+  return {...r,deck:start,improved:ok,kind:ok?'selected':'none',zCoin,screenedFrom:screened.length,changes:diff(start,start)};
+}
+// Tactical weights (AdaptiveAI): evolve with its league, then validate the challenger
+// head-to-head against the champion on 200 fresh deals (both seats). Adopted only if
+// >= 55 % and z >= 2 against a coin flip.
+async function trainWeights(o){
+  const A=R.AdaptiveAI;if(!A||!A.trainLeague)return {improved:false,skipped:true};
+  const r=await A.trainLeague(o.decks,o.matches??300,o.weights,p=>o.report&&o.report({phase:'weights',...p}),o.cancel||(()=>false));
+  if(r.cancelled)return {cancelled:true};
+  const cand=r.candidateWeights,inc=A.normalize(o.weights);
+  if(JSON.stringify(cand)===JSON.stringify(inc))return {improved:false,rate:.5,n:0};
+  let pts=0,n=0;const N=o.valGames??200,base=((o.seed>>>0)%1000003)*7+900001;
+  for(let k=0;k<N;k++){
+    if(o.cancel&&o.cancel())return {cancelled:true};
+    const flip=k%2===1,di=Math.floor(k/2)%o.decks.length,dj=(di+1+Math.floor(k/20))%o.decks.length;
+    const g=R.Game.create([o.decks[di],o.decks[dj]],flip?[A.makePolicy(inc),A.makePolicy(cand)]:[A.makePolicy(cand),A.makePolicy(inc)],{seed:(base+Math.floor(k/2)*104729)|0,hooks:{sim:true}});
+    const res=await g.run(94);
+    if(res.status!=='incomplete'){n++;pts+=res.winner<0?.5:res.winner===(flip?1:0)?1:0;}
+    if(k%10===9){if(o.report)o.report({phase:'weights-validation',done:k+1,total:N});if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));}
+  }
+  const rate=n?pts/n:0,z=(rate-.5)/Math.sqrt(.25/Math.max(1,n));
+  return {improved:n>0&&rate>=.55&&z>=2,weights:cand,rate,n,z};
+}
+function signature(deck){return [...deck.legends].sort().join('+')+'|'+Object.entries(counts(deck.main)).sort().map(([k,n])=>k+':'+n).join(',');}
+const API={rng32,legal,cardPool,mutate,repair,randomLegends,score,evolve,create,improve,counter,diff,signature,trainWeights};
+root.NightmareForge=API;
+if(typeof module!=='undefined')module.exports=API;
+})(typeof window!=='undefined'?window:globalThis);
 window.CARD_META = {"num":{"adam-smasher-ender-of-legends":1,"dexter-deshawn-off-the-grid":2,"johnny-silverhand-rocking-renegade":3,"royce-psycho-on-the-edge":4,"v-streetkid":5,"6th-street-recruits":6,"animals-wrecker":7,"chrome-fang":8,"el-sombrero-n-la-venganza-lenta":9,"japantown-jonin":10,"johnny-silverhand-never-stop-fighting":11,"kerry-eurodyne-the-last-rockerboy":12,"la-llorona-ghost-of-the-past":13,"meredith-stout-stone-cold-corpo":14,"octant":15,"royce-don-t-call-me-simon":16,"ruthless-lowlife":17,"screw-lovelorn-fool":18,"swordwise-huscle":19,"v-roamer-of-the-badlands":20,"valentino-guerrera":21,"yorinobu-arasaka-steel-dragon":22,"arasaka-emergency-radioport":23,"deadman-transmitter":24,"mantis-blades":25,"satori-sword-of-saburo":26,"all-is-lost":27,"appetite-for-destruction":28,"bonnie-and-clyde":29,"carnage-at-the-colosseum":30,"detonate":31,"gunpoint-diplomacy":32,"industrial-assembly":33,"over-the-edge":34,"shattered-memories":35,"dum-dum-maelstrom-triggerman":36,"kerry-eurodyne-axe-attitude-audience":37,"muamar-reyes-el-capita-n":38,"river-ward-detective-on-the-hunt":39,"rogue-amendiares-preem-solo":40,"adam-smasher-metal-over-meat":41,"alt-cunningham-mother-of-daemons":42,"augmented-negotiators":43,"caliber-totentanz-s-top-dog":44,"gilded-mato-n":45,"hanako-arasaka-in-a-gilded-cage":46,"heywood-ripperdoc":47,"jackie-welles-ride-or-die-choom":48,"maelstrom-goons":49,"maxtac-suppression-team":50,"offduty-malfini":51,"rockn-rockerboy":52,"secondhand-bombus":53,"sketchy-ripper":54,"t-bug-amateur-philosopher":55,"trauma-team-operatives":56,"viktor-vektor-drop-your-illusions":57,"viktor-vektor-you-might-feel-a-little-pinch":58,"adrenaline-converter":59,"gorilla-arms":60,"kiroshi-optics":61,"mandibular-upgrade":62,"the-relic-experimental-biochip":63,"zetatech-faceplate":64,"afterparty-at-lizzie-s":65,"bootleg-black-sapphire-show":66,"cyberpsychosis":67,"live-with-the-aftermath":68,"safety-override":69,"the-heist":70,"goro-takemura-vengeful-bodyguard":71,"hanako-arasaka-daughter-of-the-emperor":72,"jackie-welles-mama-s-favorite":73,"padre-man-of-the-cross":74,"panam-palmer-nomad-cavalry":75,"corpo-security":76,"emergency-atlus":77,"field-operator":78,"maelstrom-zealots":79,"maxtac-av":80,"maxtac-heavy":81,"maxtac-squadron":82,"nadia-fighting-through-grief":83,"pacifica-netrunner":84,"panam-palmer-strength-through-family":85,"pepe-najarro-working-doubles":86,"riding-nomad":87,"sandayu-oda-hanako-s-guardian":88,"saul-bright-stormrider":89,"tyger-s-whisper":90,"valentino-street-racer":91,"wraith-marauders":92,"overwatch-panam-s-gift":93,"riot-shield":94,"sandevistan":95,"zetatech-berserk":96,"corporate-surveillance":97,"don-t-fear-the-reaper":98,"fool-on-the-hill":99,"memory-relapse":100,"peace-offering":101,"synapse-burnout":102,"take-control":103,"we-gotta-live-together":104,"wild-in-the-streets":105,"alt-cunningham-soulkiller-architect":106,"evelyn-parker-beautiful-enigma":107,"judy-alvarez-braindance-maestro":108,"sasha-yakovleva-won-t-let-you-down":109,"wakako-okada-peace-and-harmony":110,"delamain-rideshare-ai":111,"delamain-cab":112,"evelyn-parker-scheming-siren":113,"hacked-corpo":114,"jacked-in-voodoo-boy":115,"judy-alvarez-nothing-to-doubt":116,"lizzy-wizzy-delicate-weapon":117,"maman-brigitte-spirit-of-death":118,"misty-olszewski-mender-of-broken-spirits":119,"modded-kusanagi":120,"modded-muramasa":121,"mox-inciters":122,"placide-voodoo-sentinel":123,"psycho-squad":124,"rita-wheeler-no-stupid-questions":125,"rogue-amendiares-queen-of-the-afterlife":126,"westbrook-netrunner":127,"dying-night-v-s-pistol":128,"netwatch-netdriver":129,"tetratronic-rippler":130,"chrome-reverie":131,"floor-it":132,"les-e-le-mens":133,"nocturne-op55-n1":134,"pyramid-song":135,"reboot-optics":136,"three-mouths-one-desire":137,"towerfall":138,"trust-no-one":139,"unlikely-bond":140}};
 /* 7 GIGS — apprentissage local contre le joueur (v1)
    Donnees d'entree : actions publiques et resultats des duels termines.

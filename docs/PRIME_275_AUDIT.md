@@ -76,7 +76,35 @@ Aucune optimisation de performance n'était nécessaire. Il n'y en a donc pas eu
 
 Tests : `nightmare_training_contract.cjs` (sur le runtime publié), `nightmare_training_browser_smoke.cjs` et `nightmare_training_real_smoke.cjs` (entraînement réel de 300 + 80 duels), et `nightmare_lab_275.cjs` (18 contrôles dans Chromium : entraînement réel, adoption, rechargement, duel contre le champion adopté, restauration).
 
-## 6. Ce qui reste hors périmètre
+## 6. NIGHTMARE apprend seul : Forge de decks, contre-decks, évolution automatique
+
+Nouveau module moteur `NightmareForge`. Il est testable dans Node et disponible dans l'application.
+- **Créer un deck** : trois Légendes aléatoires, une liste légale, puis une évolution carte par carte contre six decks de test.
+- **Améliorer le meilleur deck** : chaque session repart du meilleur deck NIGHTMARE, ce qui fait progresser NIGHTMARE de session en session.
+- **Contrer un deck** : NIGHTMARE essaie tous les decks qu'il connaît contre le deck visé, garde le meilleur match-up, puis le fait évoluer contre ce deck.
+- **Mutations guidées** : on ajoute plutôt des cartes bien notées et on retire plutôt les plus faibles. Toutes les mutations restent légales (2 000 sur 2 000 en test).
+- **Sélection en course** : un enfant et le deck en place jouent les mêmes donnes, et le gagnant est confirmé sur de nouvelles donnes.
+- **Validation finale** : sur des donnes jamais vues pendant l'évolution, avec un test statistique (z ≥ 2).
+  - Une première version sans ce test sur-apprenait : des decks « améliorés » ne gagnaient pas plus sur des parties indépendantes. La version actuelle ne retient plus que des gains confirmés.
+  - Mesures sur 16 sessions : 3 améliorations acceptées, toutes confirmées sur des parties indépendantes (+11, +12 et +19 points), et aucun faux positif.
+  - Les contre-decks ont été trouvés et confirmés pour 4 decks de test sur 6 (58 à 95 % de victoires). Contre le deck le plus solide, NIGHTMARE répond honnêtement qu'aucun deck ne le bat.
+- **Poids tactiques** (AdaptiveAI, jamais utilisés jusqu'ici) : ligue de 300 duels, puis 200 duels face au champion sur des donnes neuves. Les nouveaux poids ne sont adoptés que s'ils font ≥ 55 % avec z ≥ 2. Les plans de jeu ont presque aucune influence avec les poids actuels ; ce sont les poids qui portent la force de NIGHTMARE.
+
+Dans le jeu :
+- Section **Forge NIGHTMARE** du laboratoire, avec quatre boutons : Cycle complet (poids, plans, création, amélioration, contre-deck), Créer, Améliorer, Contrer mon deck.
+- Liste des decks NIGHTMARE avec leur taux validé et leur « technique » (cartes ajoutées ou retirées), et trois actions : Affronter, Copier dans mes decks, Supprimer.
+- Deck adverse **« ◈ NIGHTMARE adaptatif »** : NIGHTMARE joue son contre-deck validé à votre deck, sinon son meilleur deck.
+- **Évolution automatique** (désactivable, active par défaut) :
+  - après chacun de vos duels (hors campagne), NIGHTMARE cherche en arrière-plan un contre-deck au deck que vous venez de jouer ;
+  - il s'arrête dès qu'un nouveau duel commence ;
+  - il adopte seul les champions validés.
+- Tout est sauvegardé (`nightmareDecksV1`, `championBrain`, `nightmareAutoLast`) et se retrouve après un rechargement ou une mise à jour. **Exporter / Importer NIGHTMARE** transfère decks, champion et mémoire des duels.
+- Interface fluide pendant la forge : tâche la plus longue 168 ms, cycle complet d'environ 20 s sur PC.
+- `autoDeck` ignore la qualité des cartes : il passe la fiche au lieu de l'identifiant à `cardRating`, qui vaut donc toujours 0. Je ne l'ai pas modifié, car cela changerait les six decks prédéfinis des joueurs. La forge, elle, utilise la note correctement.
+
+Tests : `native/nightmare_forge_test.cjs` (moteur : légalité, déterminisme, annulation, contre-deck confirmé sur des donnes indépendantes, significativité) et `native/nightmare_forge_ui_275.cjs` (22 contrôles dans Chromium : contre-deck réel, cycle complet, adversaire adaptatif en duel réel, apprentissage après le duel, copie, suppression, export → effacement → import).
+
+## 7. Ce qui reste hors périmètre
 
 - **Certification formelle carte par carte** : la relecture manuelle des 150 textes officiels est faite, mais le registre exige que chacun des 280 segments soit relié à un test indépendant (122/280 aujourd'hui). Le verrou NIGHTMARE reste donc fermé.
 - **PvP public**, **signature permanente de l'APK** : inchangés (voir `docs/prime_272_readiness.md`).
