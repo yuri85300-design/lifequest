@@ -84,3 +84,5 @@ jobs:
           if-no-files-found: error
       - name: Assert NIGHTMARE remains certification-locked
         run: grep -q 'const NIGHTMARE_TRAINING_CERTIFIED = false' native/prime_v220_runtime.html
+
+# Validation branch: mutation gate and independent effects proofs.
