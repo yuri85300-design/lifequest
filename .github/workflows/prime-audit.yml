@@ -2,7 +2,8 @@ name: 7 Gigs PRIME - audit technique
 on:
   push:
     paths:
-      - 'native/prime_v220_runtime.html'
+      - 'native/prime_v275_runtime.html'
+      - 'native/engine.js'
       - 'native/audit_220.cjs'
       - 'native/extract_engine.cjs'
       - '.github/workflows/prime-audit.yml'
@@ -24,10 +25,10 @@ jobs:
           node-version: '22'
       - name: Verify runtime JavaScript parses
         run: |
-          node native/extract_engine.cjs
+          # engine.js must be byte-identical to the engine of the PUBLISHED runtime
+          node native/extract_engine.cjs --check
           node --check native/engine.js
           node --check native/ai-worker.js
-          git diff --exit-code -- native/engine.js
       - name: Pairwise 150-card checks and AI self-play
         run: node native/audit_220.cjs
       - name: Certification statement
