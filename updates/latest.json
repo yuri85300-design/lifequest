@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 27003,
-  "version": "2.7.3",
+  "version_code": 27004,
+  "version": "2.7.4",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.3/prime-content-v2.7.3.zip",
-  "sha256": "73fbcf78a27db41ebd09fbbff11caed6981760b581765c9a5844dfda80afca41",
-  "notes": "Ma collection : ajout manuel, import TXT/CSV, synergies et decks fondes sur les cartes possedees. Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.4/prime-content-v2.7.4.zip",
+  "sha256": "38af2e41d98d2436c4e592909f7f80c02893e9871737f6b05268cf3a9353a477",
+  "notes": "Tutoriel pas a pas des synergies, cartes associees et manquantes, import de collection et decks. Sauvegardes conservees."
 }
