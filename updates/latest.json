@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 27004,
-  "version": "2.7.4",
+  "version_code": 27005,
+  "version": "2.7.5",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.4/prime-content-v2.7.4.zip",
-  "sha256": "38af2e41d98d2436c4e592909f7f80c02893e9871737f6b05268cf3a9353a477",
-  "notes": "Tutoriel pas a pas des synergies, cartes associees et manquantes, import de collection et decks. Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.5/prime-content-v2.7.5.zip",
+  "sha256": "ea5b1e3c76c875dfd71a3e8c7c38a71bff26d727bf7f59c4080a71372962d6a7",
+  "notes": "NIGHTMARE cree, ameliore et contre vos decks, apprend apres chaque duel. Corrections de regles : Viktor Vektor, Alt Cunningham, Nocturne, Radioport Arasaka, Caliber et Padre ; 150 cartes comparees au texte officiel. Sauvegardes conservees."
 }
