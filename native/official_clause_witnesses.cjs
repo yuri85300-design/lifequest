@@ -430,3 +430,5 @@ module.exports={
      branches:['bottom-deck-on-resurrection','bottom-deck-no-eligible-unit','gear-follows-host-defeat']}
    ]}
 };
+
+// CI review of updated semantic branches.
