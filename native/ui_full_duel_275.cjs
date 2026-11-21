@@ -26,6 +26,8 @@ const server=http.createServer((q,r)=>{const f=path.join(dir,decodeURIComponent(
   const out={url:file,profiles:[]};
   for(const prof of [{name:'desktop',viewport:{width:1280,height:800}},{name:'mobile',viewport:{width:390,height:844},isMobile:true,hasTouch:true}]){
     const page=await browser.newPage(prof);
+    // UI_CPU=4 emulates a mid-range phone CPU (Chrome DevTools throttling).
+    if(Number(process.env.UI_CPU||1)>1){const cdp=await page.context().newCDPSession(page);await cdp.send('Emulation.setCPUThrottlingRate',{rate:Number(process.env.UI_CPU)});}
     const errors=[],consoleErr=[];
     page.on('pageerror',e=>errors.push(String(e.stack||e).slice(0,400)));
     page.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource/.test(m.text()))consoleErr.push(m.text().slice(0,300));});
@@ -88,7 +90,7 @@ const server=http.createServer((q,r)=>{const f=path.join(dir,decodeURIComponent(
       }
       const perf=await page.evaluate(()=>{const r=window.__rt.slice().sort((a,b)=>a-b),q=p=>r.length?+r[Math.floor(p*(r.length-1))].toFixed(1):0;
         const l=window.__long.slice();window.__rt=[];window.__long=[];
-        return {renders:r.length,renderP50:q(.5),renderP95:q(.95),renderMax:q(1),longTasks:l.length,longestTask:Math.max(0,...l),turn:__S.game?.s.turn,dom:document.getElementsByTagName('*').length};});
+        return {renders:r.length,renderP50:q(.5),renderP95:q(.95),renderMax:q(1),longTasks:l.length,longestTask:Math.max(0,...l),turn:__S.game?.s.turn,dom:document.getElementsByTagName('*').length,ai:{...(__S.aiStats||{})}};});
       res.duels.push({result:over,steps,actions,resumedAtTurn,...perf,saveKB:await page.evaluate(()=>Math.round((localStorage.getItem('septgigs.gameV230')||'').length/1024))});
       if(RESUME_FROM&&!resumedAtTurn&&!over)res.duels[res.duels.length-1].error='REPRISE NON EFFECTUEE';
     }

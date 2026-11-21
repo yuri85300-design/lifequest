@@ -8,6 +8,8 @@ on:
       - 'native/extract_engine.cjs'
       - 'native/audit_275_chaos.cjs'
       - 'native/ui_full_duel_275.cjs'
+      - 'native/nightmare_lab_275.cjs'
+      - 'native/nightmare_training_contract.cjs'
       - 'native/semantic_oracles_last_b.cjs'
       - 'native/audit_261.cjs'
       - 'native/audit_262.cjs'
@@ -28,6 +30,8 @@ on:
       - 'native/extract_engine.cjs'
       - 'native/audit_275_chaos.cjs'
       - 'native/ui_full_duel_275.cjs'
+      - 'native/nightmare_lab_275.cjs'
+      - 'native/nightmare_training_contract.cjs'
       - 'native/semantic_oracles_last_b.cjs'
       - 'native/audit_261.cjs'
       - 'native/audit_262.cjs'
@@ -120,6 +124,12 @@ jobs:
           python3 native/build_ota_content.py --source native/prime_v272_runtime.html --version 2.7.4 --version-code 27004 --out /tmp/prime274-old
           cp /tmp/prime274-old/index.html /tmp/prime275-preflight/old.html
           UI_DUELS=2 UI_RESUME_FROM=old.html node native/ui_full_duel_275.cjs /tmp/prime275-preflight index.html | tee /tmp/prime275-preflight/audit-ui-resume.json
+      - name: Laboratoire NIGHTMARE (entrainement reel, adoption, restauration)
+        run: |
+          set -euo pipefail
+          node native/nightmare_training_contract.cjs
+          node native/nightmare_lab_275.cjs /tmp/prime275-preflight index.html | tee /tmp/prime275-preflight/audit-nightmare-lab.json
+          grep -Fq '"status": "PASS"' /tmp/prime275-preflight/audit-nightmare-lab.json
       - name: Conserver les preuves
         if: always()
         uses: actions/upload-artifact@v4

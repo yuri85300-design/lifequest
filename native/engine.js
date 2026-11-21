@@ -2888,9 +2888,12 @@ function makePolicy(weights,plans,opts={}){
 function mutate(plans,random=Math.random,scale=.28){
  const out=normalize(plans);for(const f of FAMILIES)for(let i=0;i<5;i++)if(random()<.55)out[f][i]=clip(out[f][i]+(random()-.5)*2*scale);return out;
 }
-async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cancel=()=>false){
+// runSeed varies each training session (mutations, training deals and validation deals);
+// without it every session replayed the exact same 380 duels and the same verdict.
+async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cancel=()=>false,runSeed=0){
  if(!Array.isArray(decks)||decks.length<2)throw Error('Deux decks minimum');
- let rngSeed=(0x7f4a7c15 ^ Math.imul(matchCount, 1664525) ^ Math.floor((weights?.[0]||1)*1e6))>>>0;
+ runSeed=(Number(runSeed)||0)>>>0;
+ let rngSeed=(0x7f4a7c15 ^ Math.imul(matchCount, 1664525) ^ Math.floor((weights?.[0]||1)*1e6) ^ Math.imul(runSeed,0x9e3779b1))>>>0;
  const random=()=>{rngSeed=(rngSeed+0x6D2B79F5)|0;let x=rngSeed;x=Math.imul(x^(x>>>15),x|1);x^=x+Math.imul(x^(x>>>7),x|61);return ((x^(x>>>14))>>>0)/4294967296;};
  const incumbent=normalize(previous),pop=[{id:0,plan:incumbent,elo:1000}];
  for(let k=1;k<10;k++)pop.push({id:k,plan:mutate(incumbent,random,.55),elo:1000});
@@ -2900,7 +2903,7 @@ async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cance
   if(n&&n%100===0){pop.sort((a,b)=>b.elo-a.elo);const elite=pop.slice(0,3);pop.splice(0,pop.length,...elite,...Array.from({length:7},(_,j)=>({id:serial++,plan:mutate(elite[j%3].plan,random,.23),elo:1000})));}
   const ia=n%pop.length,ib=(ia+1+Math.floor(n/10)%(pop.length-1))%pop.length,flip=n%2===1;
   const [p,q]=[pop[ia],pop[ib]], di=Math.floor(n/2)%decks.length,dj=(di+3+Math.floor(n/24))%decks.length;
-  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,q.plan),makePolicy(weights,p.plan)]:[makePolicy(weights,p.plan),makePolicy(weights,q.plan)],{seed:911+Math.floor(n/2)*6719,hooks:{sim:true}});
+  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,q.plan),makePolicy(weights,p.plan)]:[makePolicy(weights,p.plan),makePolicy(weights,q.plan)],{seed:(911+Math.floor(n/2)*6719+Math.imul(runSeed,7919))|0,hooks:{sim:true}});
   const res=await gs.run(90); if(res.status==='incomplete')continue;
   const result=res.winner<0?.5:res.winner===(flip?1:0)?1:0;
   const expected=1/(1+10**((q.elo-p.elo)/400)),adjust=20*(result-expected);p.elo+=adjust;q.elo-=adjust;done++;
@@ -2912,13 +2915,13 @@ async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cance
  for(let n=0;n<val;n++){
   if(cancel())return {cancelled:true,done};
   const flip=n%2===1,di=Math.floor(n/2)%decks.length,dj=(di+5)%decks.length;
-  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,incumbent),makePolicy(weights,candidate)]:[makePolicy(weights,candidate),makePolicy(weights,incumbent)],{seed:100007+Math.floor(n/2)*12721,hooks:{sim:true}});
+  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,incumbent),makePolicy(weights,candidate)]:[makePolicy(weights,candidate),makePolicy(weights,incumbent)],{seed:(100007+Math.floor(n/2)*12721+Math.imul(runSeed,104729))|0,hooks:{sim:true}});
   const res=await gs.run(90);if(res.status==='incomplete'){incompleteValidation++;continue;} if(res.winner<0)draws++;else if(res.winner===(flip?1:0))wins++;else losses++;
   if(n%10===9){report({done,total:matchCount,phase:'validation',validation:n+1});if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));}
  }
  // Un candidat n'est promu qu'avec un avantage suffisamment net en validation.
  const upgraded=incompleteValidation===0 && (wins+draws*.5)>=49;
- return {done,matches:done,validationMatches:val,wins,losses,draws,incompleteValidation,upgraded,plans:upgraded?candidate:incumbent,candidatePlans:candidate};
+ return {done,matches:done,validationMatches:val,wins,losses,draws,incompleteValidation,upgraded,plans:upgraded?candidate:incumbent,candidatePlans:candidate,runSeed};
 }
 const API={FAMILIES,LABELS,INITIAL,normalize,classify,rivalStyle,comboState,bias,score,makePolicy,mutate,trainLeague};
 root.DeckPlanAI=API;

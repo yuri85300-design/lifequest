@@ -13,7 +13,7 @@ const assert=require('node:assert/strict');
  try{
   const page=await browser.newPage();
   const errs=[];page.on('pageerror',e=>errs.push(String(e)));
-  await page.goto(pathToFileURL(path.join(__dirname,'prime_v220_runtime.html')).href,
+  await page.goto(pathToFileURL(path.join(__dirname,process.env.PRIME_RUNTIME||'prime_v275_runtime.html')).href,
     {waitUntil:'domcontentloaded',timeout:30000});
   await page.locator('[data-nav="lab"]').first().click({timeout:15000});
   const button=page.locator('#labTrain');
@@ -33,17 +33,18 @@ const assert=require('node:assert/strict');
    };
   });
   await button.click();
-  await page.waitForFunction(()=>document.querySelector('#labStatus')?.textContent?.includes('Champion officiel inchangé'),{timeout:15000});
+  await page.waitForFunction(()=>document.querySelector('#labStatus')?.textContent?.includes('vous pouvez l’adopter'),{timeout:15000});
   const state=await page.evaluate(()=>({
    status:document.querySelector('#labStatus')?.textContent,
    original:window.__sandboxSmokeOriginalChampion,
    current:JSON.stringify(window.AIPlanChampion()),
    buttonEnabled:!document.querySelector('#labTrain')?.disabled
   }));
-  assert.equal(state.current,state.original,'Sandbox must not promote an uncertified champion');
+  assert.equal(state.current,state.original,'Training alone must never replace the champion');
+  assert.equal(await page.locator('#labAdopt').isVisible(),true,'A validated challenger must be offered for adoption');
   assert.equal(state.buttonEnabled,true,'Train should re-enable after completed run');
-  assert.match(state.status,/300 auto-duels expérimentaux/);
+  assert.match(state.status,/300 auto-duels · validation/);
   assert.equal(errs.length,0,'Browser page errors: '+errs.join('; '));
-  console.log('PASS: NIGHTMARE sandbox button, bounded trainer, isolated result and unchanged champion');
+  console.log('PASS: NIGHTMARE training button, bounded trainer, champion unchanged until the player adopts');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -63,7 +63,20 @@ Le moteur ne masque aucune erreur d'effet de carte (aucun `catch` silencieux). U
 
 Aucune optimisation de performance n'était nécessaire. Il n'y en a donc pas eu, pour ne pas risquer de régression.
 
-## 5. Ce qui reste hors périmètre
+## 5. NIGHTMARE
+
+**L'adversaire NIGHTMARE** (niveau expert) fonctionnait déjà. Avec un processeur ralenti 4 fois pour imiter un téléphone, il a pris 83 décisions sur 4 duels, toutes calculées en moins de 40 ms et sans aucun repli sur l'IA rapide.
+
+**Le laboratoire NIGHTMARE**, lui, était bloqué : son bouton d'entraînement restait désactivé en permanence. Un mode d'entraînement fonctionnel existait dans la copie 2.2.0, mais il n'avait jamais été reporté dans le jeu publié, et son test vérifiait cette copie 2.2.0. En 2.7.5 :
+- Le bouton **Lancer 300 auto-duels** est actif. Dix variantes de NIGHTMARE s'affrontent en ligue Elo sur les 10 decks de test, puis la meilleure joue 80 duels de validation contre le champion en place. L'interface reste utilisable : tâche la plus longue 172 ms, 4 s sur PC.
+- **Correction** : chaque session rejouait exactement les mêmes 380 duels, avec des graines fixes, et donnait toujours le même verdict. Relancer l'entraînement ne servait donc à rien. Chaque session tire maintenant sa propre graine. La validation reste équitable, car chaque donne est jouée dans les deux sens.
+- Un challenger n'est proposé que s'il marque **au moins 49 points sur 80** contre le champion. Le joueur l'adopte d'un clic (**Adopter le nouveau champion**), l'ancien champion est conservé, et **Revenir au champion d'origine** annule tout.
+- Résultat honnête : sur 12 sessions de test, le meilleur challenger a fait 44/80, ce qui n'est statistiquement pas mieux. Le champion d'origine reste donc en place. Le seuil n'a pas été abaissé, pour ne pas faire adopter un champion plus faible.
+- `NIGHTMARE_TRAINING_CERTIFIED` reste `false` : rien n'est présenté comme officiellement certifié.
+
+Tests : `nightmare_training_contract.cjs` (sur le runtime publié), `nightmare_training_browser_smoke.cjs` et `nightmare_training_real_smoke.cjs` (entraînement réel de 300 + 80 duels), et `nightmare_lab_275.cjs` (18 contrôles dans Chromium : entraînement réel, adoption, rechargement, duel contre le champion adopté, restauration).
+
+## 6. Ce qui reste hors périmètre
 
 - **Certification formelle carte par carte** : la relecture manuelle des 150 textes officiels est faite, mais le registre exige que chacun des 280 segments soit relié à un test indépendant (122/280 aujourd'hui). Le verrou NIGHTMARE reste donc fermé.
 - **PvP public**, **signature permanente de l'APK** : inchangés (voir `docs/prime_272_readiness.md`).

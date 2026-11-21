@@ -1402,6 +1402,8 @@ html.prime-readable :focus-visible{outline:3px solid #f4d580!important;outline-o
 .collection-valid{color:#a7e6b8}.collection-notready{color:#ffd2a2}.collection-panel details summary{cursor:pointer;font-weight:700;color:#e6c38f}
 @media(max-width:550px){.collection-grid{grid-template-columns:1fr;max-height:380px}.collection-panel,.collection-intro{padding:12px}.collection-entry{padding:8px}.sim-collection{gap:10px}}
 
+
+.lab-actions [hidden]{display:none!important}
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -4295,9 +4297,12 @@ function makePolicy(weights,plans,opts={}){
 function mutate(plans,random=Math.random,scale=.28){
  const out=normalize(plans);for(const f of FAMILIES)for(let i=0;i<5;i++)if(random()<.55)out[f][i]=clip(out[f][i]+(random()-.5)*2*scale);return out;
 }
-async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cancel=()=>false){
+// runSeed varies each training session (mutations, training deals and validation deals);
+// without it every session replayed the exact same 380 duels and the same verdict.
+async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cancel=()=>false,runSeed=0){
  if(!Array.isArray(decks)||decks.length<2)throw Error('Deux decks minimum');
- let rngSeed=(0x7f4a7c15 ^ Math.imul(matchCount, 1664525) ^ Math.floor((weights?.[0]||1)*1e6))>>>0;
+ runSeed=(Number(runSeed)||0)>>>0;
+ let rngSeed=(0x7f4a7c15 ^ Math.imul(matchCount, 1664525) ^ Math.floor((weights?.[0]||1)*1e6) ^ Math.imul(runSeed,0x9e3779b1))>>>0;
  const random=()=>{rngSeed=(rngSeed+0x6D2B79F5)|0;let x=rngSeed;x=Math.imul(x^(x>>>15),x|1);x^=x+Math.imul(x^(x>>>7),x|61);return ((x^(x>>>14))>>>0)/4294967296;};
  const incumbent=normalize(previous),pop=[{id:0,plan:incumbent,elo:1000}];
  for(let k=1;k<10;k++)pop.push({id:k,plan:mutate(incumbent,random,.55),elo:1000});
@@ -4307,7 +4312,7 @@ async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cance
   if(n&&n%100===0){pop.sort((a,b)=>b.elo-a.elo);const elite=pop.slice(0,3);pop.splice(0,pop.length,...elite,...Array.from({length:7},(_,j)=>({id:serial++,plan:mutate(elite[j%3].plan,random,.23),elo:1000})));}
   const ia=n%pop.length,ib=(ia+1+Math.floor(n/10)%(pop.length-1))%pop.length,flip=n%2===1;
   const [p,q]=[pop[ia],pop[ib]], di=Math.floor(n/2)%decks.length,dj=(di+3+Math.floor(n/24))%decks.length;
-  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,q.plan),makePolicy(weights,p.plan)]:[makePolicy(weights,p.plan),makePolicy(weights,q.plan)],{seed:911+Math.floor(n/2)*6719,hooks:{sim:true}});
+  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,q.plan),makePolicy(weights,p.plan)]:[makePolicy(weights,p.plan),makePolicy(weights,q.plan)],{seed:(911+Math.floor(n/2)*6719+Math.imul(runSeed,7919))|0,hooks:{sim:true}});
   const res=await gs.run(90); if(res.status==='incomplete')continue;
   const result=res.winner<0?.5:res.winner===(flip?1:0)?1:0;
   const expected=1/(1+10**((q.elo-p.elo)/400)),adjust=20*(result-expected);p.elo+=adjust;q.elo-=adjust;done++;
@@ -4319,13 +4324,13 @@ async function trainLeague(decks,matchCount,weights,previous,report=()=>{},cance
  for(let n=0;n<val;n++){
   if(cancel())return {cancelled:true,done};
   const flip=n%2===1,di=Math.floor(n/2)%decks.length,dj=(di+5)%decks.length;
-  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,incumbent),makePolicy(weights,candidate)]:[makePolicy(weights,candidate),makePolicy(weights,incumbent)],{seed:100007+Math.floor(n/2)*12721,hooks:{sim:true}});
+  const gs=Game.create([decks[di],decks[dj]],flip?[makePolicy(weights,incumbent),makePolicy(weights,candidate)]:[makePolicy(weights,candidate),makePolicy(weights,incumbent)],{seed:(100007+Math.floor(n/2)*12721+Math.imul(runSeed,104729))|0,hooks:{sim:true}});
   const res=await gs.run(90);if(res.status==='incomplete'){incompleteValidation++;continue;} if(res.winner<0)draws++;else if(res.winner===(flip?1:0))wins++;else losses++;
   if(n%10===9){report({done,total:matchCount,phase:'validation',validation:n+1});if(typeof window!=='undefined')await new Promise(r=>setTimeout(r,0));}
  }
  // Un candidat n'est promu qu'avec un avantage suffisamment net en validation.
  const upgraded=incompleteValidation===0 && (wins+draws*.5)>=49;
- return {done,matches:done,validationMatches:val,wins,losses,draws,incompleteValidation,upgraded,plans:upgraded?candidate:incumbent,candidatePlans:candidate};
+ return {done,matches:done,validationMatches:val,wins,losses,draws,incompleteValidation,upgraded,plans:upgraded?candidate:incumbent,candidatePlans:candidate,runSeed};
 }
 const API={FAMILIES,LABELS,INITIAL,normalize,classify,rivalStyle,comboState,bias,score,makePolicy,mutate,trainLeague};
 root.DeckPlanAI=API;
@@ -4679,7 +4684,11 @@ const store = {
 const COLORS = ['Red', 'Yellow', 'Green', 'Blue'];
 const TYPES = ['Legend', 'Unit', 'Gear', 'Program'];
 const PRETRAINED_BRAIN = {"version":"2.1.2","rulesHash":"v2.1.2-six-cards-2026-11-19","type":"evolutionary-tactical-policy","source":"Champion historique conservé comme référence ; entraînement sur 2.1.2 bloqué en attendant la certification sémantique.","trainingMatches":0,"validationMatches":0,"championId":"deck-plan-incumbent-retained","weights":[1.3974189832543578,1.4699976459191606,0.9885230293712723,1.545319042104414,0.30727634420153577,0.5862382899223975,1.1590000288668791,1.4756460358026895],"validation":{"status":"non validé sur 2.1.2"},"method":"Référence historique non réentraînée ; version du moteur incompatible avec anciennes mesures"};
-const NIGHTMARE_TRAINING_CERTIFIED = false; // Ne jamais promouvoir tant que les 150 effets officiels ne sont pas attestés.
+const NIGHTMARE_TRAINING_CERTIFIED = false; // Pas de certification automatique : le joueur décide d'adopter un champion validé.
+// PRIME 2.7.5 : les 150 cartes ont été comparées aux textes anglais officiels. L'entraînement est ouvert ;
+// un champion n'est proposé qu'après 80 duels de validation gagnés nettement, et reste réversible.
+const NIGHTMARE_TRAINING_EXPERIMENTAL = true;
+const defaultBrain = () => ({rulesHash:PRETRAINED_BRAIN.rulesHash,weights:PRETRAINED_BRAIN.weights,matches:PRETRAINED_BRAIN.trainingMatches,validation:PRETRAINED_BRAIN.validation});
 const LEVELS = { facile: ['Initiation', 'Heuristique simple'], normal: ['Tactique+', 'Recherche tactique'], expert: ['NIGHTMARE', 'Recherche et politique historique non certifiée'] };
 
 // --------------------------------------------------------------- état ----
@@ -4692,7 +4701,7 @@ const S = {
   speed: store.get('speed', .35),
   pseudo: store.get('pseudo', 'Joueur'),
   game: null, resolveMain: null, acts: [], sheet: null, fx: {}, ticker: '', thinking: false,
-  brain: (() => { const saved=store.get('championBrain',null); return saved && saved.rulesHash===PRETRAINED_BRAIN.rulesHash && Array.isArray(saved.weights) && saved.weights.length===8 ? saved : {rulesHash:PRETRAINED_BRAIN.rulesHash,weights:PRETRAINED_BRAIN.weights,matches:PRETRAINED_BRAIN.trainingMatches,validation:PRETRAINED_BRAIN.validation}; })(),
+  brain: (() => { const saved=store.get('championBrain',null); return saved && saved.rulesHash===PRETRAINED_BRAIN.rulesHash && Array.isArray(saved.weights) && saved.weights.length===8 ? saved : defaultBrain(); })(),
   campaignRun:null,
   training:false, cancelTraining:false, audio:store.get('audio',false),
   rivalMemory:window.RivalLearning.sanitize(store.get('rivalLearningV1',null)), learningEnabled:store.get('rivalLearningEnabled',true), duelLearner:null,
@@ -6252,6 +6261,21 @@ async function probeNightmare(button,report){
   }finally{if(button.isConnected)button.disabled=false;}
 }
 
+function championText(){
+  const b=S.brain||{},v=b.validation;
+  if(b.origin==='lab')return `Champion entraîné sur cet appareil le ${new Date(b.trainedAt).toLocaleDateString('fr-FR')} · validation ${v?.wins??0} V / ${v?.losses??0} D / ${v?.ties??0} N sur ${v?.series??80}. 150 cartes · 10 decks de test.`;
+  return 'Champion d’origine de PRIME. 150 cartes · 10 decks de test · plans aggro, équipement, contrôle, midrange. Moteur non officiel.';
+}
+function pendingChampion(){
+  const r=store.get('nightmareSandboxTraining',null);
+  return r&&r.mode==='EXPERIMENTAL_UNCERTIFIED'&&r.rulesHash===PRETRAINED_BRAIN.rulesHash&&r.upgraded&&!r.adopted&&r.plans?r:null;
+}
+function labIdleText(){
+  const r=store.get('nightmareSandboxTraining',null);
+  if(pendingChampion())return `Dernier entraînement : le challenger a battu le champion (${r.wins} V / ${r.losses} D / ${r.draws} N sur ${r.validationMatches}). Vous pouvez l’adopter.`;
+  if(r&&r.rulesHash===PRETRAINED_BRAIN.rulesHash&&!r.upgraded)return `Dernier entraînement : le champion actuel est resté le plus fort (${r.wins} V / ${r.losses} D / ${r.draws} N sur ${r.validationMatches}).`;
+  return 'Prêt : 300 auto-duels puis 80 duels de validation contre le champion actuel.';
+}
 function labScreen(){
   const n=(S.brain.matches||0);
   const v=S.brain.validation;
@@ -6259,11 +6283,15 @@ function labScreen(){
      <div class="lab-kicker">SIMULATEUR · NIGHT CITY · APPRENTISSAGE PAR ÉVOLUTION</div>
      <h1 class="lab-title">L’IA AFFRONTE<br>SA PROPRE IA.</h1>
      <div class="lab-hero"><small>CHAMPION ACTUEL</small><b>NIGHTMARE // ${n.toLocaleString('fr-FR')} DUELS</b>
-       <small>Politique historique non certifiée sur ce moteur. 150 cartes · 10 decks de test · plans aggro, équipement, contrôle, midrange. Moteur non officiel.</small></div>
+       <small id="labChampion">${esc(championText())}</small></div>
      <div class="lab-line"><span>Entraînement autonome</span><b id="labCount">0 / 300</b></div>
      <div class="lab-meter"><i id="labBar"></i></div>
-     <div class="lab-status" id="labStatus">Entraînement suspendu : 150 effets officiels non encore certifiés. Les anciens poids restent disponibles comme référence.</div>
-     <div class="lab-actions"><button class="btn primary" id="labTrain" disabled>Entraînement bloqué · audit incomplet</button><button class="btn ghost" id="labStop" disabled>Interrompre</button></div>
+     <div class="lab-status" id="labStatus" role="status" aria-live="polite">${esc(labIdleText())}</div>
+     <div class="lab-actions"><button class="btn primary" id="labTrain">Lancer 300 auto-duels</button><button class="btn ghost" id="labStop" disabled>Interrompre</button></div>
+     <div class="lab-actions" style="flex-wrap:wrap">
+       <button class="btn primary" id="labAdopt" ${pendingChampion()?'':'hidden'}>Adopter le nouveau champion</button>
+       <button class="btn ghost" id="labRestore" ${store.get('championBrain',null)?'':'hidden'}>Revenir au champion d’origine</button>
+     </div>
      <div class="lab-hero" style="margin-top:14px;border-color:#5f829a">
        <small>DIAGNOSTIC DE ROBUSTESSE · PAS D’ENTRAÎNEMENT</small>
        <p class="lab-foot">NIGHTMARE est confronté à douze situations tactiques jouables. Le contrôle vérifie la légalité de sa décision et si elle correspond à l'objectif attendu. Un score élevé n'est pas une certification.</p>
@@ -6283,8 +6311,8 @@ function labScreen(){
        </div>
      </div>
      <p class="lab-foot">Sauvegarde dans le navigateur : elle peut disparaître en changeant de fichier, de navigateur ou d’appareil. Exportez régulièrement votre mémoire en JSON, puis importez-la dans la nouvelle version du jeu.</p>
-     <p class="lab-foot">Entraînement du champion temporairement suspendu. Seule la validation complète des branches d’effets autorisera une nouvelle campagne et un éventuel remplacement statistique. Aucun agent ne peut garantir 100 % de victoires.</p>
-     <p class="lab-foot">PRIME 2.1.2 : six effets réparés et 59 oracles sémantiques indépendants validés. Les 150 effets ne sont pas encore certifiés ; aucun nouvel entraînement du champion ne peut être lancé. Historique de l’IA conservé séparément.</p>
+     <p class="lab-foot">Comment ça marche : 10 variantes de NIGHTMARE s’affrontent sur 300 duels réels avec les 10 decks de test (classement Elo). La meilleure joue ensuite 80 duels de validation contre le champion actuel. Elle n’est proposée que si elle marque au moins 49 points sur 80. Vous décidez de l’adopter ; le champion précédent reste restaurable. Aucun agent ne peut garantir 100 % de victoires.</p>
+     <p class="lab-foot">PRIME 2.7.5 : les 150 cartes ont été comparées aux textes anglais officiels (359 tests de règles). Le moteur reste non officiel. L’entraînement tourne sur cet appareil et peut prendre quelques minutes ; l’écran reste utilisable.</p>
    </div></div></div>`);
   app.querySelector('#labProbe').onclick=()=>probeNightmare(app.querySelector('#labProbe'),app.querySelector('#labProbeResult'));
   const updateRivalUI=()=>{
@@ -6313,25 +6341,58 @@ function labScreen(){
   };
   let running=false;
   const train=app.querySelector('#labTrain'),stop=app.querySelector('#labStop'),meter=app.querySelector('#labBar'),stat=app.querySelector('#labStatus'),counter=app.querySelector('#labCount');
+  const adopt=app.querySelector('#labAdopt'),restore=app.querySelector('#labRestore');
+  const refreshChampion=()=>{const c=app.querySelector('#labChampion'),h=app.querySelector('.lab-hero b');
+    if(c)c.textContent=championText();if(h)h.textContent=`NIGHTMARE // ${(S.brain.matches||0).toLocaleString('fr-FR')} DUELS`;
+    if(restore)restore.hidden=!store.get('championBrain',null);};
+  // Adoption is an explicit, reversible player decision; only a validated challenger can be adopted.
+  adopt.onclick=()=>{
+    const r=pendingChampion();if(!r||running){adopt.hidden=true;return;}
+    const previous=store.get('championBrain',null);
+    if(previous)store.set('championBrainPrevious',previous);
+    const next={rulesHash:PRETRAINED_BRAIN.rulesHash,weights:S.brain.weights||PRETRAINED_BRAIN.weights,plans:r.plans,
+      matches:(S.brain.matches||PRETRAINED_BRAIN.trainingMatches)+r.matches,
+      validation:{wins:r.wins,losses:r.losses,ties:r.draws,series:r.validationMatches},origin:'lab',trainedAt:r.date};
+    if(!store.set('championBrain',next)){toast('Stockage indisponible : champion non adopté.',3500);return;}
+    S.brain=next;store.set('nightmareSandboxTraining',{...r,adopted:true});
+    adopt.hidden=true;stat.textContent='Nouveau champion adopté : NIGHTMARE l’utilise dès le prochain duel.';refreshChampion();
+    toast('Nouveau champion NIGHTMARE adopté');
+  };
+  restore.onclick=()=>{
+    if(running)return;
+    if(!window.confirm('Revenir au champion d’origine de PRIME ? Le champion entraîné sur cet appareil sera retiré.'))return;
+    store.del('championBrain');store.del('championBrainPrevious');S.brain=defaultBrain();
+    stat.textContent='Champion d’origine rétabli.';refreshChampion();toast('Champion d’origine rétabli');
+  };
   stop.onclick=()=>{if(running){S.cancelTraining=true;stat.textContent='Interruption demandée après la partie en cours…';}};
   train.onclick=async()=>{
-    if(!NIGHTMARE_TRAINING_CERTIFIED){stat.textContent='Entraînement suspendu : validation des 150 effets officiels incomplète.';return;}
+    if(!NIGHTMARE_TRAINING_CERTIFIED && !NIGHTMARE_TRAINING_EXPERIMENTAL){stat.textContent='Entraînement suspendu : validation des 150 effets officiels incomplète.';return;}
     if(running)return;
-    running=true;S.training=true;S.cancelTraining=false;train.disabled=true;stop.disabled=false;
+    running=true;S.training=true;S.cancelTraining=false;train.disabled=true;stop.disabled=false;adopt.hidden=true;if(restore)restore.disabled=true;
     try{
+      const runSeed=(()=>{try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0];}catch(_){return (Date.now()^Math.floor(Math.random()*4294967296))>>>0;}})();
       const result=await DeckPlanAI.trainLeague(Object.values(PRESETS),300,window.AIChampion(),window.AIPlanChampion(),p=>{
          if(!counter.isConnected)return;
          counter.textContent=p.phase==='validation'?`Validation ${p.validation}/80`:`${p.done}/300`;
          meter.style.width=`${(p.done/300)*100}%`;
          stat.textContent=p.phase==='validation'?`Test indépendant du challenger : ${p.validation}/80 duels`:`Auto-affrontement ${p.done}/300 · meilleure politique de la génération ${p.leader}`;
-      },()=>S.cancelTraining);
+      },()=>S.cancelTraining,runSeed);
       if(result.cancelled){stat.textContent=`Entraînement interrompu après ${result.done} duels ; champion inchangé.`;return;}
+      if(!NIGHTMARE_TRAINING_CERTIFIED){
+        const sandboxReport={rulesHash:PRETRAINED_BRAIN.rulesHash,mode:'EXPERIMENTAL_UNCERTIFIED',date:new Date().toISOString(),matches:result.matches,validationMatches:result.validationMatches,wins:result.wins,losses:result.losses,draws:result.draws,incompleteValidation:result.incompleteValidation,upgraded:result.upgraded,plans:result.upgraded?result.plans:null,adopted:false,runSeed:result.runSeed};
+        store.set('nightmareSandboxTraining',sandboxReport);
+        stat.textContent=result.upgraded
+          ?`${result.matches} auto-duels · validation : ${result.wins} victoires, ${result.losses} défaites, ${result.draws} égalités. Le challenger bat le champion : vous pouvez l’adopter.`
+          :`${result.matches} auto-duels · validation : ${result.wins} victoires, ${result.losses} défaites, ${result.draws} égalités. Le champion actuel reste le plus fort ; rien n’est modifié.`;
+        if(adopt.isConnected)adopt.hidden=!result.upgraded;
+        return;
+      }
       S.brain={rulesHash:PRETRAINED_BRAIN.rulesHash,weights:S.brain.weights,plans:result.plans,matches:(S.brain.matches||PRETRAINED_BRAIN.trainingMatches)+result.matches,validation:{wins:result.wins,losses:result.losses,ties:result.draws,series:result.validationMatches}};
       store.set('championBrain',S.brain);
       stat.innerHTML=`${result.matches} duels terminés. Validation : ${result.wins} victoires, ${result.losses} défaites, ${result.draws} égalités. <b>${result.upgraded?'Nouveau champion conservé.':'Champion précédent conservé.'}</b>`;
       app.querySelector('.lab-hero b').textContent=`NIGHTMARE // ${S.brain.matches.toLocaleString('fr-FR')} DUELS`;
     }catch(e){console.error(e);stat.textContent='Erreur du laboratoire : '+e.message;}
-    finally{running=false;S.training=false;S.cancelTraining=false;if(train.isConnected){train.disabled=false;stop.disabled=true;}}
+    finally{running=false;S.training=false;S.cancelTraining=false;if(train.isConnected){train.disabled=false;stop.disabled=true;}if(restore?.isConnected)restore.disabled=false;}
   };
 }
 

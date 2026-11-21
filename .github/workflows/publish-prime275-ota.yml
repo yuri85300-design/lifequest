@@ -47,7 +47,7 @@ jobs:
           path=Path('/tmp/prime-ota/latest.json')
           manifest=json.loads(path.read_text(encoding='utf-8'))
           manifest['min_shell']=25004
-          manifest['notes']='Corrections de regles : Viktor Vektor, Alt Cunningham, Nocturne, Radioport Arasaka, Caliber et Padre ; 150 cartes comparees au texte officiel. Sauvegardes et parties en cours conservees.'
+          manifest['notes']='Laboratoire NIGHTMARE actif. Corrections de regles : Viktor Vektor, Alt Cunningham, Nocturne, Radioport Arasaka, Caliber et Padre ; 150 cartes comparees au texte officiel. Sauvegardes conservees.'
           path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           print('MANIFEST_275',manifest['version_code'],manifest['min_shell'])
           PY
@@ -112,7 +112,7 @@ jobs:
           name: PRIME - mise a jour sans APK - v2.7.5
           prerelease: false
           make_latest: false
-          body: "PRIME 2.7.5 : corrections de regles de cartes (Viktor Vektor, Alt Cunningham, Nocturne OP55 N1, Radioport d urgence Arasaka, Caliber, Padre), 150 cartes comparees au texte anglais officiel, moteur teste = moteur publie, 5000 duels de compatibilite entre les 150 cartes. Sauvegardes et parties en cours conservees."
+          body: "PRIME 2.7.5 : laboratoire NIGHTMARE actif (entrainement, adoption validee et reversible du champion), corrections de regles de cartes (Viktor Vektor, Alt Cunningham, Nocturne OP55 N1, Radioport d urgence Arasaka, Caliber, Padre), 150 cartes comparees au texte anglais officiel, moteur teste = moteur publie, 5000 duels de compatibilite entre les 150 cartes. Sauvegardes et parties en cours conservees."
           files: /tmp/prime-ota/prime-content-v2.7.5.zip
           fail_on_unmatched_files: true
       - name: Actualiser le manifeste uniquement si sa version augmente
