@@ -111,6 +111,19 @@
     {a:'yorinobu-arasaka-steel-dragon',b:'field-operator',why:'Yorinobu peut jouer gratuitement une unité ARASAKA de coût admissible.'},
     {a:'dying-night-v-s-pistol',b:'v-corporate-exile',why:'Équiper V avec Dying Night permet de redresser des Eddies en fin de tour.'}
   ];
+  // Guided examples remain advisory. They never bypass engine legality checks.
+  const LESSONS=[{"title":"Pioche et contrôle","level":"Débutant","goal":"Transformer l'épuisement d'un même hôte en avantage de cartes.","steps":["Repère un hôte que tu peux épuiser légalement.","Lis les deux effets et leur moment de déclenchement.","Si les conditions sont réunies, résous-les dans l'ordre prévu par les règles."],"tip":"La pioche aide à trouver des réponses. Un effet conditionnel n'est jamais automatique."},{"title":"Défendre ses Gigs","level":"Débutant","goal":"Protéger ta zone de Gigs grâce aux BLOQUEURS.","steps":["Prépare ton unité défensive et vérifie qu'elle peut bloquer.","Garde une possibilité de réaction pendant une attaque ennemie.","Applique la protection et les effets de Goro uniquement si leurs conditions sont satisfaites."],"tip":"Une unité épuisée n'est pas nécessairement disponible pour bloquer."},{"title":"Vol de Gigs et économie","level":"Intermédiaire","goal":"Profiter d'un vol de Gig pour améliorer les ressources disponibles.","steps":["Prépare le GANGER et une attaque légale vers les Gigs adverses.","Vérifie qu'un Gig est effectivement volé.","Vérifie le déclenchement d'Evelyn avant de redresser un Eddie."],"tip":"Attaquer ne suffit pas : le vol doit réellement se produire."},{"title":"Unités bleues et pioche","level":"Débutant","goal":"Construire un tour autour de la première unité bleue jouée.","steps":["Vérifie que Jackie est dans l'état requis par son effet.","Joue une unité bleue compatible, comme Delamain Cab.","Applique l'ajustement du Gig puis vérifie la condition de pioche."],"tip":"L'ordre des actions et les conditions de la carte comptent plus que leur simple présence."},{"title":"Réduction du coût ARASAKA","level":"Intermédiaire","goal":"Déployer une unité ARASAKA admissible sans payer son coût normal.","steps":["Lis la condition exacte de l'effet de Yorinobu.","Vérifie que Field Operator remplit les restrictions de faction et de coût.","Déclenche l'effet au moment permis, puis joue la carte admissible."],"tip":"Gratuit ne signifie pas jouable à n'importe quel moment."},{"title":"Équipement et ressources","level":"Débutant","goal":"Utiliser l'équipement de V pour récupérer des Eddies.","steps":["Mets en jeu un V pouvant légalement porter l'équipement.","Équipe Dying Night sur V en respectant son coût et son timing.","À la fin du tour, vérifie l'effet avant de redresser les Eddies concernés."],"tip":"Un équipement doit avoir un porteur légal et son effet doit être actif."}];
+  function tutorials(owned={},cards={},deck=null){
+    const ids=new Set([...(deck?.main||[]),...(deck?.legends||[])]);
+    return PAIRS.filter(p=>cards[p.a]&&cards[p.b]).map((p,i)=>{
+      const ownedIds=[p.a,p.b].filter(id=>(owned[id]||0)>0);
+      const lesson=LESSONS[i];
+      return {...p,...lesson,number:i+1,ownedCount:ownedIds.length,
+        missing:[p.a,p.b].filter(id=>!(owned[id]>0)),
+        bothInDeck:ids.has(p.a)&&ids.has(p.b),
+        ready:ownedIds.length===2};
+    }).sort((a,b)=>b.ownedCount-a.ownedCount||a.number-b.number);
+  }
   function synergies(owned,cards,deck){
     const ids=new Set([...(deck?.main||[]),...(deck?.legends||[])]);
     return PAIRS.filter(x=>cards[x.a]&&cards[x.b]&&
@@ -122,7 +135,7 @@
       }).sort((a,b)=>Number(b.bothInDeck)-Number(a.bothInDeck)||
         a.missing.length-b.missing.length||a.a.localeCompare(b.a));
   }
-  const api={clean,importText,suggest,ownedDeck,synergies};
+  const api={clean,importText,suggest,ownedDeck,synergies,tutorials};
   root.CollectionAdvisor=api;
   if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
