@@ -4,7 +4,7 @@
  * behavioral oracle cases. Linkage is explicitly NOT full semantic certification:
  * trigger timing, dynamic target choices and cross-card effects remain open.
  *
- * Each source hash is pinned to current English text from cyberpunktcg.com.
+ * Independent CI review branch: verify source-pinned clause-level witnesses.\n * Each source hash is pinned to current English text from cyberpunktcg.com.
  * If the publisher revises the card, the link fails closed.
  */
 module.exports={
