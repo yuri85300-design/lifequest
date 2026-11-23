@@ -97,7 +97,7 @@ function create(ctx){
       +'<div class="story-tags"><span>'+esc(info.type)+'</span><span>'+esc(info.color)+'</span><span>'+esc(info.price)+'</span><span>'+esc(info.ram)+'</span></div>'
       +'<button class="btn ghost" id="storyInspect">Voir la carte et ses illustrations</button></div>'
       +'<div class="story-dialogue"><b>TEXTE DE LA CARTE</b><p>'+esc(info.effect)+'</p><p><b>Réflexe :</b> '+esc(info.trigger)+'</p>'
-      +'<p>'+esc(info.sale)+'</p></div>';
+      +'<p>'+esc(info.sale)+'</p>'+(info.tags?'<p><b>Mots-clés et affiliations :</b> '+esc(info.tags)+'</p>':'')+'</div>';
     const allies=story.partners(CARDS,id,3);
     html+='<section class="story-panel"><small>ASSOCIATIONS À EXPLORER</small>'
       +'<h3>Quelles cartes tester avec '+esc(d.name)+' ?</h3>'
