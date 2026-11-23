@@ -134,7 +134,7 @@
     const effect=String(d.txt||d.text||'Lis le texte affiché sur la carte pour connaître les conditions exactes.').trim();
     return {id:d.id,name:String(d.name||d.id),en:String(d.nameEn||''),
       type:TYPE_FR[d.type]||String(d.type||'Inconnu'),color:COLOR_FR[d.color]||String(d.color||'Non précisée'),
-      price,ram,effect,trigger:trigger(d),
+      price,ram,effect,tags:Array.isArray(d.tags)?d.tags.join(' · '):'',trigger:trigger(d),
       sale:d.sell?'Cette carte possède le symbole €$ : elle peut être vendue lorsque l’action normale est légale.':
         'Ne suppose pas que cette carte est vendable : vérifie le symbole €$.'};
   }
@@ -207,6 +207,19 @@
       const answers=TYPES.map(t=>TYPE_FR[t]);
       return {question:'Quelle est la catégorie de « '+String(d.name||d.id)+' » ?',options:answers,correct:Math.max(0,TYPES.indexOf(d.type)),
         why:'Type lu sur la carte : '+(TYPE_FR[d.type]||d.type)+'. Vérifie les règles propres à ce type.'};
+    }
+    if(stage===1&&cards&&Array.isArray(d.tags)&&d.tags.length){
+      const phrase=x=>Array.isArray(x.tags)&&x.tags.length?x.tags.slice(0,3).join(' · '):'';
+      const correctText=phrase(d),others=[...new Set(Object.values(cards).filter(x=>x&&x.id!==d.id)
+        .map(phrase).filter(x=>x&&x!==correctText))].sort((a,b)=>a.localeCompare(b));
+      if(others.length>=2){
+        let hash=0;for(const char of d.id)hash=(Math.imul(hash,33)+char.charCodeAt(0))>>>0;
+        const a=hash%others.length,b=(a+1+((hash>>>4)%(others.length-1)))%others.length;
+        const index=hash%3,options=[others[a],others[b]];
+        options.splice(index,0,correctText);
+        return {question:'Quels mots-clés ou affiliations sont associés à « '+String(d.name||d.id)+' » ?',
+          options,correct:index,why:'Données de cette carte : '+correctText+'. Un tag seul ne prouve pas un effet : il faut lire les règles qui y font référence.'};
+      }
     }
     const opts=COLORS.map(c=>COLOR_FR[c]);
     if(COLORS.includes(d.color))return {question:'Quelle couleur utilise « '+String(d.name||d.id)+' » pour vérifier sa RAM ?',
