@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 27009,
-  "version": "2.7.9",
+  "version_code": 28000,
+  "version": "2.8.0",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.9/prime-content-v2.7.9.zip",
-  "sha256": "b4ac4eaa7cae70618793c67f408aa344ca5b7092edf69b5e0bf5afe20ed9bb2f",
-  "notes": "NOVICE RAGE : decks proteges contre sauvegardes corrompues, import CSV corrige et accessibilite amelioree. Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.8.0/prime-content-v2.8.0.zip",
+  "sha256": "6b32d66e705cacd37198227c18dd274b5848716158332ef0cae51d1c4ab6de41",
+  "notes": "Les Cendres du Signal : 15 chapitres, 150 dossiers, 300 questions, synergies, choix et duels reels facultatifs. Sauvegardes conservees."
 }
