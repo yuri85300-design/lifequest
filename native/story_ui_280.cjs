@@ -98,6 +98,12 @@ function create(ctx){
       +'<button class="btn ghost" id="storyInspect">Voir la carte et ses illustrations</button></div>'
       +'<div class="story-dialogue"><b>TEXTE DE LA CARTE</b><p>'+esc(info.effect)+'</p><p><b>Réflexe :</b> '+esc(info.trigger)+'</p>'
       +'<p>'+esc(info.sale)+'</p></div>';
+    const allies=story.partners(CARDS,id,3);
+    html+='<section class="story-panel"><small>ASSOCIATIONS À EXPLORER</small>'
+      +'<h3>Quelles cartes tester avec '+esc(d.name)+' ?</h3>'
+      +'<p>Ce sont des pistes de construction : le jeu ne prétend pas que leurs effets se déclenchent automatiquement. Lis chaque carte et contrôle coûts, couleur, RAM et fenêtres de réaction.</p>'
+      +allies.map(x=>'<div class="story-associate"><button class="btn ghost" data-story-ally="'+esc(x.id)+'">'+esc(x.name)+'</button><p>'+esc(x.reason)+'</p></div>').join('')
+      +'</section>';
     if(q)html+='<section class="story-panel"><small>QUESTION '+(stage+1)+'/2</small><h3>'+esc(q.question)+'</h3>'
       +'<div class="story-options">'+q.options.map((v,j)=>'<button class="btn ghost" data-story-answer="'+j+'">'+String.fromCharCode(65+j)+' · '+esc(v)+'</button>').join('')+'</div>'
       +'<p class="story-feedback" role="status" aria-live="polite">'+esc(message||'Lis la carte avant de choisir. Tu peux recommencer sans perdre tes dossiers.')+'</p></section>';
@@ -107,6 +113,7 @@ function create(ctx){
       +'</div></div></div>';
     mount(html);
     app.querySelector('#storyInspect').onclick=()=>showCard(id);
+    app.querySelectorAll('[data-story-ally]').forEach(b=>b.onclick=()=>showCard(b.dataset.storyAlly));
     app.querySelector('#storyBack').onclick=()=>chapter(chapterIndex);
     const next=app.querySelector('#storyNextCard');
     if(next)next.onclick=()=>card(chapterIndex,cardIndex+1);
