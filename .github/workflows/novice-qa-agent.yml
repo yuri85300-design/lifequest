@@ -1,11 +1,12 @@
-name: NOVICE RAGE - Audit hostile PRIME 2.7.8
+name: NOVICE RAGE - Audit hostile PRIME
 on:
   push:
     branches: [main]
     paths:
       - 'native/novice_qa_agent.cjs'
       - 'native/novice_qa_rage.cjs'
-      - 'native/prime_v278_runtime.html'
+      - 'native/prime_v*_runtime.html'
+      - 'updates/latest.json'
       - 'native/build_ota_content.py'
       - '.github/workflows/novice-qa-agent.yml'
   workflow_dispatch:
@@ -24,11 +25,26 @@ jobs:
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1 axe-core@4.10.3
           npx playwright install --with-deps chromium
-      - name: Construire le vrai runtime 2.7.8 dans un bac a sable
+      - name: Determiner la derniere version OTA du jeu
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          from pathlib import Path
+          import json
+          manifest=json.loads(Path('updates/latest.json').read_text(encoding='utf-8'))
+          version=str(manifest['version'])
+          digits=version.replace('.','')
+          if not digits.isdigit(): raise RuntimeError('Version non numerique')
+          source=Path('native/prime_v'+digits+'_runtime.html')
+          if not source.is_file(): raise RuntimeError('Runtime absent pour la version '+version+': '+str(source))
+          print('NOVICE_TARGET_VERSION='+version)
+          print('NOVICE_TARGET_CODE='+str(int(manifest['version_code'])))
+          print('NOVICE_TARGET_SOURCE='+str(source))
+          PY
+      - name: Construire le vrai runtime OTA dans un bac a sable
         run: |
           python3 native/build_ota_content.py \
-            --source native/prime_v278_runtime.html --version 2.7.8 \
-            --version-code 27008 --out /tmp/prime278-novice
+            --source "$NOVICE_TARGET_SOURCE" --version "$NOVICE_TARGET_VERSION" \
+            --version-code "$NOVICE_TARGET_CODE" --out /tmp/prime278-novice
       - name: Lancer l'agent NOVICE sur profil vierge, mobile et ordinateur
         id: audit
         continue-on-error: true
@@ -60,7 +76,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: novice-agent-prime278-report
+          name: novice-rage-qa-report
           path: |
             /tmp/novice-report/
             /tmp/novice-rage-report/
