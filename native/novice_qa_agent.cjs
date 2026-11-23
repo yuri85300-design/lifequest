@@ -10,7 +10,7 @@ const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const root=path.resolve(process.argv[2]||'/tmp/prime278-novice');
 const output=path.resolve(process.argv[3]||path.join(root,'novice-agent-report'));
 const maxRoutes=Math.max(2,Math.min(25,Number(process.env.NOVICE_MAX_ROUTES||18)));
-const report={agent:'NOVICE v1',target:'PRIME 2.7.8',runtime:'browser sandbox',generatedAt:new Date().toISOString(),
+const report={agent:'NOVICE v1',target:'PRIME '+(process.env.NOVICE_TARGET_VERSION||'2.7.8'),runtime:'browser sandbox',generatedAt:new Date().toISOString(),
   scenarios:[],issues:[],pages:[],metrics:{},limits:['Interface HTML Chromium uniquement : aucun APK physique ni preuve de conformité exhaustive des cartes.','Les contrôles de tutoriel et de partie ne prouvent pas la validité stratégique des effets.']};
 const levels={critical:0,major:1,minor:2,advice:3};
 let browser,server,activePage=null,baseURL='',step='initialisation',view='unknown',shot=0;
