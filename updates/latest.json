@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 27008,
-  "version": "2.7.8",
+  "version_code": 27009,
+  "version": "2.7.9",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.8/prime-content-v2.7.8.zip",
-  "sha256": "a1cdf36b39a0f0d8afe97f224cd4789f59a32a6c997b4c6a34f69b2fc9b76568",
-  "notes": "Ma collection : liste des cartes corrigee (noms lisibles, boutons plus et moins visibles, plus de noms en double). Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.9/prime-content-v2.7.9.zip",
+  "sha256": "b4ac4eaa7cae70618793c67f408aa344ca5b7092edf69b5e0bf5afe20ed9bb2f",
+  "notes": "NOVICE RAGE : decks proteges contre sauvegardes corrompues, import CSV corrige et accessibilite amelioree. Sauvegardes conservees."
 }
