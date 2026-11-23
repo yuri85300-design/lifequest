@@ -312,36 +312,56 @@ async function randomWalk(page){
     for(let i=0;i<maxActions;i++){
       if(i%9===0)await home(page);
       const actions=await page.evaluate(()=>{
-        const allow=['[data-nav]','[data-open-home-menu]','#synergyTutorial','#lessonNext','#lessonNextPair',
-          '#lessonPrevPair','[data-tfilter]','[data-own-plus]','[data-own-minus]','#collectionImport',
-          '#newDeck','#tabPool','#tabDeck'];
-        return [...document.querySelectorAll(allow.join(','))].filter(e=>{
+        // Never click a duplicate CSS selector's first element when the actual
+        // chosen element is a different visible button. Also respect modals.
+        document.querySelectorAll('[data-rage-target]').forEach(x=>x.removeAttribute('data-rage-target'));
+        const allow=['[data-nav]','[data-open-home-menu]','[data-close]','#synergyTutorial','#lessonNext','#lessonBack',
+          '#lessonNextPair','#lessonPrevPair','[data-tfilter]','[data-own-plus]','[data-own-minus]',
+          '#collectionImport','#newDeck','#tabPool','#tabDeck'];
+        const visible=e=>{
           const r=e.getBoundingClientRect(),cs=getComputedStyle(e);
-          return r.width>8&&r.height>8&&cs.display!=='none'&&cs.visibility!=='hidden'&&!e.disabled;
-        }).filter(e=>!e.matches('[data-prime-update],[data-remove],[data-reset],[data-draft-del]'))
-        .map(e=>{let selector=e.id?'#'+e.id:
-          e.hasAttribute('data-nav')?'[data-nav="'+e.getAttribute('data-nav')+'"]':
-          e.hasAttribute('data-tfilter')?'[data-tfilter="'+e.getAttribute('data-tfilter')+'"]':
-          e.hasAttribute('data-own-plus')?'[data-own-plus="'+e.getAttribute('data-own-plus')+'"]':
-          e.hasAttribute('data-own-minus')?'[data-own-minus="'+e.getAttribute('data-own-minus')+'"]':
-          e.matches('[data-open-home-menu]')?'[data-open-home-menu]':
-          e.matches('#tabPool')?'#tabPool':e.matches('#tabDeck')?'#tabDeck':'';
-          return {selector,title:(e.innerText||e.getAttribute('aria-label')||'').trim().slice(0,35)};
-        }).filter(x=>x.selector).slice(0,100);
+          return r.width>=12&&r.height>=12&&r.top<innerHeight&&r.bottom>0&&
+            r.left<innerWidth&&r.right>0&&cs.display!=='none'&&cs.visibility!=='hidden'&&!e.disabled;
+        };
+        const modal=[...document.querySelectorAll('.scrim,.sheet[role="dialog"]')].reverse().find(visible);
+        const candidates=[...document.querySelectorAll(allow.join(','))].filter(visible)
+          .filter(e=>!e.matches('[data-prime-update],[data-remove],[data-reset],[data-draft-del]'))
+          .filter(e=>!modal||modal.contains(e))
+          .filter(e=>{
+            const r=e.getBoundingClientRect();
+            const cx=Math.max(0,Math.min(innerWidth-1,r.left+r.width/2));
+            const cy=Math.max(0,Math.min(innerHeight-1,r.top+r.height/2));
+            const front=document.elementFromPoint(cx,cy);
+            return front&&(front===e||e.contains(front));
+          });
+        return candidates.slice(0,100).map((e,j)=>{
+          e.setAttribute('data-rage-target',String(j));
+          return {selector:'[data-rage-target="'+j+'"]',
+            key:e.id||e.getAttribute('data-nav')||e.getAttribute('data-tfilter')||
+              e.getAttribute('data-own-plus')||e.getAttribute('data-own-minus')||e.getAttribute('data-close')||
+              (e.innerText||'button').slice(0,35),
+            route:e.getAttribute('data-nav'),
+            title:(e.innerText||e.getAttribute('aria-label')||'').trim().slice(0,50)};
+        });
       });
-      const permitted=actions.filter(a=>!/\bstart\b|saveDeck|saveDraft|ImportDeck|exportDeck|collectionReset/i.test(a.selector) &&
-        (!a.selector.includes('data-nav=')||routes.some(r=>a.selector.includes('"'+r+'"'))||
-          a.selector.includes('"home"')));
-      if(!permitted.length){await home(page);continue;}
-      // Prefer unexplored controls while keeping seeded randomness reproducible.
-      permitted.sort((a,b)=>(used.get(a.selector)||0)-(used.get(b.selector)||0));
+      const permitted=actions.filter(a=>!/\bstart\b|saveDeck|saveDraft|ImportDeck|exportDeck|collectionReset/i.test(a.key)&&
+        (!a.route||routes.includes(a.route)||a.route==='home'));
+      if(!permitted.length){
+        // A blocking sheet with no safe button must be dismissed before resuming.
+        await page.keyboard.press('Escape');await home(page);continue;
+      }
+      permitted.sort((a,b)=>(used.get(a.key)||0)-(used.get(b.key)||0));
       const quartile=Math.max(1,Math.ceil(permitted.length*.5));
       const pick=permitted[Math.floor(random()*quartile)];
-      const target=page.locator(pick.selector).first();
-      record('RANDOM '+(i+1)+' CLICK '+pick.selector,pick.title);
-      try{await target.click({timeout:2000});}
-      catch(e){finding('minor','Unclickable control '+pick.selector,e.message,pick.selector);await home(page);continue;}
-      used.set(pick.selector,(used.get(pick.selector)||0)+1);
+      record('RANDOM '+(i+1)+' CLICK '+pick.key,pick.title);
+      try{await page.locator(pick.selector).click({timeout:2500});}
+      catch(e){
+        // This is a real, uniquely identified on-screen target; keep the
+        // evidence instead of reporting a duplicated-selector false positive.
+        finding('minor','Unclickable visible control '+pick.key,e.message,pick.selector);
+        await screenshot(page,'random-unclickable');await home(page);continue;
+      }
+      used.set(pick.key,(used.get(pick.key)||0)+1);
       if(i%5===0)await layout(page,'random-'+i,contextName.includes('mobile')||contextName.includes('small'));
       check(await page.locator('#app').count()>0,'App root disappeared at random step '+i);
     }
