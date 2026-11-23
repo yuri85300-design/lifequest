@@ -36,7 +36,7 @@ const ctx={window,document,app,store,S,console,Date,
   CARDS:cards,
   topbar:(s)=>'<header>'+s+'</header>',
   mount:s=>{app.innerHTML=s},
-  allDecks:()=>D,validateDeck:()=>[],deckDots:()=>'<i class="dot"></i>',
+  allDecks:()=>D,validateDeck:()=>[],flushBuilder:()=>{},draftsHTML:()=>'',deckDots:()=>'<i class="dot"></i>',
   cardArt:id=>'images_vf/'+id+'.webp',startGame:()=>{launched++},
   toast:()=>{},esc:s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),
   builderScreen:()=>{},confirm:()=>true

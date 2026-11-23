@@ -2,7 +2,7 @@ name: 7 Gigs PRIME - audit technique
 on:
   push:
     paths:
-      - 'native/prime_v276_runtime.html'
+      - 'native/prime_v277_runtime.html'
       - 'native/engine.js'
       - 'native/audit_220.cjs'
       - 'native/extract_engine.cjs'

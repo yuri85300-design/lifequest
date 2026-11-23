@@ -1,56 +1,5 @@
 name: PRIME 2.7.6 - Prerequis de publication, regles et duels complets
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'native/prime_v276_runtime.html'
-      - 'native/engine.js'
-      - 'native/extract_engine.cjs'
-      - 'native/audit_275_chaos.cjs'
-      - 'native/ui_full_duel_275.cjs'
-      - 'native/deck_editor_276.cjs'
-      - 'native/nightmare_lab_275.cjs'
-      - 'native/nightmare_forge_test.cjs'
-      - 'native/nightmare_forge_ui_275.cjs'
-      - 'native/nightmare_training_contract.cjs'
-      - 'native/semantic_oracles_last_b.cjs'
-      - 'native/audit_261.cjs'
-      - 'native/audit_262.cjs'
-      - 'native/audit_271_puzzles.cjs'
-      - 'native/audit_270.cjs'
-      - 'native/audit_271_ai.cjs'
-      - 'native/audit_272.cjs'
-      - 'native/audit_270_league.cjs'
-      - 'native/ota_manifest_guard.py'
-      - 'native/audit_ota_guard.py'
-      - 'multiplayer/protocol.mjs'
-      - 'multiplayer/protocol.test.mjs'
-      - '.github/workflows/prime276-preflight.yml'
-  pull_request:
-    paths:
-      - 'native/prime_v276_runtime.html'
-      - 'native/engine.js'
-      - 'native/extract_engine.cjs'
-      - 'native/audit_275_chaos.cjs'
-      - 'native/ui_full_duel_275.cjs'
-      - 'native/deck_editor_276.cjs'
-      - 'native/nightmare_lab_275.cjs'
-      - 'native/nightmare_forge_test.cjs'
-      - 'native/nightmare_forge_ui_275.cjs'
-      - 'native/nightmare_training_contract.cjs'
-      - 'native/semantic_oracles_last_b.cjs'
-      - 'native/audit_261.cjs'
-      - 'native/audit_262.cjs'
-      - 'native/audit_271_puzzles.cjs'
-      - 'native/audit_270.cjs'
-      - 'native/audit_271_ai.cjs'
-      - 'native/audit_272.cjs'
-      - 'native/audit_270_league.cjs'
-      - 'native/ota_manifest_guard.py'
-      - 'native/audit_ota_guard.py'
-      - 'multiplayer/protocol.mjs'
-      - 'multiplayer/protocol.test.mjs'
-      - '.github/workflows/prime276-preflight.yml'
   workflow_dispatch:
 permissions:
   contents: read
