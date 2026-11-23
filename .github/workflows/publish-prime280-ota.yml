@@ -132,6 +132,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Other CI steps install linkedom with npm --no-save and may prune Playwright.
+          npm install --no-save --no-package-lock playwright@1.56.1 axe-core@4.10.3
           node native/story_campaign_280.test.cjs /tmp/prime-ota | tee /tmp/prime-ota/story280-validation.json
           grep -Fq '"status": "PASS"' /tmp/prime-ota/story280-validation.json
       - name: Bloquer la publication si NOVICE ou NOVICE RAGE decouvrent une regression
