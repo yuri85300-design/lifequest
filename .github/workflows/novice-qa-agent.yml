@@ -12,6 +12,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: novice-rage-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   novice:
     runs-on: ubuntu-24.04
