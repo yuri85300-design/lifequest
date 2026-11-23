@@ -12,7 +12,7 @@ const out=path.resolve(process.argv[3]||'/tmp/novice-rage-report');
 const seed=Number(process.env.RAGE_SEED||278001)>>>0;
 const maxActions=Math.min(120,Math.max(12,Number(process.env.RAGE_ACTIONS||55)));
 const MAX_ISSUES=250, MAX_SCREENSHOTS=32;
-const report={agent:'NOVICE RAGE v2',target:'PRIME 2.7.8',seed,startedAt:new Date().toISOString(),
+const report={agent:'NOVICE RAGE v2',target:'PRIME '+(process.env.NOVICE_TARGET_VERSION||'2.7.8'),seed,startedAt:new Date().toISOString(),
   environments:[],scenarios:[],issues:[],routeCoverage:[],actionLog:[],limitations:[
     'Testing uses Chromium with an isolated app origin; no actual Android WebView, updater or physical device.',
     'This is a coverage-guided QA agent, not a vision-language model; exploratory heuristics do not prove total coverage.',
