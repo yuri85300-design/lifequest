@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 27006,
-  "version": "2.7.6",
+  "version_code": 27007,
+  "version": "2.7.7",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.6/prime-content-v2.7.6.zip",
-  "sha256": "890ea762808fd7482228a1591b3cdfcd436fee68ce3939e05ccb31b5101bb0a3",
-  "notes": "Editeur de deck : ajoutez toutes les cartes voulues, avec ou sans Legendes (les cartes injouables sont signalees, jamais supprimees). Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.7/prime-content-v2.7.7.zip",
+  "sha256": "90ac8fc4cab55f70e977428a050772678da125f810fdf8718e0d7279da30731e",
+  "notes": "Brouillons de deck : enregistrez un deck inacheve et reprenez-le plus tard (sauvegarde automatique). Editeur : toutes les cartes ajoutables. Sauvegardes conservees."
 }
