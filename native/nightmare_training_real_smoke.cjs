@@ -14,7 +14,7 @@ const assert=require('node:assert/strict');
   const page=await browser.newPage();
   page.setDefaultTimeout(360000);
   const pageErrors=[];page.on('pageerror',e=>pageErrors.push(String(e)));
-  await page.goto(pathToFileURL(path.join(__dirname,process.env.PRIME_RUNTIME||'prime_v277_runtime.html')).href,
+  await page.goto(pathToFileURL(path.join(__dirname,process.env.PRIME_RUNTIME||'prime_v278_runtime.html')).href,
    {waitUntil:'domcontentloaded',timeout:30000});
   const run=await page.evaluate(async()=>{
    const decks=Object.values(presetDecks());
