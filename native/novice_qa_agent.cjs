@@ -13,7 +13,7 @@ const maxRoutes=Math.max(2,Math.min(25,Number(process.env.NOVICE_MAX_ROUTES||18)
 const report={agent:'NOVICE v1',target:'PRIME 2.7.8',runtime:'browser sandbox',generatedAt:new Date().toISOString(),
   scenarios:[],issues:[],pages:[],metrics:{},limits:['Interface HTML Chromium uniquement : aucun APK physique ni preuve de conformité exhaustive des cartes.','Les contrôles de tutoriel et de partie ne prouvent pas la validité stratégique des effets.']};
 const levels={critical:0,major:1,minor:2,advice:3};
-let browser,server,step='initialisation',view='unknown',shot=0;
+let browser,server,activePage=null,baseURL='',step='initialisation',view='unknown',shot=0;
 function issue(severity,title,details,selector){
   const item={severity,title,details:String(details||'').slice(0,1250),selector:selector||'',scenario:step,viewport:view};
   if(report.issues.some(x=>x.title===item.title&&x.viewport===view&&x.scenario===step&&x.selector===item.selector))return;
@@ -25,7 +25,7 @@ function entry(name,state,detail){
 async function task(name,fn){
   step=name;
   try{await fn();entry(name,'PASS');}
-  catch(e){entry(name,'FAIL',String(e.message||e).slice(0,350));issue('major',name,e.stack||e);}
+  catch(e){entry(name,'FAIL',String(e.message||e).slice(0,350));issue('major',name,e.stack||e);if(activePage)await picture(activePage,'echec-'+name);}
 }
 function assert(ok,msg){if(!ok)throw Error(msg);}
 function watch(page){
@@ -209,8 +209,9 @@ async function duel(page){
 async function viewport(browser,vp){
   view=vp.name;step='ouverture';
   const ctx=await browser.newContext({viewport:{width:vp.width,height:vp.height},
-    isMobile:vp.mobile,hasTouch:vp.mobile,locale:'fr-FR',reducedMotion:'reduce'});
+    isMobile:vp.mobile,hasTouch:vp.mobile,locale:'fr-FR',reducedMotion:'reduce',baseURL});
   const page=await ctx.newPage();
+  activePage=page;
   watch(page);
   await task('Lancement sur un profil vierge',async()=>{
     await openHome(page);await snapshot(page,'accueil');await picture(page,'accueil');
@@ -223,6 +224,7 @@ async function viewport(browser,vp){
   await deck(page);
   await duel(page);
   await ctx.close();
+  activePage=null;
 }
 function markdown(){
   const severe=report.issues.filter(x=>levels[x.severity]<=1).length;
@@ -262,14 +264,9 @@ async function main(){
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   browser=await chromium.launch({headless:true});
-  const address='http://127.0.0.1:'+server.address().port;
-  // Browser pages use one relative URL and the same host; route only the loopback server.
-  browser.on('disconnected',()=>{});
+  baseURL='http://127.0.0.1:'+server.address().port;
   for(const vp of [{name:'mobile390',width:390,height:844,mobile:true},
                    {name:'desktop1280',width:1280,height:800,mobile:false}]){
-    // Playwright new page normally needs the page's base URL; set by navigating with address.
-    const originalNewContext=browser.newContext.bind(browser);
-    browser.newContext=(options)=>originalNewContext({...options,baseURL:address});
     try{await viewport(browser,vp);}catch(e){issue('critical','Agent interrompu',e.stack||e);}
   }
 }
