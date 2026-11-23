@@ -183,6 +183,8 @@ async function deck(page){
     assert(await page.locator('#deckName').count(),'Constructeur inaccessible');
     await page.locator('#deckName').fill('Mon premier deck');
     await page.locator('#deckName').blur();
+    // The game intentionally discards name-only empty drafts. A real beginner adds a first card.
+    await page.locator('[data-plus]').first().click();
     await page.locator('[data-nav="decks"]').first().click();
     const draft=page.locator('[data-draft-resume]').first();
     assert(await draft.count(),'Brouillon non retrouvé après retour dans les decks');
@@ -283,7 +285,7 @@ async function main(){
     fs.writeFileSync(path.join(output,'novice-agent-report.json'),JSON.stringify(report,null,2)+'\n');
     fs.writeFileSync(path.join(output,'novice-agent-report.md'),markdown());
     process.stdout.write(JSON.stringify({agent:report.agent,target:report.target,metrics:report.metrics,
-      issues:report.issues.map(x=>({severity:x.severity,title:x.title,viewport:x.viewport,scenario:x.scenario}))},null,2)+'\n');
+      issues:report.issues.map(x=>({severity:x.severity,title:x.title,viewport:x.viewport,scenario:x.scenario,details:x.details.slice(0,360)}))},null,2)+'\n');
     // Fail CI only on critical incidents. Ordinary UX findings are published as evidence for triage.
     if(report.metrics.critical>0)process.exitCode=1;
   }
