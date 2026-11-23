@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 27007,
-  "version": "2.7.7",
+  "version_code": 27008,
+  "version": "2.7.8",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.7/prime-content-v2.7.7.zip",
-  "sha256": "90ac8fc4cab55f70e977428a050772678da125f810fdf8718e0d7279da30731e",
-  "notes": "Brouillons de deck : enregistrez un deck inacheve et reprenez-le plus tard (sauvegarde automatique). Editeur : toutes les cartes ajoutables. Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.8/prime-content-v2.7.8.zip",
+  "sha256": "a1cdf36b39a0f0d8afe97f224cd4789f59a32a6c997b4c6a34f69b2fc9b76568",
+  "notes": "Ma collection : liste des cartes corrigee (noms lisibles, boutons plus et moins visibles, plus de noms en double). Sauvegardes conservees."
 }
