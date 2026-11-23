@@ -44,3 +44,15 @@ Les échecs de scénario sont consignés pour revue. Une erreur JavaScript criti
 ## Améliorations recommandées à terme
 
 Un mode avec planificateur LLM facultatif pourra être ajouté pour analyser sémantiquement les captures, hésitations et messages d'erreur, une fois une autorisation de coût, des limites d'appels et un traitement des données définis. Le présent agent fonctionne sans clé API externe et fournit un rapport factuel reproductible.
+
+## NOVICE RAGE — mode adversarial (ajout novembre 2026)
+
+La deuxième batterie `native/novice_qa_rage.cjs` n'est pas un agent LLM : c'est un explorateur **piloté par l'état de l'interface** et un générateur de scénarios reproductibles. Elle réalise 4 profils (320, 390, 768, 1280 px), découvre les routes réelles, exécute un parcours aléatoire borné (graine `RAGE_SEED`, défaut `278001`) et vérifie les fonctionnalités par des invariants indépendants.
+
+Contrôles nouveaux : exploration agressive des boutons non destructifs, WCAG via axe-core sur les pages principales, boutons sans nom accessible, débordements horizontaux, tailles tactiles, navigation arrière/avant des tutoriels, progression de toutes les combinaisons pédagogiques, 150 identifiants de cartes et saturation à 99 copies, rapidité des clics +/- et persistance, import CSV `quantite,carte`, import de fichiers trop grands, recherche de cartes inexistantes, annulation de remise à zéro, sauvegarde de brouillon partiel, refus de decks illégaux, structure des decks officiels et stockage local malformé. Chaque scénario est vérifié sur une session neuve pour éviter toute opération sur un compte réel.
+
+**Politique qualité stricte :** le job GitHub Actions devient **rouge** si une anomalie `critical` ou `major` est détectée ou si un scénario échoue. Un job rouge est un résultat utile de l'agent, pas un signe que le rapport a été perdu. Le résumé et l'artefact contiennent les traces, preuves et captures. Un `minor` est également remonté, sans bloquer une publication.
+
+Pour reproduire un scénario localement : construire le paquet HTML via `native/build_ota_content.py`, installer `playwright@1.56.1` et `axe-core@4.10.3`, installer Chromium, puis `RAGE_SEED=278001 RAGE_ACTIONS=55 node native/novice_qa_rage.cjs /tmp/prime278-novice /tmp/novice-rage-report`.
+
+Le testeur ne remplace pas un humain testant des heures sur un vrai Android. Il peut signaler des faux positifs (notamment des timings ou des critères d'accessibilité), qui doivent être triés et, si nécessaire, reproduits avant correction.
