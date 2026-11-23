@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 27005,
-  "version": "2.7.5",
+  "version_code": 27006,
+  "version": "2.7.6",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.5/prime-content-v2.7.5.zip",
-  "sha256": "ea5b1e3c76c875dfd71a3e8c7c38a71bff26d727bf7f59c4080a71372962d6a7",
-  "notes": "NIGHTMARE cree, ameliore et contre vos decks, apprend apres chaque duel. Corrections de regles : Viktor Vektor, Alt Cunningham, Nocturne, Radioport Arasaka, Caliber et Padre ; 150 cartes comparees au texte officiel. Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.7.6/prime-content-v2.7.6.zip",
+  "sha256": "890ea762808fd7482228a1591b3cdfcd436fee68ce3939e05ccb31b5101bb0a3",
+  "notes": "Editeur de deck : ajoutez toutes les cartes voulues, avec ou sans Legendes (les cartes injouables sont signalees, jamais supprimees). Sauvegardes conservees."
 }
