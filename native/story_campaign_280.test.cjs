@@ -43,7 +43,7 @@ async function main(){
         const allies=data.partners(cards,id,3);
         if(allies.length!==3||new Set(allies.map(a=>a.id)).size!==3||allies.some(a=>!cards[a.id]||a.id===id||!a.reason))errors.push('invalid partner advice '+id);
         for(const step of [0,1]){
-          const q=data.quiz(card,step);
+          const q=data.quiz(card,step,cards);
           if(q.correct<0||q.correct>=q.options.length||new Set(q.options).size!==q.options.length)
             errors.push('broken question '+id+'/'+step);
         }
@@ -62,12 +62,12 @@ async function main(){
     assert(await page.locator('.scrim .sheet').count()>0,'Partner card cannot be inspected');
     const close=page.locator('.scrim [data-close]').first();if(await close.count())await close.click();
     const id=await page.evaluate(()=>window.StoryCampaign.build(window.CARDS)[0].cards[0]);
-    let correct=await page.evaluate(id=>window.StoryCampaign.quiz(window.CARDS[id],0).correct,id);
+    let correct=await page.evaluate(id=>window.StoryCampaign.quiz(window.CARDS[id],0,window.CARDS).correct,id);
     await page.locator('[data-story-answer="'+((correct+1)%4)+'"]').click();
     let state=await page.evaluate(id=>JSON.parse(localStorage.getItem('septgigs.storyCindersV1')||'{}').steps?.[id]||0,id);
     assert(state===0,'Incorrect answer was accepted');
     await page.locator('[data-story-answer="'+correct+'"]').click();
-    correct=await page.evaluate(id=>window.StoryCampaign.quiz(window.CARDS[id],1).correct,id);
+    correct=await page.evaluate(id=>window.StoryCampaign.quiz(window.CARDS[id],1,window.CARDS).correct,id);
     await page.locator('[data-story-answer="'+correct+'"]').click();
     assert(await page.locator('.story-reveal').count()===1,'Mastered card feedback missing');
     await page.reload({waitUntil:'domcontentloaded'});
