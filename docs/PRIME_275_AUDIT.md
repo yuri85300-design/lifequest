@@ -125,6 +125,22 @@ Tests : `native/nightmare_forge_test.cjs` (moteur : légalité, déterminisme, a
 
 Aucune règle ni aucun effet de carte n'est modifié : `engine.js` reste identique. Les workflows 2.7.5 ne se lancent plus que manuellement ; 2.7.6 a les siens (`prime276-preflight.yml`, `publish-prime276-ota.yml`).
 
+## 2.7.7 — Brouillons de deck
+
+**Besoin.** Un deck inachevé (moins de 40 cartes, Légendes manquantes) ne pouvait pas être enregistré : quitter l'éditeur le faisait disparaître.
+
+**Maintenant :**
+- **Enregistrer le brouillon** : bouton dans l'éditeur. Il garde le deck tel quel, même avec 0 Légende et 5 cartes.
+- **Sauvegarde automatique** (0,6 s après chaque modification, et immédiatement si l'application passe en arrière-plan ou se ferme). Une session d'éditeur où l'on ne change rien ne crée aucun brouillon.
+- **Section « Brouillons »** dans Mes decks : nom, nombre de cartes et de Légendes, date, et ce qui reste à faire (« il manque 3 Légendes et 37 cartes »). On peut **Reprendre** ou **Supprimer** (avec confirmation).
+- **« Enregistrer » exige toujours un deck légal.** Un brouillon n'est donc ni jouable, ni sélectionnable, ni vu par NIGHTMARE (stockage séparé : `deckDraftsV1`). L'enregistrement légal d'un deck repris supprime son brouillon.
+- Modifier un deck enregistré puis quitter sans enregistrer **ne touche pas le deck** : il crée un brouillon, qui l'écrasera seulement si vous l'enregistrez.
+- Le stockage est assaini à chaque lecture : cartes inconnues, identifiants invalides, doublons et JSON corrompu sont ignorés ; 30 brouillons au maximum (les plus récents sont conservés).
+
+**Défaut trouvé par le test et corrigé.** En quittant l'éditeur par la flèche de retour, la liste s'affichait avant l'écriture du brouillon : il était sauvegardé, mais n'apparaissait pas avant d'avoir rouvert l'écran. L'écriture est maintenant forcée avant l'affichage de la liste.
+
+Test `native/deck_drafts_277.cjs` : 25 contrôles dans Chromium (format mobile), dont la reprise après rechargement, la sauvegarde à la fermeture, le stockage corrompu et le plafond de 30. `engine.js` reste identique.
+
 ## Reproduire
 
 ```bash

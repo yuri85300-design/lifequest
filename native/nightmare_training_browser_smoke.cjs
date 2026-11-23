@@ -13,7 +13,7 @@ const assert=require('node:assert/strict');
  try{
   const page=await browser.newPage();
   const errs=[];page.on('pageerror',e=>errs.push(String(e)));
-  await page.goto(pathToFileURL(path.join(__dirname,process.env.PRIME_RUNTIME||'prime_v276_runtime.html')).href,
+  await page.goto(pathToFileURL(path.join(__dirname,process.env.PRIME_RUNTIME||'prime_v277_runtime.html')).href,
     {waitUntil:'domcontentloaded',timeout:30000});
   // Manual mode: with "Évolution automatique" off, a validated challenger is only offered.
   await page.evaluate(()=>localStorage.setItem('septgigs.nightmareAutoEvolve','false'));

@@ -4,14 +4,14 @@ on:
     paths:
       - 'native/nightmare_training_real_smoke.cjs'
       - 'native/prime_v220_runtime.html'
-      - 'native/prime_v276_runtime.html'
+      - 'native/prime_v277_runtime.html'
       - 'native/engine.js'
       - '.github/workflows/nightmare-training-smoke.yml'
   pull_request:
     paths:
       - 'native/nightmare_training_real_smoke.cjs'
       - 'native/prime_v220_runtime.html'
-      - 'native/prime_v276_runtime.html'
+      - 'native/prime_v277_runtime.html'
       - 'native/engine.js'
   workflow_dispatch:
 permissions:
