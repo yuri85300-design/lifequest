@@ -90,7 +90,7 @@ function create(ctx){
     const c=chapters[chapterIndex],id=c?.cards?.[cardIndex];
     if(!c||!id||!available(chapterIndex))return home();
     const d=CARDS[id],p=read(),stage=p.steps[id]||0,info=story.info(d),
-      q=stage<2?story.quiz(d,stage):null;
+      q=stage<2?story.quiz(d,stage,CARDS):null;
     let html='<div class="screen">'+topbar('Dossier '+(cardIndex+1)+' · '+d.name,'story')+'<div class="scroll pad story-scroll">'
       +'<div class="story-hero"><small>ARCHIVES DU SIGNAL · '+esc(c.place)+' · DOSSIER '+(cardIndex+1)+'/'+c.cards.length+'</small>'
       +'<h2>'+esc(info.name)+'</h2><p>'+esc(info.en&&info.en!==info.name?info.en:'Dossier tactique')+'</p>'
