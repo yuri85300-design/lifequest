@@ -1,4 +1,4 @@
-name: NOVICE RAGE - Audit hostile PRIME
+name: NOVICE RAGE - Audit hostile PRIME (publication et candidat)
 on:
   push:
     branches: [main]
@@ -35,12 +35,23 @@ jobs:
           import json
           manifest=json.loads(Path('updates/latest.json').read_text(encoding='utf-8'))
           version=str(manifest['version'])
-          digits=version.replace('.','')
-          if not digits.isdigit(): raise RuntimeError('Version non numerique')
-          source=Path('native/prime_v'+digits+'_runtime.html')
-          if not source.is_file(): raise RuntimeError('Runtime absent pour la version '+version+': '+str(source))
+          code=int(manifest['version_code'])
+          source=Path('native/prime_v'+version.replace('.','')+'_runtime.html')
+          # Test the most recent candidate BEFORE release, then the published version.
+          versions=[]
+          for candidate in Path('native').glob('prime_v*_runtime.html'):
+              digits=candidate.stem.removeprefix('prime_v').removesuffix('_runtime')
+              if len(digits)<3 or not digits.isdigit(): continue
+              num=int(digits[0])*10000+int(digits[1])*1000+int(digits[2:])
+              versions.append((num,candidate,digits))
+          if versions:
+              latest=max(versions,key=lambda x:x[0])
+              if latest[0]>code:
+                  code,source,digits=latest
+                  version=f'{digits[0]}.{digits[1]}.{int(digits[2:])}'
+          if not source.is_file(): raise RuntimeError('Runtime absent: '+str(source))
           print('NOVICE_TARGET_VERSION='+version)
-          print('NOVICE_TARGET_CODE='+str(int(manifest['version_code'])))
+          print('NOVICE_TARGET_CODE='+str(code))
           print('NOVICE_TARGET_SOURCE='+str(source))
           PY
       - name: Construire le vrai runtime OTA dans un bac a sable
