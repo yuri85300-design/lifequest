@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/publish-prime278-ota.yml'
+      - '.github/workflows/publish-prime280-ota.yml'
       - 'native/prime_v280_runtime.html'
       - 'native/story_campaign_280.cjs'
       - 'native/story_ui_280.cjs'
