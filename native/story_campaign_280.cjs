@@ -138,6 +138,47 @@
       sale:d.sell?'Cette carte possède le symbole €$ : elle peut être vendue lorsque l’action normale est légale.':
         'Ne suppose pas que cette carte est vendable : vérifie le symbole €$.'};
   }
+  /*
+   * Every playable card gets three grounded tactical *leads*, not invented
+   * official effect interactions. The legality of targets/timing/gear stays with
+   * the engine and the card text. Six hand-reviewed combo lessons are separate.
+   */
+  function partners(cards,id,limit=3){
+    const d=cards&&cards[id];if(!d)return [];
+    const pool=Object.values(cards).filter(x=>x&&x.id&&x.id!==id);
+    const role=(a,b)=>{
+      if(a.type==='Gear'&&b.type==='Unit')
+        return 'Équipement + Unité : vérifier que le porteur est admissible, puis lire les restrictions de l’équipement.';
+      if(a.type==='Unit'&&b.type==='Gear')
+        return 'Unité + Équipement : comparer le porteur, les coûts et le moment où l’équipement peut être joué.';
+      if(a.type==='Legend')
+        return 'Légende + carte : calculer la RAM de la couleur avant de retenir cette carte dans un deck légal.';
+      if(b.type==='Legend')
+        return 'Carte + Légende : vérifier si les trois Légendes apportent assez de RAM dans cette couleur.';
+      if(a.type==='Program'&&b.type==='Unit')
+        return 'Programme + Unité : comparer les cibles et fenêtres de résolution, sans présumer un combo automatique.';
+      if(a.type==='Unit'&&b.type==='Program')
+        return 'Unité + Programme : lire les événements déclencheurs et les réponses autorisées.';
+      if(a.type==='Gear'&&b.type==='Program')
+        return 'Gear + Programme : planifier les ressources et vérifier que les deux effets peuvent légalement se suivre.';
+      if(a.type==='Program'&&b.type==='Gear')
+        return 'Programme + Gear : anticiper le tempo et les restrictions propres à chaque carte.';
+      return 'Association de deck à examiner : contrôler les couleurs, la RAM, les coûts et les effets réels des deux cartes.';
+    };
+    const grade=b=>{
+      let score=0;
+      if(d.color===b.color)score+=10;
+      if(d.type==='Gear'&&b.type==='Unit'||d.type==='Unit'&&b.type==='Gear')score+=14;
+      if(d.type==='Legend'&&b.type!=='Legend'||b.type==='Legend'&&d.type!=='Legend')score+=7;
+      if(d.type==='Program'&&b.type==='Unit'||d.type==='Unit'&&b.type==='Program')score+=8;
+      if(d.type==='Gear'&&b.type==='Program'||d.type==='Program'&&b.type==='Gear')score+=5;
+      if(d.sell&&Number.isFinite(b.cost)&&b.cost<=3)score+=2;
+      if(Number.isFinite(d.ram)&&Number.isFinite(b.ram)&&d.ram>=b.ram)score+=2;
+      return score;
+    };
+    return pool.sort((a,b)=>grade(b)-grade(a)||a.id.localeCompare(b.id)).slice(0,Math.max(0,Math.min(5,limit)))
+      .map(b=>({id:b.id,name:String(b.name||b.id),reason:role(d,b),kind:'piste tactique à vérifier'}));
+  }
   function quiz(d,stage=0){
     if(stage===0){
       const answers=TYPES.map(t=>TYPE_FR[t]);
@@ -208,7 +249,7 @@
       typeof result.reason==='string'&&result.reason.length>0&&!x.duels.includes(id))x.duels.push(id);
     return clean(x,chapters);
   }
-  const api={CHAPTERS,TYPE_FR,COLOR_FR,build,info,quiz,clean,available,progress,advance,choose,comboLearn,seal,duelResult};
+  const api={CHAPTERS,TYPE_FR,COLOR_FR,build,info,partners,quiz,clean,available,progress,advance,choose,comboLearn,seal,duelResult};
   root.StoryCampaign=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
