@@ -141,6 +141,15 @@ Aucune règle ni aucun effet de carte n'est modifié : `engine.js` reste identiq
 
 Test `native/deck_drafts_277.cjs` : 25 contrôles dans Chromium (format mobile), dont la reprise après rechargement, la sauvegarde à la fermeture, le stockage corrompu et le plafond de 30. `engine.js` reste identique.
 
+## 2.7.8 — « Ma collection » : liste des cartes illisible
+
+**Problème signalé (capture d'écran).** Dans « Ma collection & synergies », le nom des cartes s'affichait lettre par lettre en colonne, et les boutons « − / + » étaient hors de vue.
+- **Cause.** Le bloc de quantité `.sim-qty` hérite de `width:100%`, prévu pour les vignettes verticales de l'éditeur de deck. Dans les lignes horizontales de la collection, il occupait toute la largeur, et la colonne du nom tombait à **0 px**. Chaque ligne atteignait environ 830 px de haut.
+- **Correctif.** Dans la collection, le bloc de quantité prend sa largeur naturelle (116 px) et ses boutons font 36 px. Le nom reprend la place restante : 178 px sur un téléphone de 390 px, 108 px sur un petit écran de 320 px. Une ligne fait de 70 à 125 px. Le catalogue de l'éditeur, qui utilise le même bloc en colonne, n'est pas touché.
+- **Doublons de noms.** L'écran affichait « Adam Smasher — Acheveur De Légendes · Adam Smasher » ou « (Don't Fear) The Reaper · (Don't Fear) The Reaper ». Le nom anglais n'est désormais ajouté que s'il diffère du nom français.
+
+Test `native/collection_layout_278.cjs` : contrôle les **150 lignes** sur trois tailles d'écran (390, 320 et 1280 px), soit 7 vérifications par taille : nom lisible, bloc compact, ligne pas trop haute, boutons dans la ligne et assez grands, pas de nom répété, « + » et « − » fonctionnels. Il échoue sur 2.7.7 et passe sur 2.7.8. `engine.js` reste identique.
+
 ## Reproduire
 
 ```bash
