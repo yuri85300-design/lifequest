@@ -3319,6 +3319,22 @@ if(typeof module!=='undefined')module.exports=root.RivalLearning;
   const clean=(raw,cards)=>Object.fromEntries(Object.entries(raw||{}).filter(([id])=>Object.prototype.hasOwnProperty.call(cards,id)).map(([id,n])=>[id,qty(n)]).filter(([,n])=>n>0));
   const safe=(d,legends,limits)=>d.type!=='Legend'&&limits[d.color]>0&&(d.ram||0)<=limits[d.color];
   const normal=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  // Supports plain TXT ("2x Card"), standard CSV (qty,name / name,qty),
+  // semicolon or tab-separated exports, quoted fields, and optional column headers.
+  function splitDelimited(line, separator){
+    const cells=[];let cell='',quoted=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){
+        if(quoted&&line[i+1]==='"'){cell+='"';i++;}
+        else quoted=!quoted;
+      }else if(ch===separator&&!quoted){cells.push(cell.trim());cell='';}
+      else cell+=ch;
+    }
+    if(quoted)return null;
+    cells.push(cell.trim());
+    return cells;
+  }
   function importText(raw,cards,previous={}){
     const result={...clean(previous,cards)},errors=[];
     const index=new Map();
@@ -3327,18 +3343,48 @@ if(typeof module!=='undefined')module.exports=root.RivalLearning;
         if(v&&!index.has(normal(v)))index.set(normal(v),d.id);
       }
     }
-    let parsed=0;
-    for(const line of String(raw).split(/[\r\n;]+/).map(x=>x.trim()).filter(Boolean)){
-      let name=line,amount=1;
-      const prefix=line.match(/^(\d{1,2})\s*[x×*]\s*(.+)$/i);
-      const suffix=!prefix&&line.match(/^(.+?)\s*[x×*]\s*(\d{1,2})$/i);
-      if(prefix){amount=prefix[1];name=prefix[2];}
-      else if(suffix){name=suffix[1];amount=suffix[2];}
-      const id=index.get(normal(name));
-      if(!id){errors.push(line);continue;}
-      const n=qty(amount);
-      if(!n){errors.push(line);continue;}
+    const input=String(raw||'').replace(/^\uFEFF/,'');
+    if(input.length>1048576)return {owned:result,errors:['Liste trop longue (1 Mo maximum)'],parsed:0};
+    const lines=input.split(/\r\n|\n|\r/),names=new Set(['carte','nom','card','name','card name']),
+      quantities=new Set(['quantite','quantity','qty','copies','nombre','count','nb']);
+    let parsed=0,processed=0;
+    const add=(name,amount,line)=>{
+      const id=index.get(normal(name)),n=Number(amount);
+      if(!id||!Number.isInteger(n)||n<1||n>99){errors.push(line);return;}
       result[id]=Math.min(99,(result[id]||0)+n);parsed+=n;
+    };
+    for(const rawLine of lines){
+      const line=rawLine.trim();
+      if(!line)continue;
+      if(++processed>20000){errors.push('Limite de 20 000 lignes atteinte');break;}
+      if(line.length>5000){errors.push(line.slice(0,80)+'…');continue;}
+      let parsedCsv=false,recognizedHeader=false;
+      for(const separator of [',',';', '\t']){
+        if(!line.includes(separator))continue;
+        const parts=splitDelimited(line,separator);
+        if(!parts||parts.length!==2)continue;
+        const a=normal(parts[0]),b=normal(parts[1]);
+        if((quantities.has(a)&&names.has(b))||(names.has(a)&&quantities.has(b))){
+          recognizedHeader=true;break;
+        }
+        const first=/^\d{1,2}$/.test(parts[0]),last=/^\d{1,2}$/.test(parts[1]);
+        if(first!==last){
+          add(first?parts[1]:parts[0],first?parts[0]:parts[1],line);
+          parsedCsv=true;break;
+        }
+      }
+      if(recognizedHeader||parsedCsv)continue;
+      // Previous TXT exports sometimes use ";" to separate entries on one line.
+      const items=line.includes(';')&&/;\s*\d{1,2}\s*[x×*]/i.test(line)?
+        line.split(';').map(x=>x.trim()).filter(Boolean):[line];
+      for(const item of items){
+        let name=item,amount=1;
+        const prefix=item.match(/^(\d{1,2})\s*[x×*]\s*(.+)$/i);
+        const suffix=!prefix&&item.match(/^(.+?)\s*[x×*]\s*(\d{1,2})$/i);
+        if(prefix){amount=Number(prefix[1]);name=prefix[2];}
+        else if(suffix){name=suffix[1];amount=Number(suffix[2]);}
+        add(name,amount,item);
+      }
     }
     return {owned:result,errors,parsed};
   }
