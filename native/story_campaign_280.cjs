@@ -179,7 +179,30 @@
     return pool.sort((a,b)=>grade(b)-grade(a)||a.id.localeCompare(b.id)).slice(0,Math.max(0,Math.min(5,limit)))
       .map(b=>({id:b.id,name:String(b.name||b.id),reason:role(d,b),kind:'piste tactique à vérifier'}));
   }
-  function quiz(d,stage=0){
+  function quiz(d,stage=0,cards=null){
+    // Quiz 2 checks the ACTUAL printed effect, not only the color of the card.
+    // Distractors are excerpts from other real cards, never fabricated powers.
+    if(stage===1&&cards){
+      const text=x=>String(x?.txt||x?.text||'').replace(/\s+/g,' ').trim().slice(0,125);
+      const correctText=text(d);
+      if(correctText.length>=15){
+        const other=[...new Set(Object.values(cards).filter(x=>x&&x.id!==d.id)
+          .map(text).filter(x=>x.length>=15&&x!==correctText))].sort((a,b)=>a.localeCompare(b));
+        if(other.length>=2){
+          let hash=0;for(const c of d.id)hash=(Math.imul(hash,31)+c.charCodeAt(0))>>>0;
+          const first=hash%other.length;
+          const second=(first+1+((hash>>>4)%(other.length-1)))%other.length;
+          const wrong=[other[first],other[second]];
+          const correct=hash%3;
+          const options=wrong.slice();options.splice(correct,0,correctText);
+          return {question:'Quel extrait d’effet est réellement imprimé sur « '+String(d.name||d.id)+' » ?',
+            options,correct,
+            why:'Extrait de cette carte : '+correctText+(String(d.txt||'').length>125?'…':'')+
+              '. Lis aussi le texte complet : un extrait ne prouve pas qu’une action est toujours légale.'};
+        }
+      }
+    }
+
     if(stage===0){
       const answers=TYPES.map(t=>TYPE_FR[t]);
       return {question:'Quelle est la catégorie de « '+String(d.name||d.id)+' » ?',options:answers,correct:Math.max(0,TYPES.indexOf(d.type)),
