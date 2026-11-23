@@ -1,9 +1,10 @@
-name: NOVICE - Agent QA debutant PRIME 2.7.8
+name: NOVICE RAGE - Audit hostile PRIME 2.7.8
 on:
   push:
     branches: [main]
     paths:
       - 'native/novice_qa_agent.cjs'
+      - 'native/novice_qa_rage.cjs'
       - 'native/prime_v278_runtime.html'
       - 'native/build_ota_content.py'
       - '.github/workflows/novice-qa-agent.yml'
@@ -21,7 +22,7 @@ jobs:
           node-version: '22'
       - name: Installer Chromium pour l'agent d'exploration
         run: |
-          npm install --no-save --no-package-lock playwright@1.56.1
+          npm install --no-save --no-package-lock playwright@1.56.1 axe-core@4.10.3
           npx playwright install --with-deps chromium
       - name: Construire le vrai runtime 2.7.8 dans un bac a sable
         run: |
@@ -33,6 +34,14 @@ jobs:
         continue-on-error: true
         run: |
           node native/novice_qa_agent.cjs /tmp/prime278-novice /tmp/novice-report
+      - name: Lancer NOVICE RAGE - fuzz, accessibilite et parcours hostiles
+        id: rage
+        continue-on-error: true
+        env:
+          RAGE_SEED: '278001'
+          RAGE_ACTIONS: '55'
+        run: |
+          node native/novice_qa_rage.cjs /tmp/prime278-novice /tmp/novice-rage-report
       - name: Publier les constatations dans le resume du job
         if: always()
         shell: bash
@@ -42,19 +51,27 @@ jobs:
           else
             echo "L'agent n'a pas produit de rapport. Verifier les journaux." >> "$GITHUB_STEP_SUMMARY"
           fi
+          if [ -f /tmp/novice-rage-report/novice-rage-report.md ]; then
+            cat /tmp/novice-rage-report/novice-rage-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "NOVICE RAGE : rapport absent." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Archiver rapport JSON, Markdown et captures
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: novice-agent-prime278-report
-          path: /tmp/novice-report/
+          path: |
+            /tmp/novice-report/
+            /tmp/novice-rage-report/
           if-no-files-found: warn
-      - name: Exiger un demarrage sans erreur critique
+      - name: Refuser les anomalies critiques ET majeures
         if: always()
         env:
           AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+          RAGE_OUTCOME: ${{ steps.rage.outcome }}
         run: |
-          if [ "$AUDIT_OUTCOME" != "success" ]; then
-            echo "::error::Agent NOVICE interrompu ou erreur critique. Voir les rapports."
+          if [ "$AUDIT_OUTCOME" != "success" ] || [ "$RAGE_OUTCOME" != "success" ]; then
+            echo "::error::Audit en echec : anomalie majeure/critique ou erreur d'execution. Lire les rapports NOVICE et RAGE."
             exit 1
           fi
