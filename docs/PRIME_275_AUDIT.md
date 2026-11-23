@@ -109,6 +109,22 @@ Tests : `native/nightmare_forge_test.cjs` (moteur : légalité, déterminisme, a
 - **Certification formelle carte par carte** : la relecture manuelle des 150 textes officiels est faite, mais le registre exige que chacun des 280 segments soit relié à un test indépendant (122/280 aujourd'hui). Le verrou NIGHTMARE reste donc fermé.
 - **PvP public**, **signature permanente de l'APK** : inchangés (voir `docs/prime_272_readiness.md`).
 
+## 2.7.6 — Éditeur de deck : ajouter toutes les cartes voulues
+
+**Problème signalé.** Dans « Nouveau deck », sans Légende choisie, le catalogue restait vide et on ne pouvait ajouter aucune carte.
+- **Cause.** Les limites de RAM se calculent à partir des trois Légendes. Sans Légende, elles valent 0 pour toutes les couleurs, et le filtre masquait donc toutes les cartes.
+- **Autre défaut, même origine.** Choisir ensuite des Légendes **supprimait en silence** les cartes que les Légendes ne pouvaient pas jouer. Le bouton « Compléter » en faisait autant.
+
+**Maintenant :**
+- Les 124 cartes sont ajoutables à tout moment, avant ou après le choix des Légendes. Tant que les trois Légendes ne sont pas choisies, aucune carte n'est considérée comme illégale.
+- Une carte hors couleur ou hors RAM n'est jamais supprimée. Elle est marquée « ⚠ hors Légendes » dans le catalogue et « ⚠ non jouable » dans le deck. Un message l'annonce, et l'enregistrement reste bloqué tant que le deck n'est pas légal.
+- Une case « Seulement les cartes jouables avec mes Légendes » filtre le catalogue, et le filtre de couleur propose toutes les couleurs.
+- « Compléter » garde toutes vos cartes et ne complète qu'avec des cartes jouables.
+- Dans l'onglet « Mon deck » vide, un bouton ramène au catalogue.
+- Test `native/deck_editor_276.cjs` (19 contrôles dans Chromium). Il reproduit le cas de la capture : sur 2.7.5 il échoue, car le catalogue ne contient aucun bouton « + », et sur 2.7.6 il passe.
+
+Aucune règle ni aucun effet de carte n'est modifié : `engine.js` reste identique. Les workflows 2.7.5 ne se lancent plus que manuellement ; 2.7.6 a les siens (`prime276-preflight.yml`, `publish-prime276-ota.yml`).
+
 ## Reproduire
 
 ```bash
