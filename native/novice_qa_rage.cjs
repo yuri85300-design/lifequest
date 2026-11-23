@@ -133,7 +133,7 @@ async function auditRoutes(page,{mobile=true,fullAxe=true}={}){
   await home(page);
   const routes=await page.locator('.hub-home [data-nav]').evaluateAll(list=>
     [...new Set(list.map(el=>el.getAttribute('data-nav')).filter(Boolean))]);
-  const priority=['setup','decks','cards','academy','collection','lab','puzzles','analyse','journal',
+  const priority=['story','setup','decks','cards','academy','collection','lab','puzzles','analyse','journal',
     'rules','campaign','career'];
   const sorted=priority.filter(x=>routes.includes(x)).concat(routes.filter(x=>!priority.includes(x)));
   check(sorted.length>=9,'Too few discoverable home routes: '+sorted.length);
@@ -141,7 +141,7 @@ async function auditRoutes(page,{mobile=true,fullAxe=true}={}){
     await task(page,'Route '+name,async()=>{
       await route(page,name);
       await layout(page,name,mobile);
-      if(fullAxe&&['setup','decks','cards','collection','academy','rules','lab'].includes(name))
+      if(fullAxe&&['story','setup','decks','cards','collection','academy','rules','lab'].includes(name))
         await accessibility(page,name);
     },{severity:'major'});
   }
@@ -306,7 +306,7 @@ async function performanceTorture(page){
 }
 async function randomWalk(page){
   await task(page,'Adversarial seeded exploration of live controls',async()=>{
-    const routes=['academy','cards','collection','decks','setup','puzzles','analyse','journal','rules','campaign','career','lab'];
+    const routes=['story','academy','cards','collection','decks','setup','puzzles','analyse','journal','rules','campaign','career','lab'];
     const used=new Map();
     await home(page);
     for(let i=0;i<maxActions;i++){
