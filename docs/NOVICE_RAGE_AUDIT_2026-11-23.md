@@ -1,3 +1,13 @@
+> **Clôture de l'audit — PRIME 2.7.9 publiée le 23 novembre 2026**  
+> Les anomalies ci-dessous sont les constats historiques de PRIME 2.7.8. Leurs correctifs sont intégrés dans `native/prime_v279_runtime.html`, `native/collection_advisor.cjs` et le moteur d'audit synchronisé.  
+> **Revalidation du paquet réellement publié :** 42/42 scénarios NOVICE, 74/74 scénarios NOVICE RAGE, 220 actions aléatoires reproductibles, **0 anomalie critique, majeure ou mineure détectée** dans les parcours couverts.  
+> [Publication OTA PRIME 2.7.9](https://github.com/yuri85300-design/lifequest/releases/tag/prime-content-v2.7.9) · [Exécution GitHub Actions validée](https://github.com/yuri85300-design/lifequest/actions/runs/45157644172) · [Rapports et captures](https://github.com/yuri85300-design/lifequest/actions/runs/45157644172/artifacts/14808628904).  
+> Cette validation ne remplace pas l'audit exhaustif des règles officielles ni les essais sur téléphone Android physique.
+
+**Correctifs :** filtrage des decks corrompus avec sauvegarde de récupération, lecture CSV `quantite,carte` et `nom,quantite` (fichiers séparés par virgule, point-virgule ou tabulation), noms accessibles des filtres, sémantique des illustrations de decks, zones de défilement accessibles au clavier, cases et boutons `+ / −` agrandis à 36 px. L'agent de clics aléatoires cible désormais l'élément visible exact sans confondre une fenêtre modale et un bouton inaccessible.
+
+---
+
 # NOVICE RAGE — constats du 23 novembre 2026
 
 **Révision testée :** PRIME 2.7.8, runtime reconstruit depuis le dépôt.  
