@@ -12,7 +12,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const root=__dirname;
-const RELEASE_RUNTIME=process.env.PRIME_RUNTIME||'prime_v275_runtime.html';
+const RELEASE_RUNTIME=process.env.PRIME_RUNTIME||'prime_v276_runtime.html';
 const html=fs.readFileSync(path.join(root,RELEASE_RUNTIME),'utf8');
 const START='/* Android: exporting JSON via the system document picker';
 const END='// ============================================================================\n//  SEPT GIGS — interface';

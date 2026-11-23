@@ -5,7 +5,7 @@
  * The certification flag stays false: nothing is labelled officially certified.
  */
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const file=process.env.PRIME_RUNTIME||'prime_v275_runtime.html';
+const file=process.env.PRIME_RUNTIME||'prime_v276_runtime.html';
 const html=fs.readFileSync(path.join(__dirname,file),'utf8');
 const count=s=>html.split(s).length-1;
 assert.equal(count('const NIGHTMARE_TRAINING_CERTIFIED = false;'),1,'Certification flag must stay false');

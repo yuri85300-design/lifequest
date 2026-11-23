@@ -1,29 +1,5 @@
 name: PRIME OTA 2.7.5 - Audit des regles et compatibilite des cartes
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/publish-prime275-ota.yml'
-      - 'native/prime_v275_runtime.html'
-      - 'native/audit_271.cjs'
-      - 'native/audit_271_puzzles.cjs'
-      - 'native/audit_271_ai.cjs'
-      - 'native/audit_272.cjs'
-      - 'native/audit_261.cjs'
-      - 'native/audit_262.cjs'
-      - 'native/audit_263.cjs'
-      - 'native/audit_270.cjs'
-      - 'native/audit_271_ai.cjs'
-      - 'native/audit_271_puzzles.cjs'
-      - 'native/ota_manifest_guard.py'
-      - 'native/audit_ota_guard.py'
-      - 'multiplayer/protocol.mjs'
-      - 'multiplayer/protocol.test.mjs'
-      - 'native/audit_257.cjs'
-      - 'native/build_ota_content.py'
-      - 'native/engine.js'
-      - 'native/extract_engine.cjs'
-      - 'native/audit_275_chaos.cjs'
   workflow_dispatch:
 permissions:
   contents: write
