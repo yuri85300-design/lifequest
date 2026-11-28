@@ -430,3 +430,5 @@ module.exports={
      branches:['bottom-deck-on-resurrection','bottom-deck-no-eligible-unit','gear-follows-host-defeat']}
    ]}
 };
+
+// Review-branch assertion: official fingerprints and independent branch cases must all match.

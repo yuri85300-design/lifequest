@@ -56,3 +56,5 @@ function engineApi(script) {
  for(const c of cases)console.log(c.detection,c.mutation,c.card,c.failingIndependentOracles.join(';'));
  if(killed!==cases.length)process.exitCode=1;
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1});
+
+// Branch-level regression: each deliberately wrong variant must be detected.
