@@ -1,4 +1,4 @@
-name: PRIME OTA 2.8.1 - Les Cendres du Signal : 150 decisions tactiques
+name: 'PRIME OTA 2.8.1 - Les Cendres du Signal : 150 decisions tactiques'
 on:
   push:
     branches: [main]
