@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version_code": 28000,
-  "version": "2.8.0",
+  "version_code": 28001,
+  "version": "2.8.1",
   "min_shell": 25004,
-  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.8.0/prime-content-v2.8.0.zip",
-  "sha256": "6b32d66e705cacd37198227c18dd274b5848716158332ef0cae51d1c4ab6de41",
-  "notes": "Les Cendres du Signal : 15 chapitres, 150 dossiers, 300 questions, synergies, choix et duels reels facultatifs. Sauvegardes conservees."
+  "url": "https://github.com/yuri85300-design/lifequest/releases/download/prime-content-v2.8.1/prime-content-v2.8.1.zip",
+  "sha256": "cf6d304bc502bac2b383c66138335230bd80c31e9264b1ae43cc0b7cf51df954",
+  "notes": "Les Cendres du Signal : 15 chapitres, 150 cartes, 300 quiz, 150 decisions de terrain, 15 ateliers de paires, duels reels. Anciennes sauvegardes conservees."
 }
