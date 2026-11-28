@@ -42,3 +42,17 @@ Les anciens decks et données de collection ne sont pas réinitialisés. Les vic
 - `.github/workflows/story-prime280-preflight.yml` et `.github/workflows/publish-prime280-ota.yml` — test de construction et blocage de publication tant que les scénarios, les vérifications de règles et NOVICE RAGE ne passent pas.
 
 **Tests à compléter à terme :** parcours de jeu longs, lectorat en situation réelle, compatibilité des anciens Android physiques, qualité de toutes les interactions combinatoires, validation humaine du rythme du récit. Une exécution verte ne constitue pas une garantie universelle d'absence de bugs.
+
+## Extension PRIME 2.8.1 — entraînement appliqué sur toutes les cartes
+
+Cette version ajoute un **exercice de décision tactique pour chacune des 150 cartes**, après les deux questions de lecture déjà présentes. Le joueur doit choisir l'action conforme à la catégorie et, lorsqu'ils sont présents, aux mots-clés pertinents (par exemple BLOCKER ou RAPIDE). Une mauvaise réponse n'est pas validée ; une bonne décision est enregistrée localement. Les exercices sont des mises en situation pédagogiques sur la légalité, **pas des résolutions de partie exécutées par le moteur**.
+
+Chaque chapitre présente aussi un **atelier d'association de deux cartes prises parmi ses dix dossiers**. Les 15 ateliers sont différents ; ils demandent de comparer les textes, les couleurs, la RAM, les coûts et les fenêtres d'action. Ils sont clairement signalés comme des pistes de construction à vérifier, non comme des combos d'effets officiels certifiés. Les six synergies documentées restent disponibles à côté.
+
+**Parcours requis pour les nouveaux chapitres :** dix dossiers étudiés (deux questions chacun), dix décisions tactiques correctes, un contrôle de synergie et un choix narratif. Les duels contre l'IA restent facultatifs et une victoire n'est comptée que lorsqu'elle provient réellement du moteur.
+
+**Sauvegardes existantes :** les chapitres légitimement terminés en 2.8.0 restent terminés après migration vers le schéma 2. Les chapitres non terminés acquièrent les nouvelles décisions tactiques à réaliser. La sauvegarde conserve la clé `septgigs.storyCindersV1` et n'affecte pas les decks, la collection ni les autres campagnes.
+
+**Sources et validations :** `native/story_campaign_281.cjs`, `native/story_ui_281.cjs`, `native/prime_v281_runtime.html`, `native/story_campaign_281.test.cjs` et workflows `story-prime281-preflight.yml` et `publish-prime281-ota.yml`. La campagne vérifie 150 dossiers, 300 questions originales, 150 décisions tactiques, 15 ateliers distincts, la non-validation des réponses incorrectes, les sauvegardes et le déroulement séquentiel.
+
+**Limites :** ces 150 décisions ne sont pas 150 validations indépendantes de tous les effets. Les interactions combinatoires du jeu et les errata officiels nécessitent toujours des tests sémantiques distincts, et les duels réels restent essentiels pour apprendre à jouer.
